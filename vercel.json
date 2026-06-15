@@ -1,15 +1,24 @@
 {
   "version": 2,
+  "functions": {
+    "news.js": { "runtime": "@vercel/node" },
+    "analyze.js": { "runtime": "@vercel/node" },
+    "country.js": { "runtime": "@vercel/node" },
+    "threats.js": { "runtime": "@vercel/node" }
+  },
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/(.*)", "dest": "/public/$1" }
+    { "src": "/api/news", "dest": "/news.js" },
+    { "src": "/api/analyze", "dest": "/analyze.js" },
+    { "src": "/api/country", "dest": "/country.js" },
+    { "src": "/api/threats", "dest": "/threats.js" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ],
   "headers": [
     {
       "source": "/api/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
       ]
     }
