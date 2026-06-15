@@ -15,7 +15,7 @@ const BASE_THREATS = [
   { id:'cyb-001', title:'Global — State Cyber Operations', severity:'MEDIUM', lat:50.1, lon:8.6, type:'cyber', country:'DE', desc:'Russian/Chinese cyber campaigns targeting EU financial infrastructure.', updated: true },
 ];
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const threats = BASE_THREATS.map(t => ({

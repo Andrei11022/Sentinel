@@ -36,7 +36,7 @@ const STATIC_CONFLICTS = [
   { country: 'Syria', region: 'Deir ez-Zor', event: 'Armed clash', sub_event: 'Ground attack', fatalities: 9, lat: 35.3, lon: 40.1, date: '2026-06-11', notes: 'ISIS cells ambushed SDF patrol in eastern Syria' },
 ];
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { country, limit = 20 } = req.query;

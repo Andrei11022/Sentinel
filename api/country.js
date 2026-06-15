@@ -21,7 +21,7 @@ const COUNTRY_INTEL = {
   SD: { flag:'🇸🇩', leader:'SAF vs RSF (civil war)', ideology:'Military factions', religion:'Sunni Islam 97%', currency:'SDG (collapsed)', elections:'None', gdp:'$30B', military:'SAF vs RSF civil war', alliance:'SAF: Egypt. RSF: UAE/Wagner', rivals:'Internal civil war since 2023', riskLevel:'CRITICAL' },
 };
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { code } = req.query;

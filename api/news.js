@@ -42,7 +42,7 @@ function credibilityScore(source) {
   return 70;
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
