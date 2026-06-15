@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SENTINEL // Global Intelligence</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap');
+:root{
+  --bg:#030912;--panel:#05101e;--panel2:#060d1a;--border:#0d1e36;
+  --nb:#00d4ff;--nr:#ff2244;--no:#ff7700;--ng:#00ff88;--np:#cc44ff;
+  --text:#b8d0ef;--muted:#2a4a6a;--dim:#1a3050;
+  --gb:0 0 16px #00d4ff55;--gr:0 0 16px #ff224455;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;overflow:hidden;}
+
+/* LOADER */
+#loader{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;}
+#loader h1{font-family:'Rajdhani',sans-serif;font-size:3rem;font-weight:700;letter-spacing:.45em;color:var(--nb);text-shadow:var(--gb);animation:pulse 1.4s ease-in-out infinite;}
+.lbar{width:320px;height:2px;background:var(--border);border-radius:2px;overflow:hidden;}
+.lfill{height:100%;width:0;background:linear-gradient(90deg,#0044ff,var(--nb));animation:fill 2.8s ease-in-out forwards;}
+.lstatus{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--nb);letter-spacing:.12em;min-height:16px;}
+@keyframes fill{to{width:100%;}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+/* APP LAYOUT */
+#app{display:none;width:100vw;height:100vh;grid-template-columns:1fr 390px;grid-template-rows:52px 1fr 155px;grid-template-areas:"tb tb" "gl sb" "st sb";}
+
+/* TOPBAR */
+#tb{grid-area:tb;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#040a1699;border-bottom:1px solid var(--border);backdrop-filter:blur(10px);z-index:100;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:1.25rem;font-weight:700;letter-spacing:.3em;color:var(--nb);text-shadow:var(--gb);}
+.logo em{color:var(--nr);font-style:normal;}
+.tmeta{display:flex;gap:20px;font-family:'Share Tech Mono',monospace;font-size:.63rem;color:var(--muted);}
+.tmeta b{color:var(--nb);}
+#tclock{color:var(--ng);}
+.tbns{display:flex;gap:8px;}
+.btn{font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:700;letter-spacing:.08em;padding:5px 13px;border:1px solid currentColor;background:transparent;cursor:pointer;transition:all .2s;color:var(--nb);}
+.btn:hover{background:#00d4ff12;box-shadow:var(--gb);}
+.btn.red{color:var(--nr);}
+.btn.red:hover{background:#ff224412;box-shadow:var(--gr);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* GLOBE */
+#gl{grid-area:gl;position:relative;overflow:hidden;background:radial-gradient(ellipse at center, #040f1e 0%, var(--bg) 100%);}
+#gc{width:100%;height:100%;display:block;}
+#ghud{position:absolute;top:12px;left:14px;font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--dim);line-height:1.9;pointer-events:none;}
+.rbadge{display:inline-block;font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.1em;padding:2px 9px;border:1px solid var(--nr);color:var(--nr);text-shadow:var(--gr);box-shadow:var(--gr);margin-top:3px;}
+
+/* LAYER CONTROLS */
+#layers{position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:5px;}
+.layer-btn{font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:4px 8px;border:1px solid var(--border);background:#040a16cc;color:var(--muted);cursor:pointer;transition:all .2s;text-align:left;backdrop-filter:blur(4px);}
+.layer-btn.active{border-color:var(--nb);color:var(--nb);background:#00d4ff0a;}
+
+/* TOOLTIPS */
+#ctip{position:absolute;background:#04091aee;border:1px solid var(--nb);box-shadow:var(--gb);padding:13px 15px;max-width:290px;pointer-events:none;display:none;z-index:200;backdrop-filter:blur(12px);font-size:.75rem;line-height:1.65;}
+#ctip h3{font-family:'Rajdhani',sans-serif;font-size:1.05rem;font-weight:700;color:var(--nb);margin-bottom:5px;display:flex;align-items:center;gap:6px;}
+#ctip .cr{display:inline-block;font-size:.58rem;padding:1px 6px;border-radius:2px;font-family:'Share Tech Mono',monospace;}
+.rCRITICAL{background:#ff224422;color:var(--nr);border:1px solid var(--nr);}
+.rHIGH{background:#ff770022;color:var(--no);border:1px solid var(--no);}
+.rMEDIUM{background:#ffaa0022;color:#ffaa00;border:1px solid #ffaa00;}
+.rLOW{background:#00d4ff15;color:var(--nb);border:1px solid var(--nb);}
+.rUNKNOWN{background:#1a2a3a;color:var(--muted);border:1px solid var(--border);}
+#ctip .row{display:flex;justify-content:space-between;border-bottom:1px solid #0d1e3644;padding:3px 0;gap:10px;}
+#ctip .row span:first-child{color:var(--muted);font-size:.66rem;white-space:nowrap;}
+#ctip .row span:last-child{color:var(--text);text-align:right;font-size:.7rem;}
+#ctip .rel{margin-top:6px;font-size:.67rem;color:#1a4a6a;line-height:1.5;border-top:1px solid var(--border);padding-top:5px;}
+
+#mtip{position:absolute;background:#04091aee;border:1px solid var(--nb);box-shadow:var(--gb);padding:11px 13px;max-width:240px;pointer-events:none;display:none;z-index:201;backdrop-filter:blur(10px);}
+#mtip .mtt{font-family:'Rajdhani',sans-serif;font-size:.95rem;font-weight:700;color:var(--nb);margin-bottom:3px;}
+.sH{background:#ff224422;color:var(--nr);border:1px solid var(--nr);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;margin-bottom:4px;}
+.sM{background:#ff770022;color:var(--no);border:1px solid var(--no);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;margin-bottom:4px;}
+.sL{background:#00d4ff15;color:var(--nb);border:1px solid var(--nb);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;margin-bottom:4px;}
+#mtip .md{font-size:.73rem;color:var(--text);margin-bottom:4px;}
+#mtip .mt{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);}
+#mtip .msc{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--np);margin-top:3px;}
+
+/* STATS */
+#st{grid-area:st;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);border-right:1px solid var(--border);}
+.sc{background:var(--panel);padding:12px 14px;display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;}
+.sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;}
+.sc.cb::before{background:var(--nb);box-shadow:var(--gb);}
+.sc.cr::before{background:var(--nr);box-shadow:var(--gr);}
+.sc.co::before{background:var(--no);}
+.sc.cg::before{background:var(--ng);}
+.slb{font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
+.sv{font-family:'Rajdhani',sans-serif;font-size:1.55rem;font-weight:700;line-height:1;}
+.sc.cb .sv{color:var(--nb);text-shadow:var(--gb);}
+.sc.cr .sv{color:var(--nr);text-shadow:var(--gr);}
+.sc.co .sv{color:var(--no);}
+.sc.cg .sv{color:var(--ng);}
+.ss{font-size:.6rem;color:var(--muted);}
+
+/* SIDEBAR */
+#sb{grid-area:sb;background:var(--panel2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:0 0 auto;padding:9px 9px;font-family:'Rajdhani',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.05em;background:transparent;border:none;border-bottom:2px solid transparent;color:#5a7a9a;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.tab.active{color:var(--nb);border-bottom-color:var(--nb);}
+.tabp{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.tabp.active{display:flex;}
+.ph{padding:7px 12px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);letter-spacing:.1em;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;justify-content:space-between;align-items:center;}
+.ph .pfeed{color:var(--ng);font-size:.56rem;}
+.scroll{flex:1;overflow-y:auto;padding:5px;}
+.scroll::-webkit-scrollbar{width:3px;}
+.scroll::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* NEWS */
+.ni{padding:8px 10px;border-bottom:1px solid #0d1e3630;cursor:pointer;transition:background .12s;}
+.ni:hover{background:#00d4ff07;}
+.ntag{font-family:'Share Tech Mono',monospace;font-size:.57rem;letter-spacing:.06em;margin-bottom:3px;}
+.ntag.CONFLICT{color:var(--nr);}
+.ntag.MILITARY{color:#ff6600;}
+.ntag.NUCLEAR{color:var(--np);}
+.ntag.CYBER{color:#00ff88;}
+.ntag.GEOPOLITICS{color:var(--no);}
+.ntag.DISASTER{color:#ffaa00;}
+.ntag.INTEL{color:var(--nb);}
+.nh{font-size:.79rem;line-height:1.4;color:var(--text);}
+.nm{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px;}
+.nsrc{padding:1px 5px;border:1px solid var(--border);font-size:.54rem;}
+.nsc{font-family:'Share Tech Mono',monospace;font-size:.56rem;}
+.nsc.hi{color:var(--nr);}
+.nsc.me{color:var(--no);}
+.nsc.lo{color:var(--nb);}
+
+/* WARNINGS */
+.wi{padding:8px 10px;border:1px solid var(--border);margin-bottom:4px;cursor:pointer;transition:border-color .2s;position:relative;}
+.wi:hover{border-color:var(--nb);}
+.witp{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
+.witn{font-family:'Rajdhani',sans-serif;font-size:.86rem;font-weight:600;}
+.wisv{font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:1px 5px;}
+.wd{font-size:.7rem;color:var(--muted);line-height:1.4;}
+.wsc{font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--np);margin-top:2px;}
+.wdot{position:absolute;right:7px;bottom:7px;width:5px;height:5px;border-radius:50%;animation:blink 1.6s ease-in-out infinite;}
+.dH{background:var(--nr);box-shadow:0 0 6px var(--nr);}
+.dM{background:var(--no);box-shadow:0 0 6px var(--no);}
+.dL{background:var(--nb);box-shadow:0 0 6px var(--nb);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.1}}
+
+/* CORRELATION */
+.cc{border:1px solid var(--border);padding:9px;margin-bottom:6px;}
+.ccti{font-family:'Rajdhani',sans-serif;font-size:.88rem;font-weight:700;color:var(--nb);margin-bottom:3px;}
+.ccsc{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:1px 7px;background:#00d4ff10;border:1px solid var(--nb);color:var(--nb);margin-bottom:4px;}
+.ccac{font-size:.65rem;color:var(--np);margin-bottom:3px;font-family:'Share Tech Mono',monospace;}
+.ccd{font-size:.71rem;color:var(--muted);line-height:1.5;}
+
+/* INTEL MAP */
+#imwrap{flex:1;position:relative;overflow:hidden;min-height:200px;}
+#imsvg{width:100%;height:100%;}
+.anode{cursor:pointer;}
+.anode:hover rect{filter:brightness(1.6);}
+.ileg{padding:5px 10px;font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--muted);border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0;}
+.ileg span{display:flex;align-items:center;gap:4px;}
+.ileg i{display:inline-block;width:10px;height:2px;border-radius:1px;}
+
+/* POLITICIANS */
+.pi{padding:8px 10px;border:1px solid var(--border);margin-bottom:4px;}
+.pitp{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+.pifg{font-size:1rem;}
+.pinm{font-family:'Rajdhani',sans-serif;font-size:.88rem;font-weight:700;color:var(--nb);}
+.piti{font-size:.65rem;color:var(--no);font-family:'Share Tech Mono',monospace;}
+.piinf{font-size:.7rem;color:var(--muted);line-height:1.5;}
+.pitg{display:inline-block;font-size:.56rem;padding:1px 5px;border:1px solid var(--border);margin-right:3px;margin-top:3px;}
+.pitg.right{border-color:var(--nr);color:var(--nr);}
+.pitg.left{border-color:#4488ff;color:#4488ff;}
+.pitg.center{border-color:var(--no);color:var(--no);}
+.pitg.auth{border-color:var(--np);color:var(--np);}
+
+/* MIDDLE EAST */
+.mec{border:1px solid var(--border);margin-bottom:5px;}
+.meh{padding:7px 9px;background:#040a16;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;cursor:pointer;}
+.meh:hover{background:#05101e;}
+.mefg{font-size:.95rem;}
+.mecn{font-family:'Rajdhani',sans-serif;font-size:.86rem;font-weight:700;color:var(--nb);}
+.mest{font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:1px 6px;margin-left:auto;}
+.mest.war{background:#ff224415;color:var(--nr);border:1px solid var(--nr);}
+.mest.tension{background:#ff770015;color:var(--no);border:1px solid var(--no);}
+.mest.stable{background:#00ff8815;color:var(--ng);border:1px solid var(--ng);}
+.meb{padding:8px 10px;font-size:.7rem;color:var(--muted);line-height:1.6;display:none;}
+.meb.open{display:block;}
+
+/* BRIEF BOX */
+#briefbox{padding:9px 12px;border-top:1px solid var(--border);flex-shrink:0;font-size:.71rem;line-height:1.7;color:var(--muted);font-family:'Share Tech Mono',monospace;max-height:105px;overflow-y:auto;display:none;}
+#briefbox.show{display:block;}
+#briefbox b{color:var(--nb);}
+
+/* ENTITIES PANEL */
+.etag{display:inline-flex;align-items:center;gap:4px;font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:2px 7px;border:1px solid var(--border);margin:2px;cursor:pointer;transition:border-color .15s;}
+.etag:hover{border-color:var(--nb);}
+.etag.person{border-color:#cc44ff55;color:var(--np);}
+.etag.org{border-color:#00d4ff55;color:var(--nb);}
+.etag.location{border-color:#ff770055;color:var(--no);}
+
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,#00000010 2px,#00000010 4px);pointer-events:none;z-index:9990;}
+</style>
+</head>
+<body>
+<div id="loader">
+  <h1>SENTINEL</h1>
+  <div class="lbar"><div class="lfill"></div></div>
+  <div class="lstatus" id="ls">INITIALIZING SATELLITE FEED...</div>
+</div>
+
+<div id="app">
+  <div id="tb">
+    <div class="logo">SENTINEL <em>//</em> GLOBAL INTELLIGENCE</div>
+    <div class="tmeta">
+      <span>STATUS: <b>ACTIVE</b></span>
+      <span>THREATS: <b id="tct">—</b></span>
+      <span>RISK: <b id="tri">—</b></span>
+      <span>SOURCES: <b id="tsrc">LOADING</b></span>
+      <span id="tclock">00:00:00 UTC</span>
+    </div>
+    <div class="tbns">
+      <button class="btn" id="briefbtn">🔊 BRIEF ME</button>
+      <button class="btn red" id="alertbtn">⚠ ALERT MODE</button>
+    </div>
+  </div>
+
+  <div id="gl">
+    <canvas id="gc"></canvas>
+    <div id="ghud">
+      <div>LAT/LON TRACKING ACTIVE</div>
+      <div>MARKERS: <span id="mct">0</span></div>
+      <div>FEED: MULTI-SOURCE LIVE</div>
+      <div class="rbadge" id="rbadge">RISK: —</div>
+      <div style="margin-top:6px;font-size:.56rem;color:#0f2535">CLICK COUNTRY → INTEL CARD<br>DRAG ROTATE · SCROLL ZOOM<br>DBL-CLICK TOGGLE AUTO-ROTATE</div>
+    </div>
+    <div id="layers">
+      <button class="layer-btn active" data-layer="threats">⚠ THREATS</button>
+      <button class="layer-btn" data-layer="alliances">🔗 ALLIANCES</button>
+      <button class="layer-btn" data-layer="conflicts">⚔ CONFLICTS</button>
+    </div>
+    <div id="ctip"></div>
+    <div id="mtip">
+      <div class="mtt" id="mt-title"></div>
+      <div id="mt-sev"></div>
+      <div class="md" id="mt-desc"></div>
+      <div class="mt" id="mt-time"></div>
+      <div class="msc" id="mt-score"></div>
+    </div>
+  </div>
+
+  <div id="st">
+    <div class="sc cr"><div class="slb">HIGH SEVERITY</div><div class="sv" id="sh">—</div><div class="ss">Active conflicts</div></div>
+    <div class="sc co"><div class="slb">MEDIUM SEVERITY</div><div class="sv" id="sm">—</div><div class="ss">Developing</div></div>
+    <div class="sc cb"><div class="slb">TOTAL MONITORED</div><div class="sv" id="st2">—</div><div class="ss">Events tracked</div></div>
+    <div class="sc cg"><div class="slb">GLOBAL RISK INDEX</div><div class="sv" id="sri">—</div><div class="ss">Updated live</div></div>
+  </div>
+
+  <div id="sb">
+    <div class="tabs">
+      <button class="tab active" data-tab="news">📡 BRIEFING</button>
+      <button class="tab" data-tab="warnings">⚠ WARNINGS</button>
+      <button class="tab" data-tab="analytics">🔗 ANALYTICS</button>
+      <button class="tab" data-tab="intel">👁 INTEL MAP</button>
+      <button class="tab" data-tab="leaders">🎯 LEADERS</button>
+      <button class="tab" data-tab="mideast">🌙 MIDEAST</button>
+    </div>
+
+    <div class="tabp active" id="tab-news">
+      <div class="ph">// LIVE INTELLIGENCE FEED<span class="pfeed" id="feedstatus">● CONNECTING</span></div>
+      <div class="scroll" id="newslist"></div>
+      <div id="briefbox"></div>
+    </div>
+    <div class="tabp" id="tab-warnings">
+      <div class="ph">// ACTIVE WARNINGS — GLOBAL</div>
+      <div class="scroll" id="warnlist"></div>
+    </div>
+    <div class="tabp" id="tab-analytics">
+      <div class="ph">// CORRELATION ENGINE — AI ANALYSIS</div>
+      <div class="scroll" id="analytics"><div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--dim)">Awaiting feed...</div></div>
+    </div>
+    <div class="tabp" id="tab-intel">
+      <div class="ph">// GEOPOLITICAL ACTOR NETWORK</div>
+      <div id="imwrap"><svg id="imsvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="ileg">
+        <span><i style="background:#ff2244"></i>Adversarial</span>
+        <span><i style="background:#ff7700"></i>Allied</span>
+        <span><i style="background:#00d4ff"></i>Diplomatic</span>
+        <span><i style="background:#00ff88"></i>Economic</span>
+      </div>
+    </div>
+    <div class="tabp" id="tab-leaders">
+      <div class="ph">// WORLD LEADERS & INFLUENTIAL FIGURES</div>
+      <div class="scroll" id="leaders"></div>
+    </div>
+    <div class="tabp" id="tab-mideast">
+      <div class="ph">// MIDDLE EAST INTELLIGENCE</div>
+      <div class="scroll" id="mideast"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════
+// API CONFIG - auto-detects environment
+// ═══════════════════════════════════
+const IS_LOCAL = location.hostname === 'localhost' || location.protocol === 'file:';
+const API = IS_LOCAL ? 'https://sentinel-intelligence.vercel.app/api' : '/api';
+// If running locally before deploy, use the Vercel URL above.
+// After deploy, relative /api paths work automatically.
+
+// ═══════════════════════════════════
+// GLOBE SETUP
+// ═══════════════════════════════════
+let scene, camera, renderer, globeMesh, markers=[], countrySpheres=[];
+let isDrag=false, prevMouse={x:0,y:0};
+let rotX=0, rotY=0, targetRotX=0, targetRotY=0;
+let autoRot=true;
+let raycaster, mouse;
+const GR=1.6;
+let activeLayers={threats:true,alliances:false,conflicts:false};
+let allianceArcs=[], conflictArcs=[];
+
+const COUNTRY_CENTERS=[
+  {code:'US',lat:38,lon:-97},{code:'RU',lat:61,lon:100},{code:'CN',lat:35,lon:105},
+  {code:'UA',lat:49,lon:32},{code:'IR',lat:32,lon:53},{code:'IL',lat:31.5,lon:34.8},
+  {code:'SA',lat:24,lon:45},{code:'IN',lat:20,lon:77},{code:'TR',lat:39,lon:35},
+  {code:'DE',lat:51,lon:10},{code:'GB',lat:54,lon:-2},{code:'FR',lat:46,lon:2},
+  {code:'KP',lat:40,lon:127},{code:'JP',lat:36,lon:138},{code:'BR',lat:-10,lon:-53},
+  {code:'PK',lat:30,lon:70},{code:'SD',lat:15,lon:32},{code:'MM',lat:19,lon:96},
+  {code:'YE',lat:15,lon:48},{code:'SY',lat:35,lon:38},{code:'LB',lat:33.8,lon:35.9},
+  {code:'VE',lat:8,lon:-66},{code:'ML',lat:17,lon:-4},{code:'LY',lat:26,lon:17},
+];
+
+function ll2v3(lat,lon,r){
+  const phi=(90-lat)*Math.PI/180, theta=(lon+180)*Math.PI/180;
+  return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta));
+}
+
+function initGlobe(){
+  const cv=document.getElementById('gc');
+  const W=cv.clientWidth,H=cv.clientHeight;
+  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+  renderer.setSize(W,H); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setClearColor(0x000000,0);
+  scene=new THREE.Scene();
+  camera=new THREE.PerspectiveCamera(45,W/H,0.1,100);
+  camera.position.set(0,0,4.5);
+
+  scene.add(new THREE.AmbientLight(0x112233,2.5));
+  const sun=new THREE.DirectionalLight(0x5588bb,2); sun.position.set(5,3,5); scene.add(sun);
+  const rim=new THREE.DirectionalLight(0x001133,1.2); rim.position.set(-5,-2,-3); scene.add(rim);
+
+  const geo=new THREE.SphereGeometry(GR,64,64);
+  const tl=new THREE.TextureLoader();
+  const tex=tl.load(
+    'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/land_ocean_ice_cloud_2048.jpg',
+    ()=>{},undefined,()=>{
+      // Fallback canvas texture
+      const tc=document.createElement('canvas'); tc.width=2048; tc.height=1024;
+      const cx=tc.getContext('2d');
+      cx.fillStyle='#031525'; cx.fillRect(0,0,2048,1024);
+      cx.strokeStyle='#0a2540'; cx.lineWidth=1;
+      for(let i=0;i<=18;i++){cx.beginPath();cx.moveTo(0,i*1024/18);cx.lineTo(2048,i*1024/18);cx.stroke();}
+      for(let i=0;i<=36;i++){cx.beginPath();cx.moveTo(i*2048/36,0);cx.lineTo(i*2048/36,1024);cx.stroke();}
+      function ll(lo,la){return[(lo+180)/360*2048,(90-la)/180*1024];}
+      function poly(pts){cx.fillStyle='#0d3a5c';cx.strokeStyle='#1a5a8a';cx.lineWidth=1.5;cx.beginPath();pts.forEach(([lo,la],i)=>{const[x,y]=ll(lo,la);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});cx.closePath();cx.fill();cx.stroke();}
+      poly([[-168,72],[-140,72],[-125,60],[-105,50],[-80,45],[-75,55],[-65,47],[-60,47],[-80,42],[-90,30],[-100,22],[-120,20],[-130,25],[-140,35],[-155,58],[-165,62]]);
+      poly([[-70,76],[-20,76],[-18,70],[-30,60],[-50,60],[-65,68]]);
+      poly([[-75,12],[-60,10],[-50,0],[-35,-5],[-35,-20],[-55,-35],[-65,-55],[-70,-55],[-75,-40],[-80,-10],[-80,0]]);
+      poly([[-10,36],[5,36],[20,38],[30,45],[30,55],[25,60],[15,58],[10,55],[5,52],[-5,48],[-10,44]]);
+      poly([[5,58],[15,58],[28,71],[20,70],[15,65],[10,60]]);
+      poly([[-5,50],[2,51],[2,56],[-5,58],[-6,54]]);
+      poly([[-18,15],[40,15],[50,12],[45,2],[40,-5],[35,-25],[25,-35],[15,-30],[10,-15],[-5,5],[-18,15]]);
+      poly([[30,70],[60,75],[80,73],[100,70],[120,68],[140,70],[160,65],[170,55],[150,45],[130,42],[110,40],[90,38],[70,40],[55,45],[40,50],[30,55],[30,70]]);
+      poly([[35,38],[60,38],[65,25],[55,22],[45,22],[38,28]]);
+      poly([[65,24],[90,24],[88,8],[80,8],[72,20]]);
+      poly([[95,28],[110,20],[110,5],[100,2],[95,5],[90,20]]);
+      poly([[110,20],[130,28],[135,38],[125,42],[115,38],[108,30]]);
+      poly([[130,31],[132,34],[135,38],[136,36],[132,33]]);
+      poly([[114,-22],[122,-18],[136,-12],[142,-10],[148,-18],[152,-28],[150,-38],[142,-38],[130,-32],[116,-32],[114,-22]]);
+      globeMesh.material.map=new THREE.CanvasTexture(tc); globeMesh.material.needsUpdate=true;
+    }
+  );
+  const mat=new THREE.MeshPhongMaterial({map:tex,emissive:new THREE.Color(0x000d1a),emissiveIntensity:0.08,shininess:10,specular:new THREE.Color(0x082030)});
+  globeMesh=new THREE.Mesh(geo,mat); scene.add(globeMesh);
+
+  // Lat/lon wireframe overlay
+  const wg=new THREE.SphereGeometry(GR+0.002,24,16);
+  const wm=new THREE.MeshBasicMaterial({color:0x062040,wireframe:true,transparent:true,opacity:0.22});
+  globeMesh.add(new THREE.Mesh(wg,wm));
+
+  // Atmosphere
+  const ag=new THREE.SphereGeometry(GR*1.045,32,32);
+  const am=new THREE.MeshBasicMaterial({color:0x0033aa,transparent:true,opacity:0.05,side:THREE.FrontSide});
+  scene.add(new THREE.Mesh(ag,am));
+
+  // Country click zones
+  raycaster=new THREE.Raycaster(); mouse=new THREE.Vector2();
+  COUNTRY_CENTERS.forEach(cc=>{
+    const cg=new THREE.SphereGeometry(0.18,8,8);
+    const cm=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});
+    const cs=new THREE.Mesh(cg,cm);
+    cs.position.copy(ll2v3(cc.lat,cc.lon,GR)); cs.userData={code:cc.code};
+    scene.add(cs); countrySpheres.push(cs);
+  });
+
+  cv.addEventListener('mousedown',e=>{isDrag=true;autoRot=false;prevMouse={x:e.clientX,y:e.clientY};});
+  window.addEventListener('mouseup',()=>{isDrag=false;});
+  cv.addEventListener('mousemove',onMove);
+  cv.addEventListener('click',onClick);
+  cv.addEventListener('wheel',e=>{camera.position.z=Math.max(2.4,Math.min(9,camera.position.z+e.deltaY*.005));},{passive:true});
+  cv.addEventListener('dblclick',()=>{autoRot=!autoRot;});
+  window.addEventListener('resize',onResize);
+  animate();
+}
+
+function addMarker(w){
+  const pos=ll2v3(w.lat,w.lon,GR+0.01);
+  const col=w.severity==='HIGH'?0xff2244:w.severity==='MEDIUM'?0xff7700:0x00d4ff;
+  const cg=new THREE.ConeGeometry(0.012,0.06,8);
+  const cm=new THREE.MeshBasicMaterial({color:col});
+  const sp=new THREE.Mesh(cg,cm);
+  sp.position.copy(pos); sp.lookAt(0,0,0); sp.rotateX(Math.PI/2);
+  sp.userData={warning:w}; globeMesh.add(sp);
+  const rg=new THREE.RingGeometry(0.022,0.032,16);
+  const rm=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.8,side:THREE.DoubleSide});
+  const ring=new THREE.Mesh(rg,rm);
+  ring.position.copy(pos); ring.lookAt(0,0,0);
+  ring.userData={phase:Math.random()*Math.PI*2}; globeMesh.add(ring);
+  markers.push({sp,ring,warning:w});
+  document.getElementById('mct').textContent=markers.length;
+}
+
+function addAllianceArcs(){
+  const arcs=[
+    {from:[38,-97],to:[51,10],col:0x00d4ff},
+    {from:[38,-97],to:[54,-2],col:0x00d4ff},
+    {from:[38,-97],to:[31.5,34.8],col:0xff7700},
+    {from:[61,100],to:[32.4,53.6],col:0xff7700},
+    {from:[61,100],to:[40,127],col:0xff7700},
+    {from:[32.4,53.6],to:[31.5,34.8],col:0xff2244},
+    {from:[35,105],to:[61,100],col:0x00ff88},
+  ];
+  arcs.forEach(a=>{
+    const p1=ll2v3(a.from[0],a.from[1],GR+0.03);
+    const p2=ll2v3(a.to[0],a.to[1],GR+0.03);
+    const mid=new THREE.Vector3().addVectors(p1,p2).multiplyScalar(0.5);
+    mid.normalize().multiplyScalar(GR+0.5);
+    const curve=new THREE.QuadraticBezierCurve3(p1,mid,p2);
+    const pts=curve.getPoints(50);
+    const g=new THREE.BufferGeometry().setFromPoints(pts);
+    const m=new THREE.LineBasicMaterial({color:a.col,transparent:true,opacity:0.55,linewidth:1});
+    const arc=new THREE.Line(g,m);
+    arc.userData={isAlliance:true};
+    scene.add(arc); allianceArcs.push(arc);
+    arc.visible=activeLayers.alliances;
+  });
+}
+
+function onMove(e){
+  const cv=document.getElementById('gc');
+  const rect=cv.getBoundingClientRect();
+  if(isDrag){
+    targetRotY+=(e.clientX-prevMouse.x)*.005;
+    targetRotX+=(e.clientY-prevMouse.y)*.005;
+    targetRotX=Math.max(-1.2,Math.min(1.2,targetRotX));
+    prevMouse={x:e.clientX,y:e.clientY};
+    hideTips(); return;
+  }
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const mhits=raycaster.intersectObjects(markers.map(m=>m.sp));
+  if(mhits.length&&mhits[0].object.userData.warning){
+    showMtip(mhits[0].object.userData.warning,e.clientX,e.clientY);
+    cv.style.cursor='pointer';
+  } else {
+    document.getElementById('mtip').style.display='none';
+    cv.style.cursor=isDrag?'grabbing':'grab';
+  }
+}
+
+function onClick(e){
+  if(isDrag) return;
+  const cv=document.getElementById('gc');
+  const rect=cv.getBoundingClientRect();
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const chits=raycaster.intersectObjects(countrySpheres);
+  if(chits.length) showCtip(chits[0].object.userData.code,e.clientX,e.clientY);
+  else hideTips();
+}
+
+async function showCtip(code,x,y){
+  const area=document.getElementById('gl');
+  const rect=area.getBoundingClientRect();
+  const el=document.getElementById('ctip');
+  el.innerHTML=`<h3>🔄 Loading ${code}...</h3>`;
+  let tx=x-rect.left+14, ty=y-rect.top-10;
+  if(tx+300>rect.width) tx-=310;
+  if(ty+300>rect.height) ty-=310;
+  el.style.left=tx+'px'; el.style.top=ty+'px'; el.style.display='block';
+  try{
+    const d=await apiGet(`/country?code=${code}`);
+    const rc=d.riskLevel||'UNKNOWN';
+    let html=`<h3>${d.flag||'🏳'} ${code} <span class="cr r${rc}">${rc}</span></h3>`;
+    const rows=[['Leader',d.leader],['Ideology',d.ideology],['Religion',d.religion],['Currency',d.currency],['Elections',d.elections],['GDP',d.gdp],['Military',d.military]];
+    rows.forEach(([k,v])=>{if(v)html+=`<div class="row"><span>${k}</span><span>${v}</span></div>`;});
+    if(d.alliance) html+=`<div class="rel"><b style="color:var(--nb)">Allied:</b> ${d.alliance}</div>`;
+    if(d.rivals) html+=`<div class="rel"><b style="color:var(--nr)">Rivals:</b> ${d.rivals}</div>`;
+    el.innerHTML=html;
+    el.style.left=tx+'px'; el.style.top=ty+'px';
+  }catch(e){el.innerHTML=`<h3>🏳 ${code}</h3><div style="color:var(--muted);font-size:.7rem">Intel not available</div>`;}
+}
+
+function showMtip(w,x,y){
+  const area=document.getElementById('gl');
+  const rect=area.getBoundingClientRect();
+  document.getElementById('mt-title').textContent=w.title;
+  const sev=document.getElementById('mt-sev');
+  sev.innerHTML=`<span class="s${w.severity[0]}">${w.severity}</span>`;
+  document.getElementById('mt-desc').textContent=w.desc;
+  document.getElementById('mt-time').textContent='⏱ '+w.ts;
+  document.getElementById('mt-score').textContent=w.riskScore?`RISK SCORE: ${w.riskScore}/100`:'';
+  const el=document.getElementById('mtip');
+  let tx=x-rect.left+12, ty=y-rect.top-20;
+  if(tx+250>rect.width) tx-=260;
+  el.style.left=tx+'px'; el.style.top=ty+'px'; el.style.display='block';
+}
+
+function hideTips(){
+  document.getElementById('ctip').style.display='none';
+  document.getElementById('mtip').style.display='none';
+}
+
+function flyTo(w){
+  autoRot=false;
+  targetRotY=-(w.lon+180)*Math.PI/180+Math.PI;
+  targetRotX=-(90-w.lat)*Math.PI/180+Math.PI/2;
+}
+
+function onResize(){
+  const cv=document.getElementById('gc');
+  camera.aspect=cv.clientWidth/cv.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(cv.clientWidth,cv.clientHeight);
+}
+
+let t=0;
+function animate(){
+  requestAnimationFrame(animate); t+=0.016;
+  if(autoRot) targetRotY+=0.0014;
+  rotX+=(targetRotX-rotX)*.08; rotY+=(targetRotY-rotY)*.08;
+  globeMesh.rotation.x=rotX; globeMesh.rotation.y=rotY;
+  countrySpheres.forEach(cs=>{cs.rotation.x=rotX;cs.rotation.y=rotY;});
+  allianceArcs.forEach(a=>{a.rotation.x=rotX;a.rotation.y=rotY;});
+  markers.forEach(m=>{
+    const ph=m.ring.userData.phase+t*1.9;
+    const s=1+Math.sin(ph)*.65;
+    m.ring.scale.set(s,s,s); m.ring.material.opacity=0.8-(s-1)*0.8;
+  });
+  renderer.render(scene,camera);
+}
+
+// ═══════════════════════════════════
+// API HELPERS
+// ═══════════════════════════════════
+async function apiGet(path){
+  const r=await fetch(API+path);
+  if(!r.ok) throw new Error('API '+r.status);
+  return r.json();
+}
+async function apiPost(path,body){
+  const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error('API '+r.status);
+  return r.json();
+}
+
+// ═══════════════════════════════════
+// UTIL
+// ═══════════════════════════════════
+function timeAgo(d){
+  const diff=Math.floor((Date.now()-new Date(d))/1000);
+  if(diff<60) return diff+'s ago';
+  if(diff<3600) return Math.floor(diff/60)+'m ago';
+  if(diff<86400) return Math.floor(diff/3600)+'hr ago';
+  return Math.floor(diff/86400)+'d ago';
+}
+function activateTab(name){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tabp').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+// ═══════════════════════════════════
+// DATA LOADING
+// ═══════════════════════════════════
+let liveArticles=[];
+
+async function loadThreats(){
+  try{
+    const d=await apiGet('/threats');
+    const {threats,meta}=d;
+    document.getElementById('sh').textContent=meta.highSeverity;
+    document.getElementById('sm').textContent=meta.mediumSeverity;
+    document.getElementById('st2').textContent=meta.total;
+    document.getElementById('sri').textContent=meta.globalRiskIndex;
+    document.getElementById('tct').textContent=meta.total;
+    document.getElementById('tri').textContent=meta.globalRiskIndex+'/100';
+    document.getElementById('rbadge').textContent='RISK: '+(meta.globalRiskIndex>70?'CRITICAL':meta.globalRiskIndex>40?'ELEVATED':'MODERATE');
+    const wl=document.getElementById('warnlist');
+    wl.innerHTML='';
+    threats.forEach(w=>{
+      addMarker(w);
+      const div=document.createElement('div'); div.className='wi';
+      const dc=w.severity==='HIGH'?'dH':w.severity==='MEDIUM'?'dM':'dL';
+      div.innerHTML=`<div class="witp"><div class="witn">${w.title}</div><span class="wisv s${w.severity[0]}">${w.severity}</span></div><div class="wd">${w.desc}</div><div class="wsc">RISK: ${w.riskScore}/100</div><div class="wdot ${dc}"></div>`;
+      div.onclick=()=>flyTo(w);
+      wl.appendChild(div);
+    });
+  }catch(e){console.error('Threats:',e);}
+}
+
+async function loadNews(){
+  document.getElementById('feedstatus').textContent='● FETCHING...';
+  document.getElementById('feedstatus').style.color='var(--no)';
+  const nl=document.getElementById('newslist');
+  nl.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.67rem;color:var(--dim)">⟳ Connecting to intelligence network...</div>`;
+  try{
+    const d=await apiGet('/news?type=world');
+    liveArticles=d.articles||[];
+    const srcList=[...new Set(liveArticles.map(a=>a.source))];
+    document.getElementById('feedstatus').textContent=`● LIVE — ${srcList.join(', ')}`;
+    document.getElementById('feedstatus').style.color='var(--ng)';
+    document.getElementById('tsrc').textContent=srcList.length+' SOURCES';
+    nl.innerHTML='';
+    liveArticles.forEach(a=>{
+      const div=document.createElement('div'); div.className='ni';
+      const sc=a.threatScore>70?'hi':a.threatScore>45?'me':'lo';
+      div.innerHTML=`<div class="ntag ${a.tag}">${a.tag}</div><div class="nh">${a.title}</div><div class="nm"><span class="nsrc">${a.source}</span><span>${timeAgo(a.publishedAt)}</span><span class="nsc ${sc}">▲${a.threatScore}</span></div>`;
+      div.onclick=()=>window.open(a.url,'_blank');
+      nl.appendChild(div);
+    });
+    // Trigger AI analysis panels
+    loadAnalytics(liveArticles);
+    loadActors(liveArticles);
+  }catch(e){
+    document.getElementById('feedstatus').textContent='● ERROR';
+    document.getElementById('feedstatus').style.color='var(--nr)';
+    nl.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--nr)">⚠ Feed error: ${e.message}</div>`;
+  }
+}
+
+async function loadAnalytics(articles){
+  const al=document.getElementById('analytics');
+  al.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ RUNNING CORRELATION ENGINE...</div>`;
+  try{
+    const d=await apiPost('/analyze',{type:'correlations',articles:articles.slice(0,12)});
+    const corrs=Array.isArray(d.result)?d.result:[];
+    al.innerHTML='';
+    corrs.forEach(c=>{
+      const div=document.createElement('div'); div.className='cc';
+      const actors=c.actors?.map(a=>`<span class="etag org">${a}</span>`).join('')||'';
+      div.innerHTML=`<div class="ccti">${c.title}</div><div class="ccsc">${c.score}</div><div class="ccac">${actors}</div><div class="ccd">${c.desc}</div>`;
+      al.appendChild(div);
+    });
+    if(!corrs.length) al.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">No correlations found</div>`;
+    if(d.fallback) al.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--dim)">⚠ Set ANTHROPIC_API_KEY in Vercel env for AI analysis</div>`;
+  }catch(e){al.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Analysis failed: ${e.message}</div>`;}
+}
+
+async function loadActors(articles){
+  try{
+    const d=await apiPost('/analyze',{type:'actors',articles:articles.slice(0,12)});
+    const g=d.result;
+    if(g&&g.actors) renderIntelMap(g.actors,g.links||[]);
+  }catch(e){console.error('Actors:',e);}
+}
+
+async function loadMideast(){
+  const mel=document.getElementById('mideast');
+  const ME=[
+    {flag:'🇮🇱',name:'Israel',status:'war',st:'AT WAR',info:'Active IDF operations in Gaza and northern border with Hezbollah. ICC arrest warrant for Netanyahu. Normalization with Saudi Arabia stalled.',rels:'Allied: USA, UAE. At war: Hamas. Hostile: Iran, Hezbollah.'},
+    {flag:'🇵🇸',name:'Palestine',status:'war',st:'CONFLICT ZONE',info:'Gaza under intensive military campaign. 2M+ displaced. Humanitarian crisis. Hamas controls Gaza, PA controls West Bank under Israeli occupation.',rels:'Support: Qatar, Turkey, Iran. 146 UN states recognize state.'},
+    {flag:'🇮🇷',name:'Iran',status:'tension',st:'HIGH TENSION',info:'Nuclear enrichment at 60%+. Direct missile exchange with Israel April 2024. Proxy network spans Hezbollah, Hamas, Houthis, Iraqi PMF.',rels:'Allied: Russia, China, proxy forces. Hostile: USA, Israel, Saudi Arabia.'},
+    {flag:'🇸🇦',name:'Saudi Arabia',status:'tension',st:'PIVOT POINT',info:'Vision 2030 modernization. Normalization with Israel conditional on Palestinian state. OPEC+ production cuts. $750B US arms deal.',rels:'Allied: USA, UAE, Egypt. Rival: Iran. Pivoting: China (BRICS+).'},
+    {flag:'🇱🇧',name:'Lebanon',status:'war',st:'CONFLICT',info:'Hezbollah-Israel conflict ongoing. Economy collapsed. No president 2yr+. Hezbollah controls south.',rels:'Influenced by: Iran (Hezbollah), Saudi Arabia, France.'},
+    {flag:'🇸🇾',name:'Syria',status:'tension',st:'POST-COLLAPSE',info:'Assad regime fell Dec 2024. HTS (al-Sharaa) controls Aleppo, Damascus. ISIS remnants active. Turkish, Russian, US forces present.',rels:'New govt: unclear. Hostile: ISIS remnants. Turkey-Kurd tension active.'},
+    {flag:'🇾🇪',name:'Yemen',status:'war',st:'CIVIL WAR',info:'Houthis control north/Sanaa. Targeting Red Sea shipping disrupts 12% of global trade. Saudi ceasefire fragile.',rels:'Houthis backed by Iran. Govt backed by Saudi Arabia, UAE, USA.'},
+    {flag:'🇮🇶',name:'Iraq',status:'tension',st:'FRAGILE',info:'Pro-Iran PMF militias attacked US bases 170+ times. US forces pressure for withdrawal. ISIS resurgent in north.',rels:'Official ally: USA. Dominant influence: Iran (PMF).'},
+    {flag:'🇯🇴',name:'Jordan',status:'stable',st:'STABLE',info:'Intercepted Iranian drones April 2024. Key US ally. Hosts 1.3M Syrian refugees. Peace treaty with Israel strained.',rels:'Allied: USA, Israel, Saudi Arabia, Egypt.'},
+    {flag:'🇪🇬',name:'Egypt',status:'stable',st:'STABLE',info:'Key mediator Gaza ceasefire talks. Controls Suez Canal (10% global trade). Military government. $1.3B/yr US military aid.',rels:'Allied: USA, Saudi Arabia, UAE. Treaty: Israel (1979).'},
+  ];
+  mel.innerHTML='';
+  // Fetch live ME news first
+  try{
+    const d=await apiGet('/news?type=mideast');
+    if(d.articles?.length){
+      const wrap=document.createElement('div');
+      const hdr=document.createElement('div'); hdr.className='ph'; hdr.style.cssText='color:var(--nr);margin-bottom:4px';
+      hdr.textContent='// LIVE MIDDLE EAST FEED';
+      wrap.appendChild(hdr);
+      d.articles.forEach(a=>{
+        const item=document.createElement('div'); item.className='ni';
+        item.innerHTML=`<div class="ntag CONFLICT">ME INTEL</div><div class="nh">${a.title}</div><div class="nm"><span class="nsrc">${a.source}</span>${timeAgo(a.publishedAt)}</div>`;
+        item.onclick=()=>window.open(a.url,'_blank');
+        wrap.appendChild(item);
+      });
+      mel.appendChild(wrap);
+    }
+  }catch(e){}
+  ME.forEach(mc=>{
+    const div=document.createElement('div'); div.className='mec';
+    div.innerHTML=`<div class="meh" onclick="this.nextElementSibling.classList.toggle('open')"><span class="mefg">${mc.flag}</span><span class="mecn">${mc.name}</span><span class="mest ${mc.status}">${mc.st}</span></div><div class="meb"><div style="margin-bottom:5px">${mc.info}</div><div style="font-size:.65rem;color:var(--dim);border-top:1px solid var(--border);padding-top:4px;margin-top:4px">${mc.rels}</div></div>`;
+    mel.appendChild(div);
+  });
+}
+
+function loadLeaders(){
+  const POLS=[
+    {flag:'🇺🇸',name:'Donald Trump',title:'President — United States',inf:'CRITICAL',desc:'America First doctrine. Trade tariffs, NATO burden-sharing disputes. Key Israel supporter. Isolationist-adjacent foreign policy.',tags:['right','populist']},
+    {flag:'🇷🇺',name:'Vladimir Putin',title:'President — Russia',inf:'CRITICAL',desc:'Architect of Ukraine invasion. Centralized power. Key sponsor of Iran, N.Korea arms pipeline. Anti-Western multipolar strategy.',tags:['auth','nationalist']},
+    {flag:'🇨🇳',name:'Xi Jinping',title:'General Secretary — China',inf:'CRITICAL',desc:'Taiwan reunification pursuit. Belt & Road expansion. Technology supremacy drive. BRICS expansion architect.',tags:['auth','communist']},
+    {flag:'🇮🇱',name:'Benjamin Netanyahu',title:'Prime Minister — Israel',inf:'CRITICAL',desc:'Overseeing Gaza war. ICC arrest warrant issued. Iran nuclear containment focus. Normalization diplomacy.',tags:['right','nationalist']},
+    {flag:'🇮🇷',name:'Ali Khamenei',title:'Supreme Leader — Iran',inf:'CRITICAL',desc:'Controls nuclear program and proxy network (Hezbollah, Hamas, Houthis). Anti-US/Israel axis leader.',tags:['auth','theocrat']},
+    {flag:'🇺🇦',name:'Volodymyr Zelensky',title:'President — Ukraine',inf:'HIGH',desc:'Wartime leader seeking NATO membership and Western weapons. Symbol of resistance against Russian invasion.',tags:['center','liberal']},
+    {flag:'🇸🇦',name:'Mohammed bin Salman',title:'Crown Prince — Saudi Arabia',inf:'HIGH',desc:'De facto Saudi ruler. Vision 2030 modernization. Pivot between US and China. OPEC+ production decisions.',tags:['auth','conservative']},
+    {flag:'🇩🇪',name:'Friedrich Merz',title:'Chancellor — Germany',inf:'HIGH',desc:'Leading European rearmament push. 2% NATO spending target. Key EU-US bridge on Ukraine policy.',tags:['right','center']},
+    {flag:'🇫🇷',name:'Emmanuel Macron',title:'President — France',inf:'HIGH',desc:'European strategic autonomy advocate. Active Ukraine diplomacy. Africa withdrawal tensions. AI regulation.',tags:['center','liberal']},
+    {flag:'🇬🇧',name:'Keir Starmer',title:'Prime Minister — UK',inf:'HIGH',desc:'Centre-left PM. Strong Ukraine supporter. UK-EU reset after Brexit. AUKUS pact member.',tags:['center','left']},
+    {flag:'🇹🇷',name:'Recep Erdoğan',title:'President — Turkey',inf:'HIGH',desc:'NATO member buying Russian S-400. Ukraine-Russia mediator. Neo-Ottoman foreign policy.',tags:['auth','nationalist']},
+    {flag:'🇮🇳',name:'Narendra Modi',title:'Prime Minister — India',inf:'HIGH',desc:'Strategic autonomy: talks to USA and Russia simultaneously. World\'s most populous nation. Hindu nationalism.',tags:['right','nationalist']},
+  ];
+  const el=document.getElementById('leaders'); el.innerHTML='';
+  POLS.forEach(p=>{
+    const div=document.createElement('div'); div.className='pi';
+    const ic=p.inf==='CRITICAL'?'var(--nr)':p.inf==='HIGH'?'var(--no)':'var(--nb)';
+    div.innerHTML=`<div class="pitp"><span class="pifg">${p.flag}</span><div><div class="pinm">${p.name}</div><div class="piti">${p.title}</div></div><span style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:2px 6px;border:1px solid ${ic};color:${ic}">${p.inf}</span></div><div class="piinf">${p.desc}</div><div>${p.tags.map(t=>`<span class="pitg ${t}">${t.toUpperCase()}</span>`).join('')}</div>`;
+    el.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════
+// INTEL MAP SVG
+// ═══════════════════════════════════
+function renderIntelMap(actors,links){
+  const svg=document.getElementById('imsvg');
+  const wrap=document.getElementById('imwrap');
+  const W=Math.max(wrap.clientWidth||350,350);
+  const H=Math.max(wrap.clientHeight||380,380);
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML='';
+  const LC={adversarial:'#ff2244',allied:'#ff7700',diplomatic:'#00d4ff',economic:'#00ff88'};
+  links.forEach(lk=>{
+    const f=actors.find(a=>a.id===lk.from), t=actors.find(a=>a.id===lk.to);
+    if(!f||!t) return;
+    const col=LC[lk.type]||'#888';
+    const x1=f.x*W,y1=f.y*H,x2=t.x*W,y2=t.y*H;
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',x1);line.setAttribute('y1',y1);line.setAttribute('x2',x2);line.setAttribute('y2',y2);
+    line.setAttribute('stroke',col);line.setAttribute('stroke-width','1.5');line.setAttribute('stroke-opacity','0.5');
+    if(lk.type==='adversarial') line.setAttribute('stroke-dasharray','4,3');
+    svg.appendChild(line);
+    if(lk.label){
+      const lt=document.createElementNS('http://www.w3.org/2000/svg','text');
+      lt.setAttribute('x',(x1+x2)/2);lt.setAttribute('y',(y1+y2)/2-3);
+      lt.setAttribute('text-anchor','middle');lt.setAttribute('font-size','6');
+      lt.setAttribute('fill',col);lt.setAttribute('opacity','0.7');
+      lt.setAttribute('font-family','Share Tech Mono,monospace');
+      lt.textContent=lk.label; svg.appendChild(lt);
+    }
+  });
+  actors.forEach(actor=>{
+    const cx=actor.x*W,cy=actor.y*H;
+    const bc=actor.type==='state'?'#00d4ff':actor.type==='org'?'#00ff88':actor.type==='leader'?'#ff7700':'#ff2244';
+    const bg=actor.type==='state'?'#030e20':actor.type==='org'?'#031510':'#1a0505';
+    const lbl=actor.label||actor.id;
+    const bw=Math.max(40,lbl.length*7+16);
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','anode');g.setAttribute('transform',`translate(${cx},${cy})`);
+    const glow=document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+    glow.setAttribute('rx','18');glow.setAttribute('ry','12');glow.setAttribute('fill',bc);glow.setAttribute('opacity','0.06');
+    g.appendChild(glow);
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',-bw/2);rect.setAttribute('y','-11');rect.setAttribute('width',bw);rect.setAttribute('height','22');
+    rect.setAttribute('rx','3');rect.setAttribute('fill',bg);rect.setAttribute('stroke',bc);rect.setAttribute('stroke-width','1');
+    g.appendChild(rect);
+    const pin=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    pin.setAttribute('cx',-bw/2+5);pin.setAttribute('cy','-8');pin.setAttribute('r','2');pin.setAttribute('fill','#ff2244');
+    g.appendChild(pin);
+    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x','2');txt.setAttribute('y','4');txt.setAttribute('text-anchor','middle');
+    txt.setAttribute('font-size','8');txt.setAttribute('font-weight','700');txt.setAttribute('fill',bc);
+    txt.setAttribute('font-family','Rajdhani,sans-serif');txt.textContent=lbl;
+    g.appendChild(txt);
+    svg.appendChild(g);
+  });
+}
+
+// ═══════════════════════════════════
+// BRIEF ME
+// ═══════════════════════════════════
+async function briefMe(){
+  const btn=document.getElementById('briefbtn');
+  btn.textContent='⟳ GENERATING...'; btn.disabled=true;
+  activateTab('news');
+  const bb=document.getElementById('briefbox');
+  bb.innerHTML='<span style="color:var(--nb)">⟳ GENERATING AI BRIEF...</span>';
+  bb.classList.add('show');
+  try{
+    const d=await apiPost('/analyze',{type:'brief',articles:liveArticles.slice(0,10)});
+    const text=typeof d.result==='string'?d.result:'Brief unavailable';
+    const ri=document.getElementById('sri').textContent;
+    bb.innerHTML=`<b>// SENTINEL BRIEF — ${new Date().toUTCString()}</b><br><br>${text}<br><br><b style="color:var(--nr)">RISK: ${ri}/100</b>`;
+    if(d.fallback) bb.innerHTML+=`<br><span style="color:var(--dim);font-size:.6rem">⚠ Fallback mode — add ANTHROPIC_API_KEY in Vercel settings for AI briefs</span>`;
+    if('speechSynthesis' in window){
+      speechSynthesis.cancel();
+      const doSpeak=()=>{
+        const sp=new SpeechSynthesisUtterance(text);
+        const v=speechSynthesis.getVoices();
+        const pref=v.find(x=>/david|daniel|alex|mark|en-us/i.test(x.name));
+        if(pref) sp.voice=pref;
+        sp.rate=0.88;sp.pitch=0.78;sp.volume=1;
+        speechSynthesis.speak(sp);
+      };
+      if(speechSynthesis.getVoices().length>0) doSpeak();
+      else {speechSynthesis.onvoiceschanged=()=>{doSpeak();speechSynthesis.onvoiceschanged=null;}; setTimeout(doSpeak,600);}
+    }
+  }catch(e){bb.innerHTML=`<b>// BRIEF ERROR</b><br><br>${e.message}`;}
+  btn.textContent='🔊 BRIEF ME'; btn.disabled=false;
+}
+
+// ═══════════════════════════════════
+// LAYER CONTROLS
+// ═══════════════════════════════════
+document.querySelectorAll('.layer-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const layer=btn.dataset.layer;
+    activeLayers[layer]=!activeLayers[layer];
+    btn.classList.toggle('active',activeLayers[layer]);
+    if(layer==='alliances'){
+      allianceArcs.forEach(a=>a.visible=activeLayers.alliances);
+    }
+    if(layer==='threats'){
+      markers.forEach(m=>{m.sp.visible=activeLayers.threats;m.ring.visible=activeLayers.threats;});
+    }
+  });
+});
+
+// ═══════════════════════════════════
+// BOOT
+// ═══════════════════════════════════
+const MSGS=['INITIALIZING SATELLITE FEED...','AUTHENTICATING CIPHER KEYS...','CONNECTING SIGINT NETWORK...','LOADING GEOSPATIAL DATABASE...','CALIBRATING GLOBE PROJECTION...','FETCHING THREAT INTELLIGENCE...','ALL SYSTEMS OPERATIONAL.'];
+let mi=0;
+const lsi=setInterval(()=>{
+  if(mi<MSGS.length) document.getElementById('ls').textContent=MSGS[mi++];
+},390);
+
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>activateTab(b.dataset.tab)));
+document.getElementById('briefbtn').addEventListener('click',briefMe);
+let alertOn=false;
+document.getElementById('alertbtn').addEventListener('click',()=>{
+  alertOn=!alertOn;
+  document.getElementById('alertbtn').textContent=alertOn?'✓ ALERT ON':'⚠ ALERT MODE';
+  document.getElementById('alertbtn').style.color=alertOn?'var(--ng)':'var(--nr)';
+});
+setInterval(()=>{
+  const n=new Date();
+  document.getElementById('tclock').textContent=n.toISOString().slice(11,19)+' UTC';
+},1000);
+
+window.addEventListener('load',()=>{
+  setTimeout(()=>{
+    clearInterval(lsi);
+    const loader=document.getElementById('loader');
+    loader.style.opacity='0'; loader.style.transition='opacity .5s';
+    setTimeout(()=>{
+      loader.style.display='none';
+      const app=document.getElementById('app');
+      app.style.display='grid';
+      initGlobe();
+      addAllianceArcs();
+      loadThreats();
+      loadNews();
+      loadLeaders();
+      loadMideast();
+      onResize();
+    },500);
+  },2800);
+});
+</script>
+</body>
+</html>
