@@ -921,7 +921,7 @@ async function loadConflicts(){
     // Stats header
     if(stats){
       const sh=document.createElement('div');
-      sh.style.cssText='padding:8px 10px;background:#040a16;border-bottom:1px solid var(--border);display:flex;gap:14px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:.6rem;';
+      sh.style.cssText=`padding:8px 10px;background:#040a16;border-bottom:1px solid var(--border);display:flex;gap:14px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:.6rem;`;
       sh.innerHTML=`<span style="color:var(--nr)">☠ ${stats.totalFatalities} FATALITIES</span><span style="color:var(--no)">${stats.totalEvents} EVENTS</span><span style="color:var(--nb)">${stats.countriesAffected} COUNTRIES</span><span style="color:var(--np)">AVG INTENSITY: ${stats.avgIntensity}/100</span>`;
       el.appendChild(sh);
     }
@@ -1010,7 +1010,7 @@ async function loadForecast(){
 
     if(sd.fallback){
       const note=document.createElement('div');
-      note.style.cssText='padding:6px 10px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--dim)';
+      note.style.cssText=`padding:6px 10px;font-family:\'Share Tech Mono\',monospace;font-size:.58rem;color:var(--dim)`;
       note.textContent='⚠ AI scenarios require ANTHROPIC_API_KEY — showing baseline model';
       el.appendChild(note);
     }
