@@ -1,11 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "news.js": { "runtime": "@vercel/node" },
-    "analyze.js": { "runtime": "@vercel/node" },
-    "country.js": { "runtime": "@vercel/node" },
-    "threats.js": { "runtime": "@vercel/node" }
-  },
   "routes": [
     { "src": "/api/news", "dest": "/news.js" },
     { "src": "/api/analyze", "dest": "/analyze.js" },
