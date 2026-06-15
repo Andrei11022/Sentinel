@@ -1,20 +1,7 @@
 {
   "version": 2,
   "routes": [
-    { "src": "/api/news", "dest": "/news.js" },
-    { "src": "/api/analyze", "dest": "/analyze.js" },
-    { "src": "/api/country", "dest": "/country.js" },
-    { "src": "/api/threats", "dest": "/threats.js" },
+    { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
-  ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
-      ]
-    }
   ]
 }
