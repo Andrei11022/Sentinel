@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SENTINEL — Global Intelligence Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap');
+:root{--bg:#030912;--panel:#060d1a;--border:#0d1e36;--nb:#00d4ff;--nr:#ff2244;--no:#ff7700;--ng:#00ff88;--np:#cc44ff;--text:#b8d0ef;--muted:#2a4a6a;--gb:0 0 14px #00d4ff66;--gr:0 0 14px #ff224466;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;overflow:hidden;}
+
+/* LOADER */
+#loader{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .5s;}
+#loader h1{font-family:'Rajdhani',sans-serif;font-size:2.8rem;font-weight:700;letter-spacing:.4em;color:var(--nb);text-shadow:var(--gb);animation:pulse 1.4s ease-in-out infinite;}
+.lbar{width:300px;height:2px;background:var(--border);border-radius:2px;overflow:hidden;}
+.lfill{height:100%;width:0;background:linear-gradient(90deg,#0055ff,var(--nb));animation:fill 2.6s ease-in-out forwards;}
+.lstatus{font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--nb);letter-spacing:.1em;}
+@keyframes fill{to{width:100%;}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* LAYOUT */
+#app{display:none;width:100vw;height:100vh;grid-template-columns:1fr 380px;grid-template-rows:50px 1fr 160px;grid-template-areas:"topbar topbar" "globe sidebar" "stats sidebar";}
+
+/* TOPBAR */
+#topbar{grid-area:topbar;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:#04091688;border-bottom:1px solid var(--border);backdrop-filter:blur(8px);z-index:100;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:1.3rem;font-weight:700;letter-spacing:.3em;color:var(--nb);text-shadow:var(--gb);}
+.logo span{color:var(--nr);}
+.topmeta{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--muted);display:flex;gap:22px;}
+.topmeta b{color:var(--nb);}
+#clock{color:var(--ng);}
+.topbtns{display:flex;gap:8px;}
+.btn{font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:600;letter-spacing:.08em;padding:5px 14px;border:1px solid currentColor;background:transparent;cursor:pointer;transition:all .2s;}
+.btn-b{color:var(--nb);}
+.btn-b:hover{background:#00d4ff15;box-shadow:var(--gb);}
+.btn-r{color:var(--nr);}
+.btn-r:hover{background:#ff224415;box-shadow:var(--gr);}
+
+/* GLOBE */
+#globe-area{grid-area:globe;position:relative;overflow:hidden;background:#030912;}
+#globe-canvas{width:100%;height:100%;display:block;}
+#globe-hud{position:absolute;top:12px;left:14px;font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--muted);line-height:1.9;pointer-events:none;}
+.risk-badge{display:inline-block;font-family:'Rajdhani',sans-serif;font-size:.9rem;font-weight:700;letter-spacing:.1em;padding:3px 10px;border:1px solid var(--nr);color:var(--nr);text-shadow:var(--gr);box-shadow:var(--gr);margin-top:4px;}
+
+/* COUNTRY TOOLTIP */
+#ctip{position:absolute;background:#060d1aee;border:1px solid var(--nb);box-shadow:var(--gb);padding:14px 16px;max-width:280px;pointer-events:none;display:none;z-index:200;backdrop-filter:blur(8px);font-size:.78rem;line-height:1.6;}
+#ctip h3{font-family:'Rajdhani',sans-serif;font-size:1.05rem;font-weight:700;color:var(--nb);margin-bottom:6px;}
+#ctip .row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border);padding:3px 0;}
+#ctip .row span:first-child{color:var(--muted);font-size:.68rem;}
+#ctip .row span:last-child{color:var(--text);text-align:right;font-size:.72rem;}
+
+/* MARKER TOOLTIP */
+#mtip{position:absolute;background:#060d1aee;border:1px solid var(--nb);box-shadow:var(--gb);padding:12px 15px;max-width:250px;pointer-events:none;display:none;z-index:201;backdrop-filter:blur(8px);}
+#mtip .tt-title{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:var(--nb);margin-bottom:4px;}
+.sev-HIGH{background:#ff224422;color:var(--nr);border:1px solid var(--nr);font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:1px 7px;display:inline-block;margin-bottom:5px;}
+.sev-MEDIUM{background:#ff770022;color:var(--no);border:1px solid var(--no);font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:1px 7px;display:inline-block;margin-bottom:5px;}
+.sev-LOW{background:#00d4ff15;color:var(--nb);border:1px solid var(--nb);font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:1px 7px;display:inline-block;margin-bottom:5px;}
+#mtip .tt-desc{font-size:.75rem;color:var(--text);margin-bottom:5px;}
+#mtip .tt-time{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--muted);}
+
+/* STATS */
+#stats-bar{grid-area:stats;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);border-right:1px solid var(--border);}
+.stat{background:var(--panel);padding:12px 16px;display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;}
+.stat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;}
+.stat.cb::before{background:var(--nb);box-shadow:var(--gb);}
+.stat.cr::before{background:var(--nr);box-shadow:var(--gr);}
+.stat.co::before{background:var(--no);}
+.stat.cg::before{background:var(--ng);}
+.stat-label{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
+.stat-val{font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;line-height:1;}
+.stat.cb .stat-val{color:var(--nb);text-shadow:var(--gb);}
+.stat.cr .stat-val{color:var(--nr);text-shadow:var(--gr);}
+.stat.co .stat-val{color:var(--no);}
+.stat.cg .stat-val{color:var(--ng);}
+.stat-sub{font-size:.62rem;color:var(--muted);}
+
+/* SIDEBAR */
+#sidebar{grid-area:sidebar;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:0 0 auto;padding:9px 9px;font-family:'Rajdhani',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.05em;background:transparent;border:none;border-bottom:2px solid transparent;color:#6699bb;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.tab.active{color:var(--nb);border-bottom-color:var(--nb);}
+.tabpanel{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.tabpanel.active{display:flex;}
+.ph{padding:8px 12px;font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:.1em;border-bottom:1px solid var(--border);flex-shrink:0;}
+.scroll{flex:1;overflow-y:auto;padding:6px;}
+.scroll::-webkit-scrollbar{width:3px;}
+.scroll::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* NEWS ITEM */
+.news-item{padding:9px 10px;border-bottom:1px solid #0d1e3633;cursor:pointer;transition:background .15s;}
+.news-item:hover{background:#00d4ff08;}
+.ntag{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--nr);letter-spacing:.06em;margin-bottom:3px;}
+.ntag.TECH{color:#cc44ff;}
+.ntag.GEOPOLITICS{color:var(--no);}
+.ntag.CONFLICT{color:var(--nr);}
+.ntag.MILITARY{color:#ff6600;}
+.ntag.DISASTER{color:#ffaa00;}
+.nhead{font-size:.8rem;line-height:1.4;color:var(--text);}
+.nmeta{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:3px;}
+.nsource{display:inline-block;font-size:.55rem;padding:1px 5px;border:1px solid var(--border);margin-right:4px;color:var(--muted);}
+
+/* WARNINGS */
+.warn-item{padding:9px 10px;border:1px solid var(--border);margin-bottom:5px;cursor:pointer;transition:border-color .2s;position:relative;}
+.warn-item:hover{border-color:var(--nb);}
+.wi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
+.wi-title{font-family:'Rajdhani',sans-serif;font-size:.88rem;font-weight:600;}
+.wi-sev{font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;}
+.wi-desc{font-size:.72rem;color:var(--muted);line-height:1.4;}
+.wdot{position:absolute;right:8px;bottom:8px;width:5px;height:5px;border-radius:50%;animation:blink 1.6s ease-in-out infinite;}
+.HIGH-dot{background:var(--nr);box-shadow:0 0 6px var(--nr);}
+.MED-dot{background:var(--no);box-shadow:0 0 6px var(--no);}
+.LOW-dot{background:var(--nb);box-shadow:0 0 6px var(--nb);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+
+/* CORRELATION CARD */
+.cc{border:1px solid var(--border);padding:10px;margin-bottom:7px;}
+.cc-title{font-family:'Rajdhani',sans-serif;font-size:.9rem;font-weight:700;color:var(--nb);margin-bottom:4px;}
+.cc-score{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.62rem;padding:2px 7px;background:#00d4ff12;border:1px solid var(--nb);color:var(--nb);margin-bottom:5px;}
+.cc-desc{font-size:.73rem;color:var(--muted);line-height:1.5;}
+
+/* INTEL MAP */
+#intel-wrap{flex:1;position:relative;overflow:hidden;}
+#intel-svg{width:100%;height:100%;}
+.actor-node{cursor:pointer;}
+.actor-node:hover rect{filter:brightness(1.5);}
+.lb-legend{padding:6px 10px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);border-top:1px solid var(--border);display:flex;gap:12px;flex-wrap:wrap;}
+.lb-legend span{display:flex;align-items:center;gap:4px;}
+.lb-legend i{display:inline-block;width:10px;height:2px;border-radius:1px;}
+
+/* POLITICIANS */
+.pol-item{padding:9px 10px;border:1px solid var(--border);margin-bottom:5px;}
+.pol-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.pol-flag{font-size:1.1rem;}
+.pol-name{font-family:'Rajdhani',sans-serif;font-size:.9rem;font-weight:700;color:var(--nb);}
+.pol-title{font-size:.68rem;color:var(--no);font-family:'Share Tech Mono',monospace;}
+.pol-info{font-size:.72rem;color:var(--muted);line-height:1.5;}
+.pol-tag{display:inline-block;font-size:.58rem;padding:1px 6px;border:1px solid var(--border);margin-right:4px;margin-top:2px;}
+.pol-tag.left{border-color:#4488ff;color:#4488ff;}
+.pol-tag.right{border-color:var(--nr);color:var(--nr);}
+.pol-tag.center{border-color:var(--no);color:var(--no);}
+.pol-tag.auth{border-color:#cc44ff;color:#cc44ff;}
+
+/* MIDDLE EAST */
+.me-card{border:1px solid var(--border);margin-bottom:6px;}
+.me-header{padding:8px 10px;background:#0a0f1e;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer;}
+.me-flag{font-size:1rem;}
+.me-country{font-family:'Rajdhani',sans-serif;font-size:.9rem;font-weight:700;color:var(--nb);}
+.me-status{font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;margin-left:auto;}
+.me-status.war{background:#ff224422;color:var(--nr);border:1px solid var(--nr);}
+.me-status.tension{background:#ff770022;color:var(--no);border:1px solid var(--no);}
+.me-status.stable{background:#00ff8822;color:var(--ng);border:1px solid var(--ng);}
+.me-body{padding:8px 10px;font-size:.73rem;color:var(--muted);line-height:1.6;display:none;}
+.me-body.open{display:block;}
+
+/* BRIEF BOX */
+#brief-box{padding:10px 13px;border-top:1px solid var(--border);flex-shrink:0;font-size:.73rem;line-height:1.7;color:var(--muted);font-family:'Share Tech Mono',monospace;max-height:110px;overflow-y:auto;display:none;}
+#brief-box.show{display:block;}
+#brief-box b{color:var(--nb);}
+
+/* SCANLINES */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,#00000014 2px,#00000014 4px);pointer-events:none;z-index:9990;}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <h1>SENTINEL</h1>
+  <div class="lbar"><div class="lfill"></div></div>
+  <div class="lstatus" id="lstatus">INITIALIZING SATELLITE FEED...</div>
+</div>
+
+<div id="app">
+  <div id="topbar">
+    <div class="logo">SENTINEL <span>//</span> GLOBAL INTELLIGENCE</div>
+    <div class="topmeta">
+      <span>STATUS: <b>ACTIVE</b></span>
+      <span>THREATS: <b id="tcount">0</b></span>
+      <span>RISK: <b id="rindex">—</b></span>
+      <span id="clock">00:00:00 UTC</span>
+    </div>
+    <div class="topbtns">
+      <button class="btn btn-b" id="brief-btn">🔊 BRIEF ME</button>
+      <button class="btn btn-r" id="alert-btn">⚠ ALERT MODE</button>
+    </div>
+  </div>
+
+  <div id="globe-area">
+    <canvas id="globe-canvas"></canvas>
+    <div id="globe-hud">
+      <div>LAT/LON TRACKING ACTIVE</div>
+      <div>MARKERS: <span id="mcount">0</span></div>
+      <div>FEED: SENTINEL-7 LIVE</div>
+      <div class="risk-badge" id="risk-badge">RISK: CRITICAL</div>
+      <div style="margin-top:8px;font-size:.58rem;color:#1a3a5a">CLICK COUNTRY FOR INTEL<br>DRAG TO ROTATE • SCROLL TO ZOOM</div>
+    </div>
+    <div id="ctip"></div>
+    <div id="mtip">
+      <div class="tt-title" id="mt-title"></div>
+      <div id="mt-sev"></div>
+      <div class="tt-desc" id="mt-desc"></div>
+      <div class="tt-time" id="mt-time"></div>
+    </div>
+  </div>
+
+  <div id="stats-bar">
+    <div class="stat cr"><div class="stat-label">HIGH SEVERITY</div><div class="stat-val" id="s-high">0</div><div class="stat-sub">Active conflicts</div></div>
+    <div class="stat co"><div class="stat-label">MEDIUM SEVERITY</div><div class="stat-val" id="s-med">0</div><div class="stat-sub">Developing</div></div>
+    <div class="stat cb"><div class="stat-label">TOTAL MONITORED</div><div class="stat-val" id="s-total">0</div><div class="stat-sub">Events tracked</div></div>
+    <div class="stat cg"><div class="stat-label">GLOBAL RISK INDEX</div><div class="stat-val" id="s-risk">—</div><div class="stat-sub">Updated live</div></div>
+  </div>
+
+  <div id="sidebar">
+    <div class="tabs">
+      <button class="tab active" data-tab="news">📡 BRIEFING</button>
+      <button class="tab" data-tab="warnings">⚠ WARNINGS</button>
+      <button class="tab" data-tab="analytics">🔗 ANALYTICS</button>
+      <button class="tab" data-tab="intel">👁 INTEL MAP</button>
+      <button class="tab" data-tab="politicians">🎯 LEADERS</button>
+      <button class="tab" data-tab="mideast">🌙 MIDDLE EAST</button>
+    </div>
+
+    <div class="tabpanel active" id="tab-news">
+      <div class="ph">// LIVE INTELLIGENCE FEED — MULTI-SOURCE</div>
+      <div class="scroll" id="news-list"></div>
+      <div id="brief-box"></div>
+    </div>
+
+    <div class="tabpanel" id="tab-warnings">
+      <div class="ph">// ACTIVE WARNING EVENTS — GLOBAL</div>
+      <div class="scroll" id="warn-list"></div>
+    </div>
+
+    <div class="tabpanel" id="tab-analytics">
+      <div class="ph">// CORRELATION ENGINE — AI ANALYSIS</div>
+      <div class="scroll" id="analytics-list"><div style="padding:16px;font-family:'Share Tech Mono',monospace;font-size:.68rem;color:#1a3a5a">Awaiting news feed...</div></div>
+    </div>
+
+    <div class="tabpanel" id="tab-intel">
+      <div class="ph">// GEOPOLITICAL ACTOR NETWORK — STRING BOARD</div>
+      <div id="intel-wrap"><svg id="intel-svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="lb-legend">
+        <span><i style="background:#ff2244"></i>Adversarial</span>
+        <span><i style="background:#ff7700"></i>Allied</span>
+        <span><i style="background:#00d4ff"></i>Diplomatic</span>
+        <span><i style="background:#00ff88"></i>Economic</span>
+      </div>
+    </div>
+
+    <div class="tabpanel" id="tab-politicians">
+      <div class="ph">// WORLD LEADERS & INFLUENTIAL FIGURES</div>
+      <div class="scroll" id="pol-list"></div>
+    </div>
+
+    <div class="tabpanel" id="tab-mideast">
+      <div class="ph">// MIDDLE EAST INTELLIGENCE — LIVE</div>
+      <div class="scroll" id="me-list"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════
+const GUARDIAN_KEY = '473fcab8-81fa-4e79-a17e-429debaa4bc1';
+const GLOBE_R = 1.6;
+
+// ═══════════════════════════════════════════
+// STATIC DATA
+// ═══════════════════════════════════════════
+const WARNINGS = [
+  {id:1,title:"Active Combat — Ukraine Front",severity:"HIGH",lat:49.5,lon:31.2,desc:"Renewed offensive operations along multiple sectors.",ts:"2m ago"},
+  {id:2,title:"Gaza Humanitarian Crisis",severity:"HIGH",lat:31.5,lon:34.4,desc:"Ongoing military operations. Aid corridors blocked.",ts:"5m ago"},
+  {id:3,title:"Myanmar Civil War",severity:"HIGH",lat:19.8,lon:96.1,desc:"Resistance forces seized three towns. Junta airstrikes reported.",ts:"11m ago"},
+  {id:4,title:"Taiwan Strait Naval Activity",severity:"HIGH",lat:24.0,lon:121.5,desc:"PLA Navy conducting large-scale exercises. 40+ vessels.",ts:"18m ago"},
+  {id:5,title:"Sudan Conflict — Al-Fashir",severity:"HIGH",lat:13.6,lon:25.3,desc:"RSF forces advancing on UN-protected site.",ts:"32m ago"},
+  {id:6,title:"Iran Nuclear Enrichment",severity:"HIGH",lat:32.4,lon:53.6,desc:"Increased activity at Fordow facility. IAEA access denied.",ts:"1hr ago"},
+  {id:7,title:"North Korea ICBM Activity",severity:"HIGH",lat:39.0,lon:125.7,desc:"Missile launch detected. Sea of Japan impact zone.",ts:"2hr ago"},
+  {id:8,title:"EU Financial Cyber Attack",severity:"MEDIUM",lat:50.1,lon:8.6,desc:"Ransomware targeting European banking networks.",ts:"2hr ago"},
+  {id:9,title:"Venezuela Border Tension",severity:"MEDIUM",lat:7.1,lon:-65.3,desc:"Military movements near Guyana border escalating.",ts:"3hr ago"},
+  {id:10,title:"Pakistan Earthquake M6.4",severity:"MEDIUM",lat:34.0,lon:71.5,desc:"Aftershocks continuing. Rural infrastructure damaged.",ts:"4hr ago"},
+  {id:11,title:"Sahel Coup — Mali",severity:"MEDIUM",lat:12.6,lon:-8.0,desc:"Military factions in standoff near presidential palace.",ts:"5hr ago"},
+  {id:12,title:"South China Sea Collision",severity:"MEDIUM",lat:14.5,lon:115.0,desc:"Philippine vessel rammed by Chinese coast guard.",ts:"6hr ago"},
+];
+
+const POLITICIANS = [
+  {flag:"🇺🇸",name:"Donald Trump",title:"President — United States",ideology:"right",party:"Republican",desc:"45th and 47th US President. Focus on trade tariffs, immigration restriction, NATO burden-sharing. Advocates 'America First' foreign policy.",influence:"CRITICAL",tags:["right","populist"]},
+  {flag:"🇷🇺",name:"Vladimir Putin",title:"President — Russian Federation",ideology:"auth",party:"United Russia",desc:"In power since 2000. Ordered 2022 Ukraine invasion. Centralized power, suppressed opposition, key architect of multipolar world strategy.",influence:"CRITICAL",tags:["auth","nationalist"]},
+  {flag:"🇨🇳",name:"Xi Jinping",title:"General Secretary — China",ideology:"auth",party:"CCP",desc:"Most powerful Chinese leader since Mao. Pursuing Taiwan reunification, Belt & Road expansion, and AI/tech supremacy.",influence:"CRITICAL",tags:["auth","communist"]},
+  {flag:"🇩🇪",name:"Friedrich Merz",title:"Chancellor — Germany",ideology:"center",party:"CDU",desc:"Conservative chancellor leading Europe's largest economy. Key NATO supporter, pushing German rearmament and EU strategic autonomy.",influence:"HIGH",tags:["right","center"]},
+  {flag:"🇫🇷",name:"Emmanuel Macron",title:"President — France",ideology:"center",party:"En Marche",desc:"Centrist president advocating European sovereignty. Active in Ukraine diplomacy, Africa withdrawal tensions, and AI regulation.",influence:"HIGH",tags:["center","liberal"]},
+  {flag:"🇮🇱",name:"Benjamin Netanyahu",title:"Prime Minister — Israel",ideology:"right",party:"Likud",desc:"Longest-serving Israeli PM. Overseeing Gaza war, normalization diplomacy with Arab states, Iran nuclear containment strategy.",influence:"CRITICAL",tags:["right","nationalist"]},
+  {flag:"🇮🇷",name:"Ali Khamenei",title:"Supreme Leader — Iran",ideology:"auth",party:"Islamic Republic",desc:"Controls Iran's military and nuclear program. Orchestrates Axis of Resistance via Hezbollah, Hamas, Houthis. Anti-US/Israel doctrine.",influence:"CRITICAL",tags:["auth","theocrat"]},
+  {flag:"🇸🇦",name:"Mohammed bin Salman",title:"Crown Prince — Saudi Arabia",ideology:"auth",party:"Al Saud",desc:"De facto Saudi ruler. Pursuing Vision 2030 modernization while maintaining authoritarian control. Pivot between US and China.",influence:"HIGH",tags:["auth","conservative"]},
+  {flag:"🇬🇧",name:"Keir Starmer",title:"Prime Minister — United Kingdom",ideology:"center",party:"Labour",desc:"Centre-left PM navigating post-Brexit relations. Strong Ukraine supporter. Domestic focus on NHS, clean energy, economic growth.",influence:"HIGH",tags:["center","left"]},
+  {flag:"🇹🇷",name:"Recep Tayyip Erdoğan",title:"President — Turkey",ideology:"auth",party:"AKP",desc:"Balancing NATO membership with Russia ties. Key broker in Black Sea grain deal. Neo-Ottoman foreign policy expansion.",influence:"HIGH",tags:["auth","nationalist"]},
+  {flag:"🇮🇳",name:"Narendra Modi",title:"Prime Minister — India",ideology:"right",party:"BJP",desc:"Hindu nationalist leader of world's most populous nation. Strategic autonomy doctrine — balances US, Russia and China.",influence:"HIGH",tags:["right","nationalist"]},
+  {flag:"🇧🇷",name:"Luiz Inácio Lula da Silva",title:"President — Brazil",ideology:"left",party:"PT",desc:"Third-term president. Amazon protection focus, Global South diplomacy, BRICS expansion advocate. Anti-US unipolarism.",influence:"MEDIUM",tags:["left","progressive"]},
+];
+
+const ME_COUNTRIES = [
+  {flag:"🇮🇱",name:"Israel",status:"war",statusText:"AT WAR",info:"Currently engaged in military operations in Gaza following Oct 7 2023 Hamas attack. Over 37,000 casualties reported. Tensions with Hezbollah on northern border. Normalization talks with Saudi Arabia stalled. PM Netanyahu faces ICC warrant.",relations:"Allied: USA, UAE, Morocco. Hostile: Iran, Hamas, Hezbollah, Houthis."},
+  {flag:"🇵🇸",name:"Palestine (Gaza/WB)",status:"war",statusText:"CONFLICT ZONE",info:"Gaza under intensive Israeli military campaign. Humanitarian crisis with 2M+ displaced. West Bank under PA/Israeli dual control with settler violence escalating. Hamas controls Gaza, Fatah controls West Bank.",relations:"Support: Qatar, Turkey, Iran. Recognition: 146 UN states."},
+  {flag:"🇮🇷",name:"Iran",status:"tension",statusText:"HIGH TENSION",info:"Nuclear enrichment at 60% purity. Direct missile exchange with Israel in April 2024. Proxy network spans Lebanon (Hezbollah), Gaza (Hamas), Yemen (Houthis), Iraq (PMF). US/Israeli military pressure intensifying.",relations:"Allied: Russia, China, Syria, Hezbollah, Hamas, Houthis. Hostile: USA, Israel, Saudi Arabia."},
+  {flag:"🇸🇦",name:"Saudi Arabia",status:"tension",statusText:"PIVOT POINT",info:"Key US ally undergoing Vision 2030 transformation. Normalization with Israel conditional on Palestinian state. War in Yemen winding down. OPEC+ production cuts controversy. $750B US arms deal.",relations:"Allied: USA, UAE, Egypt, Jordan. Rival: Iran. Normalizing: Israel (stalled)."},
+  {flag:"🇱🇧",name:"Lebanon",status:"war",statusText:"CONFLICT",info:"Hezbollah-Israel conflict ongoing in south. Economy collapsed (currency lost 98% value). Political vacuum — no president for 2+ years. Over 1M Syrian refugees. Hezbollah controls south, state institutions paralyzed.",relations:"Influenced by: Iran (Hezbollah), Saudi Arabia (Sunni bloc), France (historical)."},
+  {flag:"🇸🇾",name:"Syria",status:"tension",statusText:"UNSTABLE",info:"Assad regime controls ~60% of territory post-civil war. ISIS remnants active. Turkish, Russian, US forces present. Kurds control northeast. Economy destroyed, 6M+ refugees abroad. Reconstruction blocked by sanctions.",relations:"Allied: Russia, Iran. Hostile: USA, Israel, Turkey (in north). Kurdish issue with Turkey."},
+  {flag:"🇾🇪",name:"Yemen",status:"war",statusText:"CIVIL WAR",info:"Houthis control north/capital Sanaa, fire missiles at Israel and Red Sea shipping. Saudi-led coalition backed Hadi government. Ceasefire fragile. Worst humanitarian crisis globally. Houthis disrupting 12% of world trade.",relations:"Houthis backed by: Iran. Government backed by: Saudi Arabia, UAE, USA."},
+  {flag:"🇮🇶",name:"Iraq",status:"tension",statusText:"FRAGILE",info:"Pro-Iran PMF militias attacked US bases 170+ times in 2023-24. US forces targeted for withdrawal. ISIS resurgent in north. Kurdish autonomy tensions. Oil wealth but infrastructure poor. Iranian influence dominant.",relations:"Allied: Iran (PMF), US (official). Tensions with: Kurdistan region, ISIS remnants."},
+  {flag:"🇯🇴",name:"Jordan",status:"stable",statusText:"STABLE",info:"Key US ally and Israel neighbor. Intercepted Iranian drones April 2024. Hosts 1.3M Syrian + 760K Iraqi refugees. Peace treaty with Israel under strain from Gaza war. Strategic Hashemite monarchy.",relations:"Allied: USA, Israel, Saudi Arabia, Egypt. Treaty: Israel (1994)."},
+  {flag:"🇪🇬",name:"Egypt",status:"stable",statusText:"STABLE",info:"Military government under Sisi. Key mediator in Gaza ceasefire talks. Controls Suez Canal (10% of global trade). Hosts Palestinian refugees dispute. Receives $1.3B/yr US military aid. IMF bailout 2024.",relations:"Allied: USA, Saudi Arabia, UAE. Treaty: Israel (1979). Tense: Turkey, Qatar."},
+];
+
+// ═══════════════════════════════════════════
+// GLOBE
+// ═══════════════════════════════════════════
+let scene, camera, renderer, globeMesh, markers = [];
+let isDrag = false, prevMouse = {x:0,y:0};
+let targetRotX = 0, targetRotY = 0, rotX = 0, rotY = 0;
+let autoRot = true;
+let raycaster, mouse;
+let countrySpheres = []; // invisible clickable country zones
+
+const COUNTRY_DATA = {
+  "United States":    {flag:"🇺🇸",president:"Donald Trump",ideology:"Right-Populist",religion:"Christian (65%)",currency:"USD",elections:"Presidential every 4yr",gdp:"$27T",military:"NATO",relations:"Allied: NATO, Israel, Japan, S.Korea. Rival: China, Russia, Iran"},
+  "Russia":           {flag:"🇷🇺",president:"Vladimir Putin",ideology:"Auth-Nationalist",religion:"Orthodox Christian",currency:"RUB",elections:"Presidential (controlled)",gdp:"$2.2T",military:"Nuclear, P5",relations:"Allied: China, Belarus, Iran, N.Korea. Hostile: NATO, Ukraine"},
+  "China":            {flag:"🇨🇳",president:"Xi Jinping (GS)",ideology:"Auth-Communist",religion:"Atheist State / Buddhist",currency:"CNY",elections:"No free elections",gdp:"$18T",military:"Nuclear, P5, PLAN",relations:"Allied: Russia, Pakistan, N.Korea. Rival: USA, India, Taiwan"},
+  "Ukraine":          {flag:"🇺🇦",president:"Volodymyr Zelensky",ideology:"Liberal-Democrat",religion:"Orthodox Christian",currency:"UAH",elections:"Suspended (wartime)",gdp:"$160B (war)",military:"NATO partner",relations:"Allied: NATO, EU, USA. At war with: Russia"},
+  "Iran":             {flag:"🇮🇷",president:"Masoud Pezeshkian",ideology:"Theocratic",religion:"Shia Islam (95%)",currency:"IRR (collapsed)",elections:"Controlled (Guardian Council)",gdp:"$367B",military:"Missile + proxies",relations:"Allied: Russia, China, Hezbollah, Hamas. Hostile: USA, Israel, Saudi"},
+  "Israel":           {flag:"🇮🇱",president:"Isaac Herzog / PM Netanyahu",ideology:"Right-Nationalist",religion:"Jewish (74%)",currency:"ILS",elections:"Parliamentary",gdp:"$521B",military:"Nuclear (undeclared)",relations:"Allied: USA, UAE, Morocco. At war: Hamas. Hostile: Iran, Hezbollah"},
+  "Saudi Arabia":     {flag:"🇸🇦",president:"King Salman / MBS",ideology:"Absolute Monarchy",religion:"Sunni Islam (90%)",currency:"SAR",elections:"No elections",gdp:"$1.1T",military:"US-equipped",relations:"Allied: USA, UAE, Egypt. Rival: Iran. Pivot: China (BRICS+)"},
+  "India":            {flag:"🇮🇳",president:"PM Narendra Modi",ideology:"Hindu Nationalist",religion:"Hindu (80%)",currency:"INR",elections:"Parliamentary (world's largest)",gdp:"$3.7T",military:"Nuclear",relations:"Strategic autonomy: talks to USA, Russia, China. Border disputes: China, Pakistan"},
+  "Turkey":           {flag:"🇹🇷",president:"Recep Tayyip Erdogan",ideology:"Auth-Islamist",religion:"Sunni Islam (99%)",currency:"TRY (inflation crisis)",elections:"Presidential",gdp:"$906B",military:"NATO member",relations:"NATO but buys Russian S-400. Mediator: Ukraine-Russia. Rival: Greece, Kurds"},
+  "Brazil":           {flag:"🇧🇷",president:"Luiz Inácio Lula da Silva",ideology:"Left-Progressive",religion:"Catholic (65%)",currency:"BRL",elections:"Presidential",gdp:"$2.1T",military:"Regional power",relations:"BRICS, Mercosur. Diplomatic: all sides. Amazon: deforestation conflict with EU"},
+  "Germany":          {flag:"🇩🇪",president:"Chancellor Friedrich Merz",ideology:"Centre-Right",religion:"Christian (50%)",currency:"EUR",elections:"Parliamentary",gdp:"$4.5T",military:"NATO, rearming",relations:"NATO core, EU leader. Dependent on US security. Russia energy severance."},
+  "France":           {flag:"🇫🇷",president:"Emmanuel Macron",ideology:"Centrist-Liberal",religion:"Secular (laic) / Catholic",currency:"EUR",elections:"Presidential + Parliamentary",gdp:"$3.1T",military:"Nuclear, P5, NATO",relations:"NATO, EU pillar. Africa: declining influence. Close: Germany, USA"},
+  "United Kingdom":   {flag:"🇬🇧",president:"PM Keir Starmer",ideology:"Centre-Left",religion:"Christian (Anglican)",currency:"GBP",elections:"Parliamentary",gdp:"$3.1T",military:"Nuclear, P5",relations:"Post-Brexit. Special relationship: USA. NATO core. AUKUS pact."},
+  "North Korea":      {flag:"🇰🇵",president:"Kim Jong-un",ideology:"Juche / Totalitarian",religion:"State atheism",currency:"KPW",elections:"No free elections",gdp:"$28B (est)",military:"Nuclear",relations:"Allied: Russia (arms deals 2024), China. Hostile: USA, South Korea, Japan"},
+  "Japan":            {flag:"🇯🇵",president:"PM Shigeru Ishiba",ideology:"Conservative",religion:"Shinto/Buddhist",currency:"JPY",elections:"Parliamentary",gdp:"$4.2T",military:"Self-Defense + US treaty",relations:"Allied: USA, South Korea, Australia. Rival: China, N.Korea. Dispute: Russia (islands)"},
+};
+
+// Country lat/lon centers for click zones
+const COUNTRY_CENTERS = [
+  {name:"United States",lat:38,lon:-97},
+  {name:"Russia",lat:61,lon:100},
+  {name:"China",lat:35,lon:105},
+  {name:"Ukraine",lat:49,lon:32},
+  {name:"Iran",lat:32,lon:53},
+  {name:"Israel",lat:31.5,lon:34.8},
+  {name:"Saudi Arabia",lat:24,lon:45},
+  {name:"India",lat:20,lon:77},
+  {name:"Turkey",lat:39,lon:35},
+  {name:"Brazil",lat:-10,lon:-53},
+  {name:"Germany",lat:51,lon:10},
+  {name:"France",lat:46,lon:2},
+  {name:"United Kingdom",lat:54,lon:-2},
+  {name:"North Korea",lat:40,lon:127},
+  {name:"Japan",lat:36,lon:138},
+];
+
+function latLonToVec3(lat,lon,r){
+  const phi=(90-lat)*Math.PI/180;
+  const theta=(lon+180)*Math.PI/180;
+  return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta));
+}
+
+function initGlobe(){
+  const canvas = document.getElementById('globe-canvas');
+  const W=canvas.clientWidth, H=canvas.clientHeight;
+  renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setSize(W,H);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setClearColor(0x000000,0);
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(45,W/H,0.1,100);
+  camera.position.set(0,0,4.6);
+
+  scene.add(new THREE.AmbientLight(0x112233,2));
+  const sun=new THREE.DirectionalLight(0x6688aa,1.8); sun.position.set(5,3,5); scene.add(sun);
+  const rim=new THREE.DirectionalLight(0x002244,1.5); rim.position.set(-5,-2,-3); scene.add(rim);
+
+  // Globe with NASA Blue Marble texture
+  const geo=new THREE.SphereGeometry(GLOBE_R,64,64);
+  const loader=new THREE.TextureLoader();
+
+  // Load Earth texture from NASA/public CDN
+  const earthTex = loader.load(
+    'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/land_ocean_ice_cloud_2048.jpg',
+    ()=>{ renderer.render(scene,camera); },
+    undefined,
+    ()=>{
+      // Fallback: procedural texture if CDN fails
+      const tc=document.createElement('canvas');
+      tc.width=2048; tc.height=1024;
+      const ctx=tc.getContext('2d');
+      // Ocean
+      ctx.fillStyle='#041828'; ctx.fillRect(0,0,2048,1024);
+      // Grid
+      ctx.strokeStyle='#0a2540'; ctx.lineWidth=1;
+      for(let i=0;i<=18;i++){ctx.beginPath();ctx.moveTo(0,i*1024/18);ctx.lineTo(2048,i*1024/18);ctx.stroke();}
+      for(let i=0;i<=36;i++){ctx.beginPath();ctx.moveTo(i*2048/36,0);ctx.lineTo(i*2048/36,1024);ctx.stroke();}
+      // Continents using proper equirectangular projection
+      function ll(lon,lat){return[(lon+180)/360*2048,(90-lat)/180*1024];}
+      function poly(pts,col){
+        ctx.fillStyle=col||'#0d3a5c'; ctx.strokeStyle='#1a5a8a'; ctx.lineWidth=1.5;
+        ctx.beginPath();
+        pts.forEach(([lo,la],i)=>{const[x,y]=ll(lo,la);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+      // N America
+      poly([[-168,72],[-140,72],[-125,60],[-105,50],[-80,45],[-75,55],[-65,47],[-60,47],[-80,42],[-90,30],[-100,22],[-120,20],[-130,25],[-140,35],[-155,58],[-165,62]]);
+      poly([[-70,76],[-20,76],[-18,70],[-30,60],[-50,60],[-65,68]]);// Greenland
+      // S America
+      poly([[-75,12],[-60,10],[-50,0],[-35,-5],[-35,-20],[-55,-35],[-65,-55],[-70,-55],[-75,-40],[-80,-10],[-80,0]]);
+      // Europe
+      poly([[-10,36],[5,36],[20,38],[30,45],[30,55],[25,60],[15,58],[10,55],[5,52],[-5,48],[-10,44]]);
+      poly([[5,58],[15,58],[28,71],[20,70],[15,65],[10,60]]);// Scandinavia
+      poly([[-5,50],[2,51],[2,56],[-5,58],[-6,54]]);// UK
+      // Africa
+      poly([[-18,15],[40,15],[50,12],[45,2],[40,-5],[35,-25],[25,-35],[15,-30],[10,-15],[-5,5],[-18,15]]);
+      poly([[44,-12],[50,-15],[50,-25],[44,-25]]);// Madagascar
+      // Russia/Asia
+      poly([[30,70],[60,75],[80,73],[100,70],[120,68],[140,70],[160,65],[170,55],[150,45],[130,42],[110,40],[90,38],[70,40],[55,45],[40,50],[30,55],[30,70]]);
+      // Middle East
+      poly([[35,38],[60,38],[65,25],[55,22],[45,22],[38,28]]);
+      // India
+      poly([[65,24],[90,24],[88,8],[80,8],[72,20]]);
+      // SE Asia + China
+      poly([[95,28],[110,20],[110,5],[100,2],[95,5],[90,20]]);
+      poly([[110,20],[130,28],[135,38],[125,42],[115,38],[108,30]]);
+      // Japan
+      poly([[130,31],[132,34],[135,38],[136,36],[132,33]]);
+      // Australia
+      poly([[114,-22],[122,-18],[136,-12],[142,-10],[148,-18],[152,-28],[150,-38],[142,-38],[130,-32],[116,-32],[114,-22]]);
+      // Antarctica
+      ctx.fillStyle='#0a2535'; ctx.strokeStyle='#1a4060'; ctx.lineWidth=1;
+      ctx.fillRect(0,1024*(1-(20/180)),2048,1024*20/180);
+      // Country borders highlight
+      const borders=[
+        {pts:[[-125,50],[-95,50],[-95,48],[-125,48]],c:'#1a6a9a'},// US-Canada
+        [[30,70],[30,50],[32,50],[32,70]],// Russia border east EU
+      ];
+      // Glow overlay
+      const grd=ctx.createRadialGradient(1024,512,200,1024,512,900);
+      grd.addColorStop(0,'#00d4ff05'); grd.addColorStop(1,'transparent');
+      ctx.fillStyle=grd; ctx.fillRect(0,0,2048,1024);
+      const fallbackTex=new THREE.CanvasTexture(tc);
+      globeMesh.material.map=fallbackTex;
+      globeMesh.material.needsUpdate=true;
+    }
+  );
+
+  const mat=new THREE.MeshPhongMaterial({
+    map:earthTex,
+    emissive:new THREE.Color(0x001122),
+    emissiveIntensity:0.04,
+    shininess:12,
+    specular:new THREE.Color(0x0a2a4a),
+  });
+  globeMesh=new THREE.Mesh(geo,mat);
+  scene.add(globeMesh);
+
+  // Atmosphere glow
+  const ageo=new THREE.SphereGeometry(GLOBE_R*1.05,32,32);
+  const amat=new THREE.MeshBasicMaterial({color:0x0033aa,transparent:true,opacity:0.04,side:THREE.FrontSide});
+  scene.add(new THREE.Mesh(ageo,amat));
+
+  // Country click zones (invisible spheres at country centers)
+  raycaster=new THREE.Raycaster();
+  mouse=new THREE.Vector2();
+  COUNTRY_CENTERS.forEach(cc=>{
+    const cg=new THREE.SphereGeometry(0.2,8,8);
+    const cm=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});
+    const cs=new THREE.Mesh(cg,cm);
+    const pos=latLonToVec3(cc.lat,cc.lon,GLOBE_R);
+    cs.position.copy(pos);
+    cs.userData={country:cc.name};
+    scene.add(cs);
+    countrySpheres.push(cs);
+  });
+
+  WARNINGS.forEach(w=>addMarker(w));
+
+  canvas.addEventListener('mousedown',e=>{isDrag=true;autoRot=false;prevMouse={x:e.clientX,y:e.clientY};});
+  window.addEventListener('mouseup',()=>{isDrag=false;});
+  canvas.addEventListener('mousemove',onMove);
+  canvas.addEventListener('click',onClick);
+  canvas.addEventListener('wheel',e=>{camera.position.z=Math.max(2.4,Math.min(9,camera.position.z+e.deltaY*.005));},{passive:true});
+  canvas.addEventListener('dblclick',()=>{autoRot=!autoRot;});
+  window.addEventListener('resize',onResize);
+  animate();
+}
+
+function addMarker(w){
+  const pos=latLonToVec3(w.lat,w.lon,GLOBE_R+0.01);
+  const col=w.severity==='HIGH'?0xff2244:w.severity==='MEDIUM'?0xff7700:0x00d4ff;
+  const cg=new THREE.ConeGeometry(0.011,0.055,8);
+  const cm=new THREE.MeshBasicMaterial({color:col});
+  const spike=new THREE.Mesh(cg,cm);
+  spike.position.copy(pos);
+  spike.lookAt(0,0,0);
+  spike.rotateX(Math.PI/2);
+  spike.userData={warning:w};
+  globeMesh.add(spike);
+  const rg=new THREE.RingGeometry(0.022,0.032,16);
+  const rm=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.8,side:THREE.DoubleSide});
+  const ring=new THREE.Mesh(rg,rm);
+  ring.position.copy(pos);
+  ring.lookAt(0,0,0);
+  ring.userData={phase:Math.random()*Math.PI*2};
+  globeMesh.add(ring);
+  markers.push({spike,ring,warning:w});
+}
+
+function onMove(e){
+  const canvas=document.getElementById('globe-canvas');
+  const rect=canvas.getBoundingClientRect();
+  if(isDrag){
+    targetRotY+=(e.clientX-prevMouse.x)*.005;
+    targetRotX+=(e.clientY-prevMouse.y)*.005;
+    targetRotX=Math.max(-1.2,Math.min(1.2,targetRotX));
+    prevMouse={x:e.clientX,y:e.clientY};
+    hideCtip(); hideMtip();
+    return;
+  }
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const mhits=raycaster.intersectObjects(markers.map(m=>m.spike));
+  if(mhits.length&&mhits[0].object.userData.warning){
+    showMtip(mhits[0].object.userData.warning,e.clientX,e.clientY);
+    canvas.style.cursor='pointer';
+  } else {
+    hideMtip();
+    canvas.style.cursor=isDrag?'grabbing':'grab';
+  }
+}
+
+function onClick(e){
+  if(isDrag) return;
+  const canvas=document.getElementById('globe-canvas');
+  const rect=canvas.getBoundingClientRect();
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  // Check country zones (they rotate with globe)
+  const rotatedSpheres = countrySpheres;
+  const hits=raycaster.intersectObjects(rotatedSpheres);
+  if(hits.length&&hits[0].object.userData.country){
+    showCtip(hits[0].object.userData.country,e.clientX,e.clientY);
+  } else {
+    hideCtip();
+  }
+}
+
+function showCtip(countryName,x,y){
+  const data=COUNTRY_DATA[countryName];
+  if(!data) return;
+  const area=document.getElementById('globe-area');
+  const rect=area.getBoundingClientRect();
+  let html=`<h3>${data.flag} ${countryName}</h3>`;
+  const rows=[
+    ['President/Leader',data.president],
+    ['Ideology',data.ideology],
+    ['Religion',data.religion],
+    ['Currency',data.currency],
+    ['Elections',data.elections],
+    ['GDP',data.gdp],
+    ['Military',data.military],
+  ];
+  rows.forEach(([k,v])=>{html+=`<div class="row"><span>${k}</span><span>${v}</span></div>`;});
+  html+=`<div style="margin-top:7px;font-size:.68rem;color:#1a5a8a;line-height:1.5">${data.relations}</div>`;
+  const el=document.getElementById('ctip');
+  el.innerHTML=html;
+  let tx=x-rect.left+14, ty=y-rect.top-10;
+  if(tx+290>rect.width) tx-=300;
+  if(ty+260>rect.height) ty-=270;
+  el.style.left=tx+'px'; el.style.top=ty+'px'; el.style.display='block';
+}
+function hideCtip(){document.getElementById('ctip').style.display='none';}
+
+function showMtip(w,x,y){
+  document.getElementById('mt-title').textContent=w.title;
+  const sevEl=document.getElementById('mt-sev');
+  sevEl.innerHTML=`<span class="sev-${w.severity}">${w.severity}</span>`;
+  document.getElementById('mt-desc').textContent=w.desc;
+  document.getElementById('mt-time').textContent='⏱ '+w.ts;
+  const area=document.getElementById('globe-area');
+  const rect=area.getBoundingClientRect();
+  let tx=x-rect.left+12, ty=y-rect.top-20;
+  if(tx+260>rect.width) tx-=270;
+  const el=document.getElementById('mtip');
+  el.style.left=tx+'px'; el.style.top=ty+'px'; el.style.display='block';
+}
+function hideMtip(){document.getElementById('mtip').style.display='none';}
+
+function onResize(){
+  const canvas=document.getElementById('globe-canvas');
+  camera.aspect=canvas.clientWidth/canvas.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(canvas.clientWidth,canvas.clientHeight);
+}
+
+let t=0;
+function animate(){
+  requestAnimationFrame(animate);
+  t+=0.016;
+  if(autoRot) targetRotY+=0.0015;
+  rotX+=(targetRotX-rotX)*.08;
+  rotY+=(targetRotY-rotY)*.08;
+  globeMesh.rotation.x=rotX;
+  globeMesh.rotation.y=rotY;
+  // Sync country click zones with globe rotation
+  countrySpheres.forEach(cs=>{
+    cs.rotation.x=rotX; cs.rotation.y=rotY;
+  });
+  // Pulse rings
+  markers.forEach(m=>{
+    const ph=m.ring.userData.phase+t*1.8;
+    const s=1+Math.sin(ph)*.6;
+    m.ring.scale.set(s,s,s);
+    m.ring.material.opacity=0.8-(s-1)*0.8;
+  });
+  renderer.render(scene,camera);
+}
+
+// ═══════════════════════════════════════════
+// NEWS
+// ═══════════════════════════════════════════
+function timeAgo(d){
+  const diff=Math.floor((Date.now()-new Date(d))/1000);
+  if(diff<60) return diff+'s ago';
+  if(diff<3600) return Math.floor(diff/60)+'m ago';
+  if(diff<86400) return Math.floor(diff/3600)+'hr ago';
+  return Math.floor(diff/86400)+'d ago';
+}
+function tagFrom(t){
+  const s=(t||'').toLowerCase();
+  if(/war|attack|killed|bomb|shoot|casualt|troops|invasion|offensive/.test(s)) return 'CONFLICT';
+  if(/nato|military|missile|navy|army|airforce|weapon|defense|fighter/.test(s)) return 'MILITARY';
+  if(/nuclear|icbm|warhead|enrichment|reactor|plutonium/.test(s)) return 'NUCLEAR';
+  if(/cyber|hack|ransomware|breach|malware|phish|spyware/.test(s)) return 'CYBER';
+  if(/earthquake|flood|volcano|hurricane|tsunami|wildfire|disaster/.test(s)) return 'DISASTER';
+  if(/sanction|diplomat|summit|treaty|election|president|minister|tariff/.test(s)) return 'GEOPOLITICS';
+  if(/ai|artificial intelligence|openai|microsoft|google|tech|software|silicon/.test(s)) return 'TECH';
+  return 'INTEL';
+}
+
+async function fetchAllNews(){
+  const nl=document.getElementById('news-list');
+  nl.innerHTML=`<div style="padding:16px;font-family:'Share Tech Mono',monospace;font-size:.68rem;color:#1a3a5a;text-align:center"><div style="color:var(--nb);margin-bottom:6px">⟳ FETCHING LIVE FEED...</div>Multiple sources loading...</div>`;
+
+  // Fetch from Guardian — geopolitics + world + middle east separately
+  const queries=[
+    {q:'war+OR+conflict+OR+military+OR+sanctions+OR+nuclear+OR+geopolitics+OR+crisis+OR+troops',sec:'world|politics',label:'World'},
+    {q:'middle+east+OR+israel+OR+gaza+OR+iran+OR+ukraine+OR+china+OR+russia',sec:'world',label:'Geopolitics'},
+  ];
+
+  let allArticles=[];
+  for(const qry of queries){
+    try{
+      const url=`https://content.guardianapis.com/search?q=${qry.q}&section=${qry.sec}&order-by=newest&page-size=8&show-fields=trailText&api-key=${GUARDIAN_KEY}`;
+      const r=await fetch(url);
+      const d=await r.json();
+      if(d.response?.results) allArticles.push(...d.response.results.map(a=>({...a,_source:'The Guardian'})));
+    }catch(e){}
+  }
+
+  // Deduplicate by ID
+  const seen=new Set();
+  allArticles=allArticles.filter(a=>{ if(seen.has(a.id)) return false; seen.add(a.id); return true; });
+  allArticles.sort((a,b)=>new Date(b.webPublicationDate)-new Date(a.webPublicationDate));
+  allArticles=allArticles.slice(0,15);
+
+  if(!allArticles.length){
+    nl.innerHTML=`<div style="padding:16px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--nr)">⚠ Feed unavailable</div>`;
+    return;
+  }
+
+  nl.innerHTML='';
+  allArticles.forEach(a=>{
+    const div=document.createElement('div');
+    div.className='news-item';
+    const tag=tagFrom(a.webTitle);
+    const ago=timeAgo(a.webPublicationDate);
+    div.innerHTML=`<div class="ntag ${tag}">${tag}</div><div class="nhead">${a.webTitle}</div><div class="nmeta"><span class="nsource">THE GUARDIAN</span>${ago}</div>`;
+    div.onclick=()=>window.open(a.webUrl,'_blank');
+    nl.appendChild(div);
+  });
+
+  window._liveArticles=allArticles;
+
+  // Trigger AI analysis panels in parallel
+  updateAnalytics(allArticles);
+  updateIntelMap(allArticles);
+  updateWarnings(allArticles);
+  loadMiddleEastNews();
+}
+
+// ═══════════════════════════════════════════
+// AI FUNCTIONS
+// ═══════════════════════════════════════════
+
+// ═══════════════════════════════════════════
+// BRIEF ME — uses speech + Guardian headlines (no external API needed)
+// ═══════════════════════════════════════════
+async function briefMe(){
+  const btn=document.getElementById('brief-btn');
+  btn.textContent='⟳ GENERATING...';
+  btn.disabled=true;
+  const articles=window._liveArticles||[];
+  activateTab('news');
+  const bb=document.getElementById('brief-box');
+  bb.classList.add('show');
+
+  if(!articles.length){
+    bb.innerHTML='<span style="color:var(--nr)">⚠ Load news feed first.</span>';
+    btn.textContent='🔊 BRIEF ME'; btn.disabled=false; return;
+  }
+
+  // Build brief from live headlines — no API needed
+  const hi = articles.filter(a=>tagFrom(a.webTitle)==='CONFLICT'||tagFrom(a.webTitle)==='MILITARY'||tagFrom(a.webTitle)==='NUCLEAR');
+  const geo = articles.filter(a=>tagFrom(a.webTitle)==='GEOPOLITICS');
+  const top5 = [...hi.slice(0,3),...geo.slice(0,2),...articles.slice(0,5)].filter((v,i,a)=>a.findIndex(x=>x.id===v.id)===i).slice(0,6);
+
+  const riskScore = document.getElementById('s-risk').textContent;
+  const now = new Date().toUTCString();
+
+  const briefLines = top5.map((a,i)=>`${i+1}. ${a.webTitle} <span style="color:var(--muted);font-size:.65rem">[${timeAgo(a.webPublicationDate)}]</span>`).join('<br>');
+
+  // Determine threat level narrative
+  const hiCount = parseInt(document.getElementById('s-high').textContent)||0;
+  const riskNum = parseInt(riskScore)||0;
+  const threatNarrative = riskNum > 70
+    ? 'Global threat environment is CRITICAL. Multiple simultaneous high-severity conflicts active.'
+    : riskNum > 40
+    ? 'Global threat environment is ELEVATED. Several developing situations require monitoring.'
+    : 'Global threat environment is MODERATE. Situation stable but volatile regions persist.';
+
+  bb.innerHTML = `<b style="color:var(--nb)">// SENTINEL INTEL BRIEF — ${now}</b><br><br>
+<span style="color:var(--text)">${threatNarrative}</span><br><br>
+<b style="color:var(--no)">TOP PRIORITY EVENTS:</b><br>${briefLines}<br><br>
+<b style="color:var(--nr)">GLOBAL RISK INDEX: ${riskScore}/100 — ${hiCount} HIGH-SEVERITY EVENTS ACTIVE</b>`;
+
+  // Text-to-speech of the brief
+  if('speechSynthesis' in window){
+    speechSynthesis.cancel();
+    const spokenText = threatNarrative + ' Top events: ' + top5.map(a=>a.webTitle).join('. ') + '. Global risk index: ' + riskScore + ' out of 100.';
+    const doSpeak = () => {
+      const sp = new SpeechSynthesisUtterance(spokenText);
+      const voices = speechSynthesis.getVoices();
+      const preferred = voices.find(v=>/david|daniel|alex|mark|en-us|en-gb/i.test(v.name));
+      if(preferred) sp.voice = preferred;
+      sp.rate=0.88; sp.pitch=0.78; sp.volume=1;
+      speechSynthesis.speak(sp);
+    };
+    if(speechSynthesis.getVoices().length > 0){ doSpeak(); }
+    else { speechSynthesis.onvoiceschanged = () => { doSpeak(); speechSynthesis.onvoiceschanged=null; }; setTimeout(doSpeak,600); }
+  } else {
+    bb.innerHTML += '<br><span style="color:var(--muted);font-size:.65rem">⚠ Speech synthesis not available in this browser.</span>';
+  }
+
+  btn.textContent='🔊 BRIEF ME'; btn.disabled=false;
+}
+
+// ═══════════════════════════════════════════
+// ANALYTICS — correlation from live headlines (no API)
+// ═══════════════════════════════════════════
+function updateAnalytics(articles){
+  const al=document.getElementById('analytics-list');
+  al.innerHTML='';
+
+  if(!articles.length){
+  al.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.67rem;color:var(--muted)">Awaiting news feed...</div>`;
+    return;
+  }
+
+  // Group articles by keywords and find correlations
+  const groups = {
+    'Russia/Ukraine':  articles.filter(a=>/russia|ukraine|zelensky|putin|kharkiv|kherson|crimea|nato|eastern europe/i.test(a.webTitle)),
+    'Middle East':     articles.filter(a=>/israel|gaza|hamas|iran|hezbollah|netanyahu|west bank|lebanon|middle east/i.test(a.webTitle)),
+    'China/Taiwan':    articles.filter(a=>/china|taiwan|beijing|xi jinping|pla|south china sea|trade war/i.test(a.webTitle)),
+    'Iran Nuclear':    articles.filter(a=>/iran|nuclear|enrichment|iaea|uranium|sanctions/i.test(a.webTitle)),
+    'Energy/Economy':  articles.filter(a=>/oil|gas|opec|energy|economy|sanctions|tariff|inflation|trade/i.test(a.webTitle)),
+    'Military/Weapons':articles.filter(a=>/military|weapon|missile|bomb|troops|drone|f-16|arms/i.test(a.webTitle)),
+  };
+
+  // Build correlation cards from groups that have content
+  const cards = [];
+  
+  if(groups['Russia/Ukraine'].length>=1 && groups['Middle East'].length>=1){
+    cards.push({
+      title:'Russia-Iran-DPRK Axis Coordination',
+      score:`CORRELATION: ${Math.min(95,70+groups['Russia/Ukraine'].length*5)}%`,
+      desc:`${groups['Russia/Ukraine'].length} Ukraine-related and ${groups['Middle East'].length} Middle East events detected this cycle. Iran weapons supplies to Russia documented. North Korean ammunition transfers active. Three-front distraction strategy observed.`
+    });
+  }
+  if(groups['Middle East'].length>=2){
+    const titles = groups['Middle East'].slice(0,2).map(a=>a.webTitle.slice(0,40)).join(' / ');
+    cards.push({
+      title:'Middle East Escalation Cascade',
+      score:`CORRELATION: ${Math.min(92,65+groups['Middle East'].length*4)}%`,
+      desc:`${groups['Middle East'].length} simultaneous Middle East developments. Interconnected Iran-Hamas-Hezbollah proxy network active. Events: "${titles}..."`
+    });
+  }
+  if(groups['China/Taiwan'].length>=1 && groups['Military/Weapons'].length>=1){
+    cards.push({
+      title:'China Strategic Opportunism Pattern',
+      score:`CORRELATION: ${Math.min(88,60+groups['China/Taiwan'].length*6)}%`,
+      desc:`PLA activity correlates with Western distraction in Ukraine/Middle East. ${groups['Military/Weapons'].length} military-related events create window for Taiwan Strait pressure. Historical pattern confirmed.`
+    });
+  }
+  if(groups['Iran Nuclear'].length>=1){
+    cards.push({
+      title:'Iran Nuclear-Proxy Dual Leverage',
+      score:'CORRELATION: 81%',
+      desc:`Nuclear enrichment progress running parallel to proxy activation (Houthis, Hezbollah, Hamas). Classic pressure-negotiation dual-track strategy. ${groups['Iran Nuclear'].length} enrichment-related developments this cycle.`
+    });
+  }
+  if(groups['Energy/Economy'].length>=1){
+    cards.push({
+      title:'Energy Warfare & Economic Coercion',
+      score:`CORRELATION: ${Math.min(78,55+groups['Energy/Economy'].length*5)}%`,
+      desc:`${groups['Energy/Economy'].length} energy/economic events linked to geopolitical pressure campaigns. OPEC+ cuts, sanctions, and trade barriers being used as weapons alongside military action.`
+    });
+  }
+
+  // Always show at least 3 cards
+  if(cards.length < 2){
+    cards.push({
+      title:'Multi-Theater Simultaneous Crisis',
+      score:'CORRELATION: 74%',
+      desc:`${articles.length} active developments across ${Object.values(groups).filter(g=>g.length>0).length} geopolitical theaters. Intelligence suggests coordinated timing to overwhelm Western response capacity.`
+    });
+    cards.push({
+      title:'Information Warfare Overlay',
+      score:'CORRELATION: 68%',
+      desc:'Disinformation campaigns active across all major conflict zones. Social media manipulation documented in Ukraine, Gaza, and Taiwan narratives. State-sponsored actors identified.'
+    });
+  }
+
+  cards.slice(0,5).forEach(card=>{
+    const div=document.createElement('div');
+    div.className='cc';
+    div.innerHTML=`<div class="cc-title">${card.title}</div><div class="cc-score">${card.score}</div><div class="cc-desc">${card.desc}</div>`;
+    al.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════
+// INTEL MAP — built from article keywords (no API)
+// ═══════════════════════════════════════════
+function updateIntelMap(articles){
+  // Extract actors from headlines
+  const actorMap = {
+    'USA':      {label:'USA',type:'state',x:0.12,y:0.28,keywords:/usa|united states|washington|biden|trump|american/i},
+    'RUSSIA':   {label:'RUSSIA',type:'state',x:0.58,y:0.18,keywords:/russia|moscow|putin|kremlin|russian/i},
+    'CHINA':    {label:'CHINA',type:'state',x:0.78,y:0.35,keywords:/china|beijing|xi|chinese|pla|ccp/i},
+    'UKRAINE':  {label:'UKRAINE',type:'state',x:0.54,y:0.22,keywords:/ukraine|kyiv|zelensky|ukrainian/i},
+    'ISRAEL':   {label:'ISRAEL',type:'state',x:0.56,y:0.48,keywords:/israel|tel aviv|netanyahu|idf|israeli/i},
+    'IRAN':     {label:'IRAN',type:'state',x:0.62,y:0.45,keywords:/iran|tehran|khamenei|iranian|irgc/i},
+    'NATO':     {label:'NATO',type:'org',x:0.34,y:0.22,keywords:/nato|alliance/i},
+    'HAMAS':    {label:'HAMAS',type:'proxy',x:0.54,y:0.54,keywords:/hamas|gaza|militant|tunnel/i},
+    'HZBLLH':   {label:'HEZBOLLAH',type:'proxy',x:0.52,y:0.44,keywords:/hezbollah|nasrallah|lebanon/i},
+    'HOUTHIS':  {label:'HOUTHIS',type:'proxy',x:0.58,y:0.56,keywords:/houthi|yemen|red sea/i},
+    'NKOREA':   {label:'N.KOREA',type:'state',x:0.82,y:0.28,keywords:/north korea|dprk|kim jong/i},
+    'SAUDI':    {label:'SAUDI',type:'state',x:0.60,y:0.52,keywords:/saudi|riyadh|mbs|bin salman/i},
+    'EU':       {label:'EU',type:'org',x:0.42,y:0.20,keywords:/european union|eu commission|brussels/i},
+    'UN':       {label:'UN',type:'org',x:0.25,y:0.35,keywords:/united nations|un security|iaea|un peacekeep/i},
+    'TURKEY':   {label:'TURKEY',type:'state',x:0.50,y:0.32,keywords:/turkey|erdogan|ankara|turkish/i},
+  };
+
+  // Check which actors appear in headlines
+  const headlineText = articles.map(a=>a.webTitle).join(' ');
+  const activeActors = Object.entries(actorMap)
+    .filter(([id,data])=>data.keywords.test(headlineText)||['USA','RUSSIA','CHINA','NATO','IRAN','ISRAEL'].includes(id))
+    .map(([id,data])=>({id,...data}));
+
+  // Build links based on active actors and known relationships
+  const linkRules = [
+    {from:'USA',to:'NATO',type:'allied',label:'Lead'},
+    {from:'USA',to:'UKRAINE',type:'allied',label:'Aid'},
+    {from:'USA',to:'ISRAEL',type:'allied',label:'Support'},
+    {from:'RUSSIA',to:'UKRAINE',type:'adversarial',label:'WAR'},
+    {from:'RUSSIA',to:'IRAN',type:'allied',label:'Arms'},
+    {from:'RUSSIA',to:'NKOREA',type:'allied',label:'Ammo'},
+    {from:'IRAN',to:'HAMAS',type:'allied',label:'Fund'},
+    {from:'IRAN',to:'HZBLLH',type:'allied',label:'Control'},
+    {from:'IRAN',to:'HOUTHIS',type:'allied',label:'Support'},
+    {from:'IRAN',to:'ISRAEL',type:'adversarial',label:'Hostile'},
+    {from:'CHINA',to:'RUSSIA',type:'economic',label:'Trade'},
+    {from:'CHINA',to:'NKOREA',type:'diplomatic',label:'Shield'},
+    {from:'NATO',to:'EU',type:'diplomatic',label:'Treaty'},
+    {from:'ISRAEL',to:'HAMAS',type:'adversarial',label:'WAR'},
+    {from:'ISRAEL',to:'HZBLLH',type:'adversarial',label:'Conflict'},
+    {from:'HOUTHIS',to:'ISRAEL',type:'adversarial',label:'Missiles'},
+    {from:'TURKEY',to:'NATO',type:'diplomatic',label:'Member'},
+    {from:'SAUDI',to:'USA',type:'diplomatic',label:'Partner'},
+    {from:'SAUDI',to:'IRAN',type:'adversarial',label:'Rival'},
+    {from:'UN',to:'UKRAINE',type:'diplomatic',label:'Aid'},
+  ];
+
+  const activeIds = new Set(activeActors.map(a=>a.id));
+  const activeLinks = linkRules.filter(l=>activeIds.has(l.from)&&activeIds.has(l.to));
+
+  renderIntelMap(activeActors, activeLinks);
+}
+
+// ═══════════════════════════════════════════
+// RENDER INTEL MAP SVG
+// ═══════════════════════════════════════════
+function renderIntelMap(actors, links){
+  const svg=document.getElementById('intel-svg');
+  const wrap=document.getElementById('intel-wrap');
+  const W=Math.max(wrap.clientWidth||340,340);
+  const H=Math.max(wrap.clientHeight||380,380);
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML='';
+
+  const lc={adversarial:'#ff2244',allied:'#ff7700',diplomatic:'#00d4ff',economic:'#00ff88'};
+
+  // Draw links first
+  links.forEach(lk=>{
+    const f=actors.find(a=>a.id===lk.from);
+    const t=actors.find(a=>a.id===lk.to);
+    if(!f||!t) return;
+    const col=lc[lk.type]||'#ffffff';
+    const x1=f.x*W, y1=f.y*H, x2=t.x*W, y2=t.y*H;
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',x1); line.setAttribute('y1',y1);
+    line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+    line.setAttribute('stroke',col); line.setAttribute('stroke-width','1.5');
+    line.setAttribute('stroke-opacity','0.55');
+    if(lk.type==='adversarial') line.setAttribute('stroke-dasharray','4,3');
+    svg.appendChild(line);
+    // Label at midpoint
+    const lx=(x1+x2)/2, ly=(y1+y2)/2;
+    const lt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    lt.setAttribute('x',lx); lt.setAttribute('y',ly-3);
+    lt.setAttribute('text-anchor','middle'); lt.setAttribute('font-size','6.5');
+    lt.setAttribute('fill',col); lt.setAttribute('opacity','0.75');
+    lt.setAttribute('font-family','Share Tech Mono,monospace');
+    lt.textContent=lk.label||'';
+    svg.appendChild(lt);
+  });
+
+  // Draw nodes
+  actors.forEach(actor=>{
+    const cx=actor.x*W, cy=actor.y*H;
+    const bc=actor.type==='state'?'#00d4ff':actor.type==='org'?'#00ff88':actor.type==='leader'?'#ff7700':'#ff2244';
+    const bg=actor.type==='state'?'#030e20':actor.type==='org'?'#031510':actor.type==='leader'?'#150a00':'#1a0505';
+    const lbl=actor.label||actor.id;
+    const bw=Math.max(40,lbl.length*6.5+16);
+
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','actor-node');
+    g.setAttribute('transform',`translate(${cx},${cy})`);
+
+    // Glow halo
+    const glow=document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+    glow.setAttribute('rx','20'); glow.setAttribute('ry','14');
+    glow.setAttribute('fill',bc); glow.setAttribute('opacity','0.06');
+    g.appendChild(glow);
+
+    // Box
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',-bw/2); rect.setAttribute('y','-12');
+    rect.setAttribute('width',bw); rect.setAttribute('height','24');
+    rect.setAttribute('rx','3'); rect.setAttribute('fill',bg);
+    rect.setAttribute('stroke',bc); rect.setAttribute('stroke-width','1.2');
+    g.appendChild(rect);
+
+    // Red pin
+    const pin=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    pin.setAttribute('cx',-bw/2+5); pin.setAttribute('cy','-9');
+    pin.setAttribute('r','2.5'); pin.setAttribute('fill','#ff2244');
+    g.appendChild(pin);
+
+    // Label
+    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x','2'); txt.setAttribute('y','4');
+    txt.setAttribute('text-anchor','middle');
+    txt.setAttribute('font-size','8.5'); txt.setAttribute('font-weight','700');
+    txt.setAttribute('fill',bc); txt.setAttribute('font-family','Rajdhani,sans-serif');
+    txt.setAttribute('letter-spacing','0.04em');
+    txt.textContent=lbl;
+    g.appendChild(txt);
+
+    // Type tag
+    const btag=document.createElementNS('http://www.w3.org/2000/svg','text');
+    btag.setAttribute('x','2'); btag.setAttribute('y','14');
+    btag.setAttribute('text-anchor','middle'); btag.setAttribute('font-size','5.5');
+    btag.setAttribute('fill',bc); btag.setAttribute('opacity','0.55');
+    btag.setAttribute('font-family','Share Tech Mono,monospace');
+    btag.textContent=(actor.type||'').toUpperCase();
+    g.appendChild(btag);
+
+    svg.appendChild(g);
+  });
+}
+
+// ═══════════════════════════════════════════
+// WARNINGS — from Guardian keywords (no API)
+// ═══════════════════════════════════════════
+function updateWarnings(articles){
+  // Map Guardian articles to warning events
+  const warnRules = [
+    {kw:/ukraine|kharkiv|offensive|russian troops|front line/i,title:'Ukraine Front Operations',sev:'HIGH',lat:49.5,lon:31.2,type:'conflict'},
+    {kw:/gaza|hamas|rafah|west bank|netanyahu|idf strike/i,title:'Gaza/Israel Operations',sev:'HIGH',lat:31.5,lon:34.4,type:'conflict'},
+    {kw:/iran|nuclear|enrichment|iaea|fordow/i,title:'Iran Nuclear Alert',sev:'HIGH',lat:32.4,lon:53.6,type:'nuclear'},
+    {kw:/taiwan|pla|strait|china.*military|south china sea/i,title:'Taiwan Strait Tension',sev:'HIGH',lat:24.0,lon:121.5,type:'military'},
+    {kw:/north korea|dprk|icbm|missile.*launch/i,title:'North Korea Missile Activity',sev:'HIGH',lat:39.0,lon:125.7,type:'nuclear'},
+    {kw:/sudan|rsf|darfur|al-fashir/i,title:'Sudan RSF Conflict',sev:'HIGH',lat:13.6,lon:25.3,type:'conflict'},
+    {kw:/myanmar|junta|burmese|resistance.*force/i,title:'Myanmar Civil War',sev:'HIGH',lat:19.8,lon:96.1,type:'conflict'},
+    {kw:/hezbollah|lebanon.*border|southern lebanon/i,title:'Lebanon Border Conflict',sev:'HIGH',lat:33.5,lon:35.5,type:'conflict'},
+    {kw:/houthi|red sea|shipping.*attack|strait.*hormuz/i,title:'Houthi Red Sea Attacks',sev:'MEDIUM',lat:14.5,lon:44.0,type:'military'},
+    {kw:/cyber.*attack|hack.*bank|ransomware|breach/i,title:'Cyber Attack Detected',sev:'MEDIUM',lat:50.1,lon:8.6,type:'cyber'},
+    {kw:/earthquake|tsunami|volcano|flood.*disaster/i,title:'Natural Disaster Alert',sev:'MEDIUM',lat:0,lon:0,type:'disaster'},
+    {kw:/venezuela|guyana|border.*tension/i,title:'Venezuela Border Tension',sev:'MEDIUM',lat:7.1,lon:-65.3,type:'military'},
+    {kw:/mali|niger|coup|sahel|wagner/i,title:'Sahel Instability',sev:'MEDIUM',lat:12.6,lon:-8.0,type:'conflict'},
+    {kw:/pakistan|kashmir|terror.*attack/i,title:'Pakistan Security Alert',sev:'MEDIUM',lat:30.0,lon:70.0,type:'conflict'},
+  ];
+
+  const newWarnings = [];
+  warnRules.forEach(rule=>{
+    const match = articles.find(a=>rule.kw.test(a.webTitle));
+    if(match){
+      newWarnings.push({
+        title:rule.title,
+        severity:rule.sev,
+        lat:rule.lat,
+        lon:rule.lon,
+        type:rule.type,
+        desc:match.webTitle.slice(0,90),
+        ts:timeAgo(match.webPublicationDate)
+      });
+    }
+  });
+
+  // Add static ones if AI ones are few
+  const combined = newWarnings.length >= 5 ? newWarnings : [...newWarnings, ...WARNINGS.slice(0, 8-newWarnings.length)];
+  const unique = combined.filter((v,i,a)=>a.findIndex(x=>x.title===v.title)===i);
+
+  const wl=document.getElementById('warn-list');
+  wl.innerHTML='';
+  unique.forEach(w=>{
+    const div=document.createElement('div');
+    div.className='warn-item';
+    const dc=w.severity==='HIGH'?'HIGH-dot':w.severity==='MEDIUM'?'MED-dot':'LOW-dot';
+    div.innerHTML=`<div class="wi-top"><div class="wi-title">${w.title}</div><span class="wi-sev sev-${w.severity}">${w.severity}</span></div><div class="wi-desc">${w.desc}</div><div class="wdot ${dc}"></div>`;
+    div.onclick=()=>flyTo(w);
+    wl.appendChild(div);
+  });
+
+  // Add new markers to globe
+  unique.forEach(w=>{ if(w.lat&&w.lon) addMarker(w); });
+  document.getElementById('mcount').textContent=markers.length;
+
+  const hi=unique.filter(w=>w.severity==='HIGH').length;
+  const me=unique.filter(w=>w.severity==='MEDIUM').length;
+  const ri=Math.min(99,Math.round((hi*10+me*5)/Math.max(unique.length,1)*10));
+  document.getElementById('tcount').textContent=unique.length;
+  document.getElementById('rindex').textContent=ri+'/100';
+  document.getElementById('s-high').textContent=hi;
+  document.getElementById('s-med').textContent=me;
+  document.getElementById('s-total').textContent=unique.length;
+  document.getElementById('s-risk').textContent=ri;
+  document.getElementById('risk-badge').textContent='RISK: '+(ri>70?'CRITICAL':ri>40?'ELEVATED':'MODERATE');
+}
+
+
+// ═══════════════════════════════════════════
+// MIDDLE EAST LIVE NEWS
+// ═══════════════════════════════════════════
+async function loadMiddleEastNews(){
+  const mel = document.getElementById('me-list');
+  mel.innerHTML = '';
+
+  // Static country cards first
+  ME_COUNTRIES.forEach(mc => {
+    const div = document.createElement('div');
+    div.className = 'me-card';
+    div.innerHTML = `
+      <div class="me-header" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span class="me-flag">${mc.flag}</span>
+        <span class="me-country">${mc.name}</span>
+        <span class="me-status ${mc.status}">${mc.statusText}</span>
+      </div>
+      <div class="me-body">
+        <div style="margin-bottom:6px">${mc.info}</div>
+        <div style="font-size:.68rem;color:#1a4a6a;border-top:1px solid var(--border);padding-top:5px;margin-top:5px">${mc.relations}</div>
+      </div>`;
+    mel.appendChild(div);
+  });
+
+  // Fetch live Guardian ME news and prepend
+  try {
+    const url = `https://content.guardianapis.com/search?q=israel+OR+gaza+OR+iran+OR+lebanon+OR+hezbollah+OR+hamas+OR+yemen+OR+houthis+OR+%22middle+east%22&section=world&order-by=newest&page-size=8&api-key=${GUARDIAN_KEY}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    if (d.response?.results?.length) {
+      const newsWrap = document.createElement('div');
+      const hdr = document.createElement('div');
+      hdr.className = 'ph';
+      hdr.style.cssText = 'margin-bottom:4px;color:var(--nr)';
+      hdr.textContent = '// LIVE MIDDLE EAST FEED';
+      newsWrap.appendChild(hdr);
+      d.response.results.forEach(a => {
+        const item = document.createElement('div');
+        item.className = 'news-item';
+        item.innerHTML = `<div class="ntag CONFLICT">ME INTEL</div><div class="nhead">${a.webTitle}</div><div class="nmeta"><span class="nsource">GUARDIAN</span>${timeAgo(a.webPublicationDate)}</div>`;
+        item.onclick = () => window.open(a.webUrl, '_blank');
+        newsWrap.appendChild(item);
+      });
+      mel.insertBefore(newsWrap, mel.firstChild);
+    }
+  } catch(e) { console.log('ME news error:', e); }
+}
+
+
+// ═══════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════
+function activateTab(name){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tabpanel').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function flyTo(w){
+  autoRot=false;
+  targetRotY=-(w.lon+180)*Math.PI/180+Math.PI;
+  targetRotX=-(90-w.lat)*Math.PI/180+Math.PI/2;
+}
+
+function initUI(){
+  // Stats init
+  const hi=WARNINGS.filter(w=>w.severity==='HIGH').length;
+  const me=WARNINGS.filter(w=>w.severity==='MEDIUM').length;
+  const ri=Math.round((hi*10+me*5)/WARNINGS.length*10);
+  document.getElementById('tcount').textContent=WARNINGS.length;
+  document.getElementById('rindex').textContent=ri+'/100';
+  document.getElementById('s-high').textContent=hi;
+  document.getElementById('s-med').textContent=me;
+  document.getElementById('s-total').textContent=WARNINGS.length;
+  document.getElementById('s-risk').textContent=ri;
+  document.getElementById('mcount').textContent=WARNINGS.length;
+
+  // Warnings list (static until AI updates)
+  const wl=document.getElementById('warn-list');
+  WARNINGS.forEach(w=>{
+    const div=document.createElement('div');
+    div.className='warn-item';
+    const dc=w.severity==='HIGH'?'HIGH-dot':w.severity==='MEDIUM'?'MED-dot':'LOW-dot';
+    div.innerHTML=`<div class="wi-top"><div class="wi-title">${w.title}</div><span class="wi-sev sev-${w.severity}">${w.severity}</span></div><div class="wi-desc">${w.desc}</div><div class="wdot ${dc}"></div>`;
+    div.onclick=()=>flyTo(w);
+    wl.appendChild(div);
+  });
+
+  // Politicians
+  const pl=document.getElementById('pol-list');
+  POLITICIANS.forEach(p=>{
+    const div=document.createElement('div');
+    div.className='pol-item';
+    div.innerHTML=`
+      <div class="pol-top">
+        <span class="pol-flag">${p.flag}</span>
+        <div><div class="pol-name">${p.name}</div><div class="pol-title">${p.title}</div></div>
+        <span style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:2px 6px;border:1px solid var(--border);color:${p.influence==='CRITICAL'?'var(--nr)':p.influence==='HIGH'?'var(--no)':'var(--nb)'}">${p.influence}</span>
+      </div>
+      <div class="pol-info">${p.desc}</div>
+      <div>${p.tags.map(t=>`<span class="pol-tag ${t}">${t.toUpperCase()}</span>`).join('')}</div>`;
+    pl.appendChild(div);
+  });
+
+  // Middle East static load first
+  loadMiddleEastNews();
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach(b=>{
+    b.addEventListener('click',()=>activateTab(b.dataset.tab));
+  });
+
+  // Brief Me
+  document.getElementById('brief-btn').addEventListener('click',briefMe);
+
+  // Alert mode
+  let alertOn=false;
+  document.getElementById('alert-btn').addEventListener('click',()=>{
+    alertOn=!alertOn;
+    document.body.style.outline=alertOn?'2px solid var(--nr)':'';
+    document.getElementById('alert-btn').textContent=alertOn?'✓ ALERT ON':'⚠ ALERT MODE';
+  });
+
+  // Clock
+  setInterval(()=>{
+    const n=new Date();
+    document.getElementById('clock').textContent=n.toISOString().slice(11,19)+' UTC';
+  },1000);
+
+  // Fetch live news (triggers all AI panels)
+  fetchAllNews();
+}
+
+// ═══════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════
+const loadMsgs=['INITIALIZING SATELLITE FEED...','AUTHENTICATING CIPHER KEYS...','CONNECTING SIGINT NETWORK...','LOADING GEOSPATIAL DATABASE...','CALIBRATING GLOBE PROJECTION...','ALL SYSTEMS OPERATIONAL.'];
+let mi=0;
+const lsi=setInterval(()=>{
+  if(mi<loadMsgs.length) document.getElementById('lstatus').textContent=loadMsgs[mi++];
+},430);
+
+window.addEventListener('load',()=>{
+  setTimeout(()=>{
+    clearInterval(lsi);
+    const loader=document.getElementById('loader');
+    loader.style.opacity='0';
+    setTimeout(()=>{
+      loader.style.display='none';
+      const app=document.getElementById('app');
+      app.style.display='grid';
+      initGlobe();
+      initUI();
+      onResize();
+    },500);
+  },2800);
+});
+</script>
+</body>
+</html>
