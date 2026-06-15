@@ -191,6 +191,51 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .etag.org{border-color:#00d4ff55;color:var(--nb);}
 .etag.location{border-color:#ff770055;color:var(--no);}
 
+
+/* CONFLICT ITEMS */
+.cfi{padding:9px 10px;border:1px solid var(--border);margin-bottom:5px;cursor:pointer;transition:border-color .2s;position:relative;}
+.cfi:hover{border-color:var(--nr);}
+.cfi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
+.cfi-country{font-family:'Rajdhani',sans-serif;font-size:.9rem;font-weight:700;color:var(--nb);}
+.cfi-type{font-family:'Share Tech Mono',monospace;font-size:.57rem;padding:1px 5px;}
+.cfi-region{font-size:.68rem;color:var(--no);margin-bottom:3px;font-family:'Share Tech Mono',monospace;}
+.cfi-notes{font-size:.7rem;color:var(--muted);line-height:1.4;}
+.cfi-stats{display:flex;gap:10px;margin-top:4px;font-family:'Share Tech Mono',monospace;font-size:.6rem;}
+.cfi-fatal{color:var(--nr);}
+.cfi-score{color:var(--np);}
+.cfi-date{color:var(--muted);}
+
+/* FORECAST CARDS */
+.fci{border:1px solid var(--border);padding:10px;margin-bottom:7px;}
+.fci-title{font-family:'Rajdhani',sans-serif;font-size:.92rem;font-weight:700;color:var(--nr);margin-bottom:5px;}
+.fci-meta{display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+.fci-prob{font-family:'Share Tech Mono',monospace;font-size:.62rem;padding:2px 8px;background:#ff224418;border:1px solid var(--nr);color:var(--nr);}
+.fci-time{font-family:'Share Tech Mono',monospace;font-size:.62rem;padding:2px 8px;background:#ff770018;border:1px solid var(--no);color:var(--no);}
+.fci-sev{font-family:'Share Tech Mono',monospace;font-size:.62rem;padding:2px 8px;}
+.fci-trigger{font-size:.72rem;color:var(--text);margin-bottom:5px;}
+.fci-trigger b{color:var(--no);}
+.fci-cascade{margin-top:5px;padding-top:5px;border-top:1px solid var(--border);}
+.fci-cascade-item{font-size:.68rem;color:var(--muted);padding:1px 0;display:flex;align-items:flex-start;gap:5px;}
+.fci-cascade-item::before{content:'→';color:var(--nr);flex-shrink:0;}
+
+/* ENTITY TAGS */
+.etags{display:flex;flex-wrap:wrap;gap:3px;padding:6px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.etag{font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:2px 6px;border:1px solid var(--border);cursor:pointer;transition:border-color .15s;}
+.etag:hover{border-color:var(--nb);}
+.etag.person{border-color:#cc44ff44;color:var(--np);}
+.etag.org{border-color:#00d4ff44;color:var(--nb);}
+.etag.loc{border-color:#ff770044;color:var(--no);}
+.etag.HIGH{border-color:var(--nr)!important;color:var(--nr)!important;}
+
+/* RISK MATRIX */
+.rmi{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid #0d1e3625;}
+.rmi-flag{font-size:.9rem;}
+.rmi-name{font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:600;width:80px;}
+.rmi-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.rmi-bar{height:100%;border-radius:3px;transition:width .4s;}
+.rmi-score{font-family:'Share Tech Mono',monospace;font-size:.6rem;width:35px;text-align:right;}
+.rmi-trend{font-size:.65rem;width:20px;text-align:center;}
+
 body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,#00000010 2px,#00000010 4px);pointer-events:none;z-index:9990;}
 </style>
 </head>
@@ -254,7 +299,9 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <button class="tab" data-tab="warnings">⚠ WARNINGS</button>
       <button class="tab" data-tab="analytics">🔗 ANALYTICS</button>
       <button class="tab" data-tab="intel">👁 INTEL MAP</button>
-      <button class="tab" data-tab="leaders">🎯 LEADERS</button>
+      <button class="tab" data-tab="conflicts">⚔ CONFLICTS</button>
+      <button class="tab" data-tab="forecast">🎯 FORECAST</button>
+      <button class="tab" data-tab="leaders">👤 LEADERS</button>
       <button class="tab" data-tab="mideast">🌙 MIDEAST</button>
     </div>
 
@@ -285,6 +332,14 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <div class="ph">// WORLD LEADERS & INFLUENTIAL FIGURES</div>
       <div class="scroll" id="leaders"></div>
     </div>
+    <div class="tabp" id="tab-conflicts">
+      <div class="ph">// ACTIVE CONFLICT ZONES — ACLED DATA</div>
+      <div class="scroll" id="conflictlist"></div>
+    </div>
+    <div class="tabp" id="tab-forecast">
+      <div class="ph">// PREDICTIVE INTELLIGENCE — SCENARIO ENGINE</div>
+      <div class="scroll" id="forecastlist"></div>
+    </div>
     <div class="tabp" id="tab-mideast">
       <div class="ph">// MIDDLE EAST INTELLIGENCE</div>
       <div class="scroll" id="mideast"></div>
@@ -298,7 +353,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 // API CONFIG - auto-detects environment
 // ═══════════════════════════════════
 const IS_LOCAL = location.hostname === 'localhost' || location.protocol === 'file:';
-const API = IS_LOCAL ? 'https://sentinel-intelligence.vercel.app/api' : '/api';
+const API = '/api';
 // If running locally before deploy, use the Vercel URL above.
 // After deploy, relative /api paths work automatically.
 
@@ -640,6 +695,7 @@ async function loadNews(){
     // Trigger AI analysis panels
     loadAnalytics(liveArticles);
     loadActors(liveArticles);
+    loadEntities(liveArticles);
   }catch(e){
     document.getElementById('feedstatus').textContent='● ERROR';
     document.getElementById('feedstatus').style.color='var(--nr)';
@@ -844,6 +900,178 @@ document.querySelectorAll('.layer-btn').forEach(btn=>{
 });
 
 // ═══════════════════════════════════
+// PHASE 2: CONFLICT DATA (ACLED)
+// ═══════════════════════════════════
+async function loadConflicts(){
+  const el=document.getElementById('conflictlist');
+  el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ LOADING CONFLICT DATA...</div>`;
+  try{
+    const d=await apiGet('/api/acled');
+    const {conflicts,stats}=d;
+
+    // Update stats bar
+    if(stats){
+      document.getElementById('sh').textContent=stats.highSeverity;
+      document.getElementById('sm').textContent=conflicts.filter(c=>c.severity==='MEDIUM').length;
+      document.getElementById('st2').textContent=stats.totalEvents;
+    }
+
+    el.innerHTML='';
+
+    // Stats header
+    if(stats){
+      const sh=document.createElement('div');
+      sh.style.cssText='padding:8px 10px;background:#040a16;border-bottom:1px solid var(--border);display:flex;gap:14px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:.6rem;';
+      sh.innerHTML=`<span style="color:var(--nr)">☠ ${stats.totalFatalities} FATALITIES</span><span style="color:var(--no)">${stats.totalEvents} EVENTS</span><span style="color:var(--nb)">${stats.countriesAffected} COUNTRIES</span><span style="color:var(--np)">AVG INTENSITY: ${stats.avgIntensity}/100</span>`;
+      el.appendChild(sh);
+    }
+
+    // Conflict items
+    conflicts.forEach(cf=>{
+      const div=document.createElement('div'); div.className='cfi';
+      const tc=cf.severity==='HIGH'?'sH':'sM';
+      const barColor=cf.intensityScore>70?'var(--nr)':cf.intensityScore>40?'var(--no)':'var(--nb)';
+      div.innerHTML=`
+        <div class="cfi-top">
+          <div class="cfi-country">${cf.country}</div>
+          <span class="wi-sev ${tc}">${cf.severity}</span>
+        </div>
+        <div class="cfi-region">📍 ${cf.region} · ${cf.sub_event||cf.event}</div>
+        <div class="cfi-notes">${cf.notes}</div>
+        <div class="cfi-stats">
+          <span class="cfi-fatal">☠ ${cf.fatalities} killed</span>
+          <span class="cfi-score">⚡ ${cf.intensityScore}/100</span>
+          <span class="cfi-date">📅 ${cf.daysAgo===0?'Today':cf.daysAgo+'d ago'}</span>
+        </div>
+        <div style="margin-top:5px;height:3px;background:var(--border);border-radius:2px"><div style="width:${cf.intensityScore}%;height:100%;background:${barColor};border-radius:2px;transition:width .4s"></div></div>
+      `;
+      div.onclick=()=>flyTo({lat:cf.lat,lon:cf.lon});
+      el.appendChild(div);
+
+      // Add to globe
+      addMarker({title:cf.country+' — '+cf.sub_event,severity:cf.severity,lat:cf.lat,lon:cf.lon,desc:cf.notes,ts:cf.daysAgo===0?'Today':cf.daysAgo+'d ago',riskScore:cf.intensityScore});
+    });
+  }catch(e){
+    el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Conflict data unavailable: ${e.message}</div>`;
+  }
+}
+
+// ═══════════════════════════════════
+// PHASE 2: FORECAST + SCENARIOS
+// ═══════════════════════════════════
+async function loadForecast(){
+  const el=document.getElementById('forecastlist');
+  el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ RUNNING FORECAST ENGINE...</div>`;
+  try{
+    // Risk matrix
+    const rm=await apiGet('/api/forecast?type=risk_matrix');
+    const matrix=rm.matrix||[];
+
+    const riskSection=document.createElement('div');
+    riskSection.innerHTML='<div class="ph" style="margin-bottom:2px;color:var(--no)">// COUNTRY RISK MATRIX — ESCALATION PROBABILITY</div>';
+
+    const FLAG_MAP={UA:'🇺🇦',SD:'🇸🇩',MM:'🇲🇲',PS:'🇵🇸',YE:'🇾🇪',SO:'🇸🇴',ML:'🇲🇱',HT:'🇭🇹',LB:'🇱🇧',SY:'🇸🇾',IQ:'🇮🇶',IR:'🇮🇷',KP:'🇰🇵',CN:'🇨🇳',PK:'🇵🇰',ET:'🇪🇹'};
+    const TREND_ICON={worsening:'↑','improving':'↓',stable:'→'};
+
+    matrix.forEach(c=>{
+      const barColor=c.escalationProbability>80?'var(--nr)':c.escalationProbability>60?'var(--no)':c.escalationProbability>40?'#ffaa00':'var(--nb)';
+      const row=document.createElement('div'); row.className='rmi';
+      row.innerHTML=`<span class="rmi-flag">${FLAG_MAP[c.code]||'🏳'}</span><span class="rmi-name">${c.name}</span><div class="rmi-bar-wrap"><div class="rmi-bar" style="width:${c.escalationProbability}%;background:${barColor}"></div></div><span class="rmi-score" style="color:${barColor}">${c.escalationProbability}%</span><span class="rmi-trend" style="color:${c.trend==='worsening'?'var(--nr)':c.trend==='improving'?'var(--ng)':'var(--muted)'}">${TREND_ICON[c.trend]||'→'}</span>`;
+      riskSection.appendChild(row);
+    });
+    el.innerHTML='';
+    el.appendChild(riskSection);
+
+    // Scenarios
+    const sd=await apiPost('/api/forecast',{type:'scenarios',articles:liveArticles.slice(0,8)});
+    const scenarios=sd.scenarios||[];
+
+    const scenHeader=document.createElement('div');
+    scenHeader.className='ph';
+    scenHeader.style.cssText='margin-top:8px;color:var(--np)';
+    scenHeader.textContent='// AI SCENARIO ENGINE — NEXT 30-90 DAYS';
+    el.appendChild(scenHeader);
+
+    scenarios.forEach(s=>{
+      const div=document.createElement('div'); div.className='fci';
+      const sevColor=s.severity==='HIGH'?'sH':'sM';
+      div.innerHTML=`
+        <div class="fci-title">⚠ ${s.title}</div>
+        <div class="fci-meta">
+          <span class="fci-prob">${s.probability}</span>
+          <span class="fci-time">⏱ ${s.timeline}</span>
+          <span class="fci-sev ${sevColor}">${s.severity}</span>
+        </div>
+        <div class="fci-trigger"><b>TRIGGER:</b> ${s.trigger}</div>
+        <div class="fci-cascade">${(s.cascade||[]).map(e=>`<div class="fci-cascade-item">${e}</div>`).join('')}</div>
+      `;
+      el.appendChild(div);
+    });
+
+    if(sd.fallback){
+      const note=document.createElement('div');
+      note.style.cssText='padding:6px 10px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--dim)';
+      note.textContent='⚠ AI scenarios require ANTHROPIC_API_KEY — showing baseline model';
+      el.appendChild(note);
+    }
+  }catch(e){
+    el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Forecast unavailable: ${e.message}</div>`;
+  }
+}
+
+// ═══════════════════════════════════
+// PHASE 2: ENTITY EXTRACTION
+// ═══════════════════════════════════
+async function loadEntities(articles){
+  if(!articles?.length) return;
+  try{
+    const d=await apiPost('/api/entities',{articles:articles.slice(0,15)});
+    const {entities,summary}=d;
+    if(!entities) return;
+
+    // Show entity tags in briefing panel header
+    const nl=document.getElementById('newslist');
+    const existing=document.getElementById('entity-bar');
+    if(existing) existing.remove();
+
+    const bar=document.createElement('div');
+    bar.id='entity-bar';
+    bar.className='etags';
+
+    const people=entities.people||[];
+    const orgs=entities.organizations||entities.orgs||[];
+    const locs=entities.locations||[];
+
+    people.slice(0,6).forEach(p=>{
+      const tag=document.createElement('span');
+      const threat=p.threatLevel||p.threat||'LOW';
+      tag.className=`etag person${threat==='HIGH'?' HIGH':''}`;
+      tag.textContent='👤 '+p.name;
+      tag.title=`${p.role||''} — ${p.country||''}`;
+      bar.appendChild(tag);
+    });
+    orgs.slice(0,5).forEach(o=>{
+      const tag=document.createElement('span');
+      const threat=o.threatLevel||o.threat||'LOW';
+      tag.className=`etag org${threat==='HIGH'?' HIGH':''}`;
+      tag.textContent='🏛 '+(o.name||o);
+      bar.appendChild(tag);
+    });
+    locs.slice(0,4).forEach(l=>{
+      const tag=document.createElement('span');
+      tag.className='etag loc';
+      tag.textContent='📍 '+(l.name||l);
+      if((l.lat||l.lon)&&l.lat) tag.onclick=()=>flyTo({lat:l.lat,lon:l.lon});
+      bar.appendChild(tag);
+    });
+
+    if(bar.children.length>0){
+      nl.parentNode.insertBefore(bar,nl);
+    }
+  }catch(e){ console.log('Entities:', e.message); }
+}
+
+// ═══════════════════════════════════
 // BOOT
 // ═══════════════════════════════════
 const MSGS=['INITIALIZING SATELLITE FEED...','AUTHENTICATING CIPHER KEYS...','CONNECTING SIGINT NETWORK...','LOADING GEOSPATIAL DATABASE...','CALIBRATING GLOBE PROJECTION...','FETCHING THREAT INTELLIGENCE...','ALL SYSTEMS OPERATIONAL.'];
@@ -880,6 +1108,8 @@ window.addEventListener('load',()=>{
       loadNews();
       loadLeaders();
       loadMideast();
+      loadConflicts();
+      loadForecast();
       onResize();
     },500);
   },2800);
