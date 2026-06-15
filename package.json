@@ -1,6 +1,6 @@
 {
   "name": "sentinel-intelligence",
   "version": "1.0.0",
-  "description": "SENTINEL Global Intelligence Platform",
+  "type": "module",
   "engines": { "node": ">=18" }
 }
