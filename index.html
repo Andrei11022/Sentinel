@@ -16,8 +16,9 @@
 html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;overflow:hidden;}
 
 #app{display:grid;width:100vw;height:100vh;grid-template-columns:1fr 390px;grid-template-rows:58px 1fr 155px;grid-template-areas:"tb tb" "gl sb" "st sb";}
+
 #tb{grid-area:tb;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border);background:#040a1699;backdrop-filter:blur(10px);z-index:30;}
-.logo{font-family:'Rajdhani',sans-serif;font-size:1.2rem;font-weight:700;letter-spacing:.28em;color:var(--nb);text-shadow:var(--gb);}
+.logo{font-family:'Rajdhani',sans-serif;font-size:1.2rem;font-weight:700;letter-spacing:.28em;color:var(--nb);text-shadow:var(--gb);} 
 .tmeta{display:flex;gap:14px;font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);align-items:center;}
 .tmeta b{color:var(--nb);} 
 #tclock{color:var(--ng);} 
@@ -39,10 +40,19 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .rbadge.pulse{animation:riskPulse 1.3s ease-in-out infinite;} 
 
 #ctip,#mtip{position:absolute;display:none;pointer-events:none;z-index:20;background:#04091aee;border:1px solid var(--nb);box-shadow:var(--gb);backdrop-filter:blur(12px);} 
-#ctip{padding:12px 14px;max-width:290px;font-size:.72rem;line-height:1.6;}
-#ctip h3{font-family:'Rajdhani',sans-serif;font-size:1.03rem;color:var(--nb);margin-bottom:4px;} 
-#mtip{padding:10px 12px;max-width:260px;font-size:.7rem;} 
-#mtip .mtt{font-family:'Rajdhani',sans-serif;font-size:.92rem;font-weight:700;color:var(--nb);} 
+#ctip{padding:12px 14px;max-width:300px;font-size:.72rem;line-height:1.6;}
+#ctip h3{font-family:'Rajdhani',sans-serif;font-size:1.03rem;color:var(--nb);margin-bottom:5px;} 
+#ctip .row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #0d1e363d;padding:2px 0;} 
+#ctip .row span:first-child{color:var(--muted);} 
+#mtip{padding:10px 12px;max-width:280px;font-size:.7rem;} 
+#mtip .mtt{font-family:'Rajdhani',sans-serif;font-size:.94rem;font-weight:700;color:var(--nb);} 
+#mtip .md{line-height:1.45;color:var(--text);margin:4px 0;} 
+#mtip .meta{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);} 
+
+.sH,.sM,.sL{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:1px 6px;border:1px solid currentColor;margin:3px 0;} 
+.sH{color:var(--nr);background:#ff224422;} 
+.sM{color:var(--no);background:#ff770022;} 
+.sL{color:var(--ny);background:#f0c94d1a;} 
 
 #st{grid-area:st;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);border-right:1px solid var(--border);} 
 .sc{background:var(--panel);padding:12px 14px;position:relative;overflow:hidden;} 
@@ -60,22 +70,46 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .ss{font-size:.6rem;color:var(--muted);} 
 
 #sb{grid-area:sb;background:var(--panel2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;} 
-.tabs{display:grid;grid-template-columns:repeat(2,1fr);border-bottom:1px solid var(--border);background:linear-gradient(180deg,#071222,#050d1b);} 
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--border);background:linear-gradient(180deg,#071222,#050d1b);} 
 .tab{padding:8px 4px;border:none;border-bottom:2px solid transparent;background:transparent;color:#5e7f9f;font-family:'Rajdhani',sans-serif;font-size:.62rem;font-weight:700;cursor:pointer;transition:all .18s;} 
-.tab.active{color:#d7ecff;background:linear-gradient(180deg,#0d243f,#07172d);border-bottom-color:var(--nb);} 
+.tab.active{color:#d7ecff;background:linear-gradient(180deg,#0d243f,#07172d);border-bottom-color:var(--nb);text-shadow:0 0 8px #00d4ff88;} 
 .tabp{display:none;flex:1;overflow:hidden;flex-direction:column;} 
 .tabp.active{display:flex;} 
 .ph{padding:8px 12px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;} 
+.pfeed{color:var(--ng);} 
 .scroll{flex:1;overflow-y:auto;padding:6px;} 
+.scroll::-webkit-scrollbar{width:4px;} 
+.scroll::-webkit-scrollbar-thumb{background:#12304f;border-radius:4px;} 
 
-.item{padding:9px 10px;border:1px solid #10254255;margin-bottom:5px;}
-.item .title{font-size:.77rem;line-height:1.4;color:var(--text);} 
-.item .meta{margin-top:4px;font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;}
+.item{padding:9px 10px;border:1px solid #10254255;margin-bottom:5px;cursor:pointer;transition:all .15s;} 
+.item:hover{background:#00d4ff0d;border-color:#1c4268;} 
+.item .title{font-size:.77rem;line-height:1.42;color:var(--text);} 
+.item .meta{margin-top:4px;font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--muted);display:flex;gap:7px;align-items:center;flex-wrap:wrap;} 
+
+.weatherBox{padding:10px;display:flex;flex-direction:column;gap:10px;}
+.weatherSearch{display:flex;gap:8px;}
+.weatherSearch input{flex:1;background:#071224;border:1px solid #163457;color:#d8ecff;padding:8px 9px;font-family:'Share Tech Mono',monospace;font-size:.68rem;outline:none;}
+.weatherSearch input:focus{border-color:var(--nb);box-shadow:var(--gb);} 
+.weatherSearch button{background:transparent;border:1px solid var(--nb);color:var(--nb);padding:8px 10px;font-family:'Rajdhani',sans-serif;font-weight:700;cursor:pointer;}
+.weatherSearch button:hover{background:#00d4ff16;}
+.weatherCurrent{border:1px solid var(--border);padding:10px;background:#071122;}
+.weatherCity{font-family:'Rajdhani',sans-serif;font-size:1rem;color:var(--nb);font-weight:700;}
+.weatherMain{display:flex;justify-content:space-between;gap:10px;margin-top:6px;}
+.weatherTemp{font-family:'Rajdhani',sans-serif;font-size:2rem;line-height:1;color:#dff4ff;}
+.weatherMeta{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--muted);line-height:1.6;}
+.forecastRow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.dayCard{border:1px solid var(--border);padding:6px;background:#071122;text-align:center;}
+.dayName{font-family:'Share Tech Mono',monospace;font-size:.55rem;color:var(--muted);} 
+.dayIcon{font-size:.9rem;line-height:1.6;} 
+.dayTemp{font-family:'Rajdhani',sans-serif;font-size:.72rem;color:#d8ebff;} 
 
 @keyframes riskPulse{0%,100%{box-shadow:0 0 0 #ff224400,0 0 12px #ff224444;}50%{box-shadow:0 0 0 #ff224400,0 0 22px #ff2244aa;}}
+
 @media (max-width:1120px){
   #app{grid-template-columns:1fr;grid-template-rows:58px 52vh 150px 1fr;grid-template-areas:"tb" "gl" "st" "sb";}
   #sb{border-left:none;border-top:1px solid var(--border);} 
+  .tabs{grid-template-columns:repeat(3,1fr);} 
+  .forecastRow{grid-template-columns:repeat(4,1fr);} 
 }
 </style>
 </head>
@@ -92,8 +126,8 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
       <span id="lastUpdateLive">UPDATED: --</span>
     </div>
     <div class="tbns">
-      <button class="btn" id="briefbtn">BRIEF</button>
-      <button class="btn red" id="alertbtn">ALERT</button>
+      <button class="btn" id="briefbtn">🔊 BRIEF</button>
+      <button class="btn red" id="alertbtn">⚠ ALERT</button>
     </div>
   </div>
 
@@ -106,33 +140,52 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
       <div class="rbadge" id="rbadge">RISK: LOW</div>
     </div>
     <div id="layers">
-      <button class="layer-btn active" data-layer="threats">THREATS</button>
-      <button class="layer-btn" data-layer="alliances">ALLIANCES</button>
-      <button class="layer-btn active" data-layer="conflicts">CONFLICTS</button>
+      <button class="layer-btn active" data-layer="threats">⚠ THREATS</button>
+      <button class="layer-btn" data-layer="alliances">🔗 ALLIANCES</button>
+      <button class="layer-btn active" data-layer="conflicts">⚔ CONFLICTS</button>
     </div>
     <div id="ctip"></div>
-    <div id="mtip"><div class="mtt" id="mt-title"></div><div id="mt-desc"></div></div>
+    <div id="mtip">
+      <div class="mtt" id="mt-title"></div>
+      <div id="mt-sev"></div>
+      <div class="md" id="mt-desc"></div>
+      <div class="meta" id="mt-meta"></div>
+    </div>
   </div>
 
   <div id="st">
-    <div class="sc cr"><div class="slb">HIGH</div><div class="sv" id="sh">0</div><div class="ss">High severity</div></div>
-    <div class="sc co"><div class="slb">MEDIUM</div><div class="sv" id="sm">0</div><div class="ss">Medium severity</div></div>
-    <div class="sc cb"><div class="slb">TOTAL</div><div class="sv" id="st2">0</div><div class="ss">Events tracked</div></div>
-    <div class="sc cg"><div class="slb">RISK INDEX</div><div class="sv" id="sri">0</div><div class="ss">Updated live</div></div>
+    <div class="sc cr"><div class="slb">HIGH SEVERITY</div><div class="sv" id="sh">0</div><div class="ss">Active conflicts</div></div>
+    <div class="sc co"><div class="slb">MEDIUM SEVERITY</div><div class="sv" id="sm">0</div><div class="ss">Developing</div></div>
+    <div class="sc cb"><div class="slb">TOTAL MONITORED</div><div class="sv" id="st2">0</div><div class="ss">Events tracked</div></div>
+    <div class="sc cg"><div class="slb">GLOBAL RISK INDEX</div><div class="sv" id="sri">0</div><div class="ss">Updated live</div></div>
   </div>
 
   <div id="sb">
     <div class="tabs">
-      <button class="tab active" data-tab="news">BRIEFING</button>
-      <button class="tab" data-tab="warnings">WARNINGS</button>
+      <button class="tab active" data-tab="news">📡 BRIEFING</button>
+      <button class="tab" data-tab="warnings">⚠ WARNINGS</button>
+      <button class="tab" data-tab="weather">🌤 WEATHER</button>
     </div>
+
     <div class="tabp active" id="tab-news">
-      <div class="ph">LIVE FEED <span id="feedstatus">CONNECTING</span></div>
+      <div class="ph">// LIVE INTELLIGENCE FEED <span class="pfeed" id="feedstatus">● CONNECTING</span></div>
       <div class="scroll" id="newslist"></div>
     </div>
+
     <div class="tabp" id="tab-warnings">
-      <div class="ph">LIVE WARNINGS</div>
+      <div class="ph">// ALERTS PANEL — LIVE EVENTS</div>
       <div class="scroll" id="warnlist"></div>
+    </div>
+
+    <div class="tabp" id="tab-weather">
+      <div class="ph">// OPEN-METEO LIVE WEATHER</div>
+      <div class="weatherBox">
+        <div class="weatherSearch">
+          <input id="weatherCity" type="text" placeholder="Search any city..." />
+          <button id="weatherSearchBtn">SEARCH</button>
+        </div>
+        <div id="weatherResult"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -140,24 +193,80 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const API = '/api';
-const EARTH_RADIUS = 1.6;
+const GR = 1.6;
 
 let scene, camera, renderer, globeMesh;
-let autoRot = true;
-let targetRotY = 0;
-let rotY = 0;
+let raycaster, mouse;
+let autoRot = true, isDrag = false;
+let rotX = 0, rotY = 0, targetRotX = 0, targetRotY = 0;
+let prevMouse = { x: 0, y: 0 };
+let activeLayers = { threats: true, alliances: false, conflicts: true };
+
+let borderGroup, markerGroup, ringGroup, countryZoneGroup;
+let markers = [];
+let heatZones = [];
+let countryZones = [];
+let countryMetaByCode = {};
 let liveArticles = [];
 let liveThreats = [];
+let lastUpdateMs = 0;
+let tClock = 0;
+
+const FLAG_BY_CODE = {
+  US:'🇺🇸',RU:'🇷🇺',CN:'🇨🇳',UA:'🇺🇦',IR:'🇮🇷',IL:'🇮🇱',SA:'🇸🇦',IN:'🇮🇳',TR:'🇹🇷',DE:'🇩🇪',GB:'🇬🇧',FR:'🇫🇷',KP:'🇰🇵',JP:'🇯🇵',BR:'🇧🇷',PK:'🇵🇰',SD:'🇸🇩',MM:'🇲🇲',YE:'🇾🇪',SY:'🇸🇾',LB:'🇱🇧',VE:'🇻🇪',ML:'🇲🇱',LY:'🇱🇾',PS:'🇵🇸',SO:'🇸🇴',IQ:'🇮🇶',ET:'🇪🇹',HT:'🇭🇹',AF:'🇦🇫',NG:'🇳🇬',TW:'🇹🇼'
+};
 
 function ll2v3(lat, lon, r) {
   const phi = (90 - lat) * Math.PI / 180;
   const theta = (lon + 180) * Math.PI / 180;
-  return new THREE.Vector3(-r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta));
+  return new THREE.Vector3(
+    -r * Math.sin(phi) * Math.cos(theta),
+    r * Math.cos(phi),
+    r * Math.sin(phi) * Math.sin(theta)
+  );
 }
 
 function setText(id, value) {
   const el = document.getElementById(id);
   if (el) el.textContent = value;
+}
+
+function attachById(id, eventName, handler) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(eventName, handler);
+}
+
+function sevClass(sev) {
+  if (sev === 'CRITICAL') return 'sH';
+  if (sev === 'HIGH') return 'sM';
+  return 'sL';
+}
+
+function weatherText(code) {
+  if (code === 0) return 'Clear';
+  if (code >= 1 && code <= 3) return 'Partly cloudy';
+  if (code >= 45 && code <= 48) return 'Fog';
+  if (code >= 51 && code <= 67) return 'Rain';
+  if (code >= 71 && code <= 77) return 'Snow';
+  if (code >= 80 && code <= 82) return 'Showers';
+  if (code === 95) return 'Thunderstorm';
+  return 'Variable';
+}
+
+function weatherEmoji(code) {
+  if (code === 0) return '☀️';
+  if (code >= 1 && code <= 3) return '🌤';
+  if (code >= 45 && code <= 48) return '🌫️';
+  if (code >= 51 && code <= 67) return '🌧';
+  if (code >= 71 && code <= 77) return '❄️';
+  if (code >= 80 && code <= 82) return '🌧';
+  if (code === 95) return '⛈';
+  return '⛅';
+}
+
+function dayName(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString(undefined, { weekday: 'short' });
 }
 
 async function apiGet(path) {
@@ -184,10 +293,10 @@ function initGlobe() {
   sun.position.set(5, 2, 6);
   scene.add(sun);
 
-  const baseGeo = new THREE.SphereGeometry(EARTH_RADIUS, 64, 64);
+  const baseGeo = new THREE.SphereGeometry(GR, 80, 80);
   const texLoader = new THREE.TextureLoader();
   const earthTex = texLoader.load(
-    'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/land_ocean_ice_cloud_2048.jpg',
+    'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg',
     () => {},
     undefined,
     () => {
@@ -198,32 +307,297 @@ function initGlobe() {
     }
   );
 
-  globeMesh = new THREE.Mesh(baseGeo, new THREE.MeshPhongMaterial({
-    map: earthTex,
-    emissive: new THREE.Color(0x00182d),
-    emissiveIntensity: 0.08,
-    shininess: 10,
-    specular: new THREE.Color(0x0a233c)
-  }));
+  globeMesh = new THREE.Mesh(
+    baseGeo,
+    new THREE.MeshPhongMaterial({
+      map: earthTex,
+      emissive: new THREE.Color(0x00182d),
+      emissiveIntensity: 0.06,
+      shininess: 8,
+      specular: new THREE.Color(0x0a233c)
+    })
+  );
   scene.add(globeMesh);
 
   const atmo = new THREE.Mesh(
-    new THREE.SphereGeometry(EARTH_RADIUS * 1.05, 36, 36),
-    new THREE.MeshBasicMaterial({ color: 0x0077ff, transparent: true, opacity: 0.055 })
+    new THREE.SphereGeometry(GR * 1.05, 40, 40),
+    new THREE.MeshBasicMaterial({ color: 0x0077ff, transparent: true, opacity: 0.05 })
   );
   scene.add(atmo);
 
+  borderGroup = new THREE.Group();
+  markerGroup = new THREE.Group();
+  ringGroup = new THREE.Group();
+  countryZoneGroup = new THREE.Group();
+  globeMesh.add(borderGroup);
+  globeMesh.add(markerGroup);
+  globeMesh.add(ringGroup);
+  globeMesh.add(countryZoneGroup);
+
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  cv.addEventListener('mousedown', (e) => {
+    isDrag = true;
+    autoRot = false;
+    prevMouse = { x: e.clientX, y: e.clientY };
+  });
+  window.addEventListener('mouseup', () => { isDrag = false; });
+  cv.addEventListener('mousemove', onMove);
+  cv.addEventListener('click', onClick);
   cv.addEventListener('wheel', (e) => {
     camera.position.z = Math.max(2.4, Math.min(9, camera.position.z + e.deltaY * 0.005));
   }, { passive: true });
-
-  cv.addEventListener('dblclick', () => {
-    autoRot = !autoRot;
-  });
-
+  cv.addEventListener('dblclick', () => { autoRot = !autoRot; });
   window.addEventListener('resize', onResize);
+
   onResize();
   animate();
+}
+
+async function loadCountryBorders() {
+  if (!globeMesh || !borderGroup || !countryZoneGroup) return;
+
+  borderGroup.clear();
+  countryZoneGroup.clear();
+  countryZones = [];
+  countryMetaByCode = {};
+
+  try {
+    const r = await fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson');
+    const data = await r.json();
+
+    data.features.forEach((feature) => {
+      const geom = feature.geometry;
+      if (!geom) return;
+
+      const props = feature.properties || {};
+      const code = (props.ISO3166_1_Alpha_2 || props.ISO_A2 || props.iso_a2 || '').toUpperCase();
+      const name = props.ADMIN || props.name || code || 'Unknown';
+      const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+
+      let latSum = 0;
+      let lonSum = 0;
+      let count = 0;
+
+      polys.forEach((poly) => {
+        poly.forEach((ring) => {
+          const points = [];
+          ring.forEach(([lon, lat]) => {
+            points.push(ll2v3(lat, lon, GR + 0.001));
+            latSum += lat;
+            lonSum += lon;
+            count += 1;
+          });
+
+          const geo = new THREE.BufferGeometry().setFromPoints(points);
+          const mat = new THREE.LineBasicMaterial({ color: 0x1a4a7a, transparent: true, opacity: 0.7 });
+          const line = new THREE.Line(geo, mat);
+          borderGroup.add(line);
+        });
+      });
+
+      if (code && count > 0) {
+        const cLat = latSum / count;
+        const cLon = lonSum / count;
+        countryMetaByCode[code] = { code, name, lat: cLat, lon: cLon };
+
+        const zone = new THREE.Mesh(
+          new THREE.SphereGeometry(0.05, 8, 8),
+          new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+        );
+        zone.position.copy(ll2v3(cLat, cLon, GR + 0.02));
+        zone.userData = { code, name, lat: cLat, lon: cLon, isCountryZone: true };
+        countryZoneGroup.add(zone);
+        countryZones.push(zone);
+      }
+    });
+  } catch (e) {
+    console.warn('Borders failed:', e);
+  }
+}
+
+function clearMarkersAndHeat() {
+  markerGroup.clear();
+  ringGroup.clear();
+  heatZones.forEach((z) => scene.remove(z));
+  heatZones = [];
+  markers = [];
+}
+
+function addThreatMarker(threat) {
+  if (!globeMesh || !markerGroup || !ringGroup) return;
+  if (typeof threat.lat !== 'number' || typeof threat.lon !== 'number') return;
+
+  const pos = ll2v3(threat.lat, threat.lon, GR + 0.015);
+  const sev = (threat.severity || 'MEDIUM').toUpperCase();
+  const col = sev === 'CRITICAL' ? 0xff0022 : sev === 'HIGH' ? 0xff6600 : 0xffcc00;
+
+  const sg = new THREE.SphereGeometry(0.025, 16, 16);
+  const sm = new THREE.MeshBasicMaterial({ color: col });
+  const sphere = new THREE.Mesh(sg, sm);
+  sphere.position.copy(pos);
+  sphere.userData = { threat };
+  markerGroup.add(sphere);
+
+  const rg = new THREE.RingGeometry(0.03, 0.042, 32);
+  const rm = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+  const ring = new THREE.Mesh(rg, rm);
+  ring.position.copy(pos);
+  ring.lookAt(0, 0, 0);
+  ring.userData = { phase: Math.random() * Math.PI * 2, isPulse: true };
+  ringGroup.add(ring);
+
+  markers.push({ sphere, ring, threat });
+}
+
+function addHeatZone(lat, lon, severity) {
+  if (!scene || typeof lat !== 'number' || typeof lon !== 'number') return;
+
+  const pos = ll2v3(lat, lon, GR * 1.005);
+  const sev = (severity || 'MEDIUM').toUpperCase();
+  const size = sev === 'CRITICAL' ? 0.18 : 0.12;
+  const col = sev === 'CRITICAL' ? 0xff0022 : 0xff6600;
+
+  const sg = new THREE.SphereGeometry(size, 16, 16);
+  const sm = new THREE.MeshBasicMaterial({
+    color: col,
+    transparent: true,
+    opacity: 0.15,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  });
+  const zone = new THREE.Mesh(sg, sm);
+  zone.position.copy(pos);
+  zone.userData = { isHeatZone: true, phase: Math.random() * Math.PI * 2 };
+  scene.add(zone);
+  heatZones.push(zone);
+}
+
+function showMtip(threat, x, y) {
+  const area = document.getElementById('gl').getBoundingClientRect();
+  const el = document.getElementById('mtip');
+  if (!el) return;
+
+  const sev = (threat.severity || 'MEDIUM').toUpperCase();
+  const badge = sevClass(sev);
+  const country = threat.country || 'Unknown';
+  const risk = typeof threat.riskScore === 'number' ? threat.riskScore : '-';
+
+  setText('mt-title', threat.title || 'Threat event');
+  const sevEl = document.getElementById('mt-sev');
+  if (sevEl) sevEl.innerHTML = `<span class="${badge}">${sev}</span>`;
+  setText('mt-desc', threat.desc || 'No description available.');
+  setText('mt-meta', `COUNTRY ${country} · RISK ${risk}`);
+
+  let tx = x - area.left + 10;
+  let ty = y - area.top - 16;
+  if (tx + 280 > area.width) tx -= 290;
+  if (ty + 130 > area.height) ty -= 140;
+
+  el.style.left = `${tx}px`;
+  el.style.top = `${ty}px`;
+  el.style.display = 'block';
+}
+
+function hideMtip() {
+  const el = document.getElementById('mtip');
+  if (el) el.style.display = 'none';
+}
+
+async function showCountryTip(zone, x, y) {
+  const area = document.getElementById('gl').getBoundingClientRect();
+  const el = document.getElementById('ctip');
+  if (!el) return;
+
+  let tx = x - area.left + 12;
+  let ty = y - area.top - 8;
+  if (tx + 300 > area.width) tx -= 310;
+  if (ty + 240 > area.height) ty -= 250;
+  el.style.left = `${tx}px`;
+  el.style.top = `${ty}px`;
+  el.style.display = 'block';
+
+  const base = countryMetaByCode[zone.code] || { name: zone.name || zone.code };
+  const flag = FLAG_BY_CODE[zone.code] || '🏳';
+  el.innerHTML = `<h3>${flag} ${base.name}</h3><div class="row"><span>Code</span><span>${zone.code}</span></div><div class="row"><span>Status</span><span>Loading</span></div>`;
+
+  try {
+    const d = await apiGet(`/country?code=${zone.code}`);
+    el.innerHTML = `
+      <h3>${d.flag || flag} ${base.name}</h3>
+      <div class="row"><span>Leader</span><span>${d.leader || 'Unknown'}</span></div>
+      <div class="row"><span>Ideology</span><span>${d.ideology || 'Unknown'}</span></div>
+      <div class="row"><span>Military</span><span>${d.military || 'Unknown'}</span></div>
+      <div class="row"><span>Alliance</span><span>${d.alliance || 'No data'}</span></div>
+    `;
+  } catch {
+    el.innerHTML = `
+      <h3>${flag} ${base.name}</h3>
+      <div class="row"><span>Code</span><span>${zone.code}</span></div>
+      <div class="row"><span>Status</span><span>Live card unavailable</span></div>
+    `;
+  }
+}
+
+function hideCountryTip() {
+  const el = document.getElementById('ctip');
+  if (el) el.style.display = 'none';
+}
+
+function onMove(e) {
+  const cv = document.getElementById('gc');
+  if (!cv || !raycaster || !camera) return;
+  const rect = cv.getBoundingClientRect();
+
+  if (isDrag) {
+    targetRotY += (e.clientX - prevMouse.x) * 0.005;
+    targetRotX += (e.clientY - prevMouse.y) * 0.005;
+    targetRotX = Math.max(-1.2, Math.min(1.2, targetRotX));
+    prevMouse = { x: e.clientX, y: e.clientY };
+    hideMtip();
+    return;
+  }
+
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const hits = raycaster.intersectObjects(markers.map((m) => m.sphere));
+  if (hits.length && hits[0].object.userData.threat) {
+    cv.style.cursor = 'pointer';
+    showMtip(hits[0].object.userData.threat, e.clientX, e.clientY);
+  } else {
+    cv.style.cursor = isDrag ? 'grabbing' : 'grab';
+    hideMtip();
+  }
+}
+
+function onClick(e) {
+  if (isDrag) return;
+  const cv = document.getElementById('gc');
+  if (!cv || !raycaster || !camera) return;
+  const rect = cv.getBoundingClientRect();
+
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const markerHits = raycaster.intersectObjects(markers.map((m) => m.sphere));
+  if (markerHits.length) {
+    const t = markerHits[0].object.userData.threat;
+    if (t) flyTo(t.lat, t.lon);
+    return;
+  }
+
+  const countryHits = raycaster.intersectObjects(countryZones);
+  if (countryHits.length && countryHits[0].object.userData.isCountryZone) {
+    const zone = countryHits[0].object.userData;
+    showCountryTip(zone, e.clientX, e.clientY);
+    return;
+  }
+
+  hideCountryTip();
 }
 
 function onResize() {
@@ -234,12 +608,36 @@ function onResize() {
   renderer.setSize(cv.clientWidth, cv.clientHeight);
 }
 
+function flyTo(lat, lon) {
+  if (typeof lat !== 'number' || typeof lon !== 'number') return;
+  autoRot = false;
+  targetRotY = -(lon + 180) * Math.PI / 180 + Math.PI;
+  targetRotX = -(90 - lat) * Math.PI / 180 + Math.PI / 2;
+}
+
 function animate() {
   requestAnimationFrame(animate);
   if (!renderer || !scene || !camera || !globeMesh) return;
+
+  tClock += 0.016;
   if (autoRot) targetRotY += 0.0014;
+  rotX += (targetRotX - rotX) * 0.08;
   rotY += (targetRotY - rotY) * 0.08;
+
+  globeMesh.rotation.x = rotX;
   globeMesh.rotation.y = rotY;
+
+  markers.forEach((marker) => {
+    const ph = marker.ring.userData.phase + tClock * 2;
+    const s = 1 + Math.sin(ph) * 0.5;
+    marker.ring.scale.set(s, s, s);
+    marker.ring.material.opacity = 0.8 - (s - 1) * 0.6;
+  });
+
+  heatZones.forEach((z) => {
+    z.material.opacity = 0.08 + Math.sin(tClock + z.userData.phase) * 0.06;
+  });
+
   renderer.render(scene, camera);
 }
 
@@ -250,6 +648,7 @@ function renderNews() {
     list.innerHTML = '<div class="item"><div class="title">Waiting for live intelligence feed...</div></div>';
     return;
   }
+
   list.innerHTML = '';
   liveArticles.slice(0, 30).forEach((a) => {
     const row = document.createElement('div');
@@ -270,39 +669,64 @@ function renderWarnings() {
     list.innerHTML = '<div class="item"><div class="title">No live threat events available right now.</div></div>';
     return;
   }
+
   list.innerHTML = '';
-  liveThreats.slice(0, 30).forEach((w) => {
+  liveThreats.slice(0, 40).forEach((w) => {
+    const sev = (w.severity || 'MEDIUM').toUpperCase();
+    const badge = sevClass(sev);
     const row = document.createElement('div');
     row.className = 'item';
     row.innerHTML = `
-      <div class="title">${w.title || 'Event'} (${w.severity || 'MEDIUM'})</div>
-      <div class="meta"><span>${w.type || 'conflict'}</span><span>Risk ${w.riskScore || 0}</span></div>
+      <div class="title">${w.title || 'Event'} <span class="${badge}">${sev}</span></div>
+      <div class="meta"><span>${w.country || 'UNK'}</span><span>Risk ${w.riskScore || 0}</span><span>${w.type || 'conflict'}</span></div>
     `;
+    row.onclick = () => flyTo(w.lat, w.lon);
     list.appendChild(row);
   });
 }
 
+function setRiskUI(risk) {
+  setText('sri', String(risk));
+  setText('tri', `${risk}/100`);
+  const rb = document.getElementById('rbadge');
+  if (!rb) return;
+  rb.textContent = `RISK: ${risk > 70 ? 'CRITICAL' : risk > 45 ? 'ELEVATED' : 'MODERATE'}`;
+  rb.classList.toggle('pulse', risk > 70);
+}
+
 async function loadNews() {
   const feed = document.getElementById('feedstatus');
-  if (feed) feed.textContent = 'FETCHING';
+  if (feed) feed.textContent = '● FETCHING';
+
   try {
     const d = await apiGet('/news?type=world');
     liveArticles = (d.articles || []).filter((a) => a && a.title);
     const sources = [...new Set(liveArticles.map((a) => a.source).filter(Boolean))];
     setText('tsrc', `${sources.length} SOURCES`);
-    if (feed) feed.textContent = `LIVE — ${sources.join(', ') || 'MULTI'}`;
+    if (feed) feed.textContent = `● LIVE — ${sources.join(', ') || 'MULTI'}`;
     renderNews();
-    updateLastUpdated();
+    lastUpdateMs = Date.now();
   } catch {
-    if (feed) feed.textContent = 'LIMITED';
+    if (feed) feed.textContent = '● LIMITED';
     renderNews();
   }
 }
 
 async function loadThreats() {
+  clearMarkersAndHeat();
+
   try {
     const d = await apiGet('/threats');
-    liveThreats = (d.threats || []).map((t) => ({ ...t, severity: (t.severity || 'MEDIUM').toUpperCase() }));
+    liveThreats = (d.threats || [])
+      .map((t) => ({ ...t, severity: (t.severity || 'MEDIUM').toUpperCase() }))
+      .filter((t) => typeof t.lat === 'number' && typeof t.lon === 'number');
+
+    liveThreats.forEach((threat) => {
+      addThreatMarker(threat);
+      if (threat.severity === 'CRITICAL' || threat.severity === 'HIGH') {
+        addHeatZone(threat.lat, threat.lon, threat.severity);
+      }
+    });
 
     const high = liveThreats.filter((t) => ['CRITICAL', 'HIGH'].includes(t.severity)).length;
     const medium = liveThreats.filter((t) => t.severity === 'MEDIUM').length;
@@ -312,86 +736,161 @@ async function loadThreats() {
     setText('sh', String(high));
     setText('sm', String(medium));
     setText('st2', String(total));
-    setText('sri', String(risk));
     setText('tct', String(total));
-    setText('tri', `${risk}/100`);
-
-    const rb = document.getElementById('rbadge');
-    if (rb) {
-      rb.textContent = `RISK: ${risk > 70 ? 'CRITICAL' : risk > 45 ? 'ELEVATED' : 'MODERATE'}`;
-      rb.classList.toggle('pulse', risk > 70);
-    }
+    setText('mct', String(markers.length));
+    setRiskUI(risk);
 
     renderWarnings();
-    updateLastUpdated();
+    lastUpdateMs = Date.now();
   } catch {
     liveThreats = [];
     renderWarnings();
+    setText('mct', '0');
   }
 }
 
 function updateClock() {
   const n = new Date();
   setText('tclock', `${n.toISOString().slice(11, 19)} UTC`);
-}
 
-let lastUpdateMs = 0;
-function updateLastUpdated() {
-  lastUpdateMs = Date.now();
   const el = document.getElementById('lastUpdateLive');
-  if (el) el.textContent = 'UPDATED: 0m 0s AGO';
+  if (!el || !lastUpdateMs) return;
+  const diff = Math.floor((Date.now() - lastUpdateMs) / 1000);
+  const m = Math.floor(diff / 60);
+  const s = diff % 60;
+  el.textContent = `UPDATED: ${m}m ${s}s AGO`;
 }
 
-function attachEventById(id, eventName, handler) {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener(eventName, handler);
+function activateTab(name) {
+  document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+  document.querySelectorAll('.tabp').forEach((p) => p.classList.remove('active'));
+  const btn = document.querySelector(`.tab[data-tab="${name}"]`);
+  const panel = document.getElementById(`tab-${name}`);
+  if (btn) btn.classList.add('active');
+  if (panel) panel.classList.add('active');
 }
 
 function setupEvents() {
   document.querySelectorAll('.tab').forEach((b) => {
-    b.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach((x) => x.classList.remove('active'));
-      document.querySelectorAll('.tabp').forEach((x) => x.classList.remove('active'));
-      b.classList.add('active');
-      const panel = document.getElementById(`tab-${b.dataset.tab}`);
-      if (panel) panel.classList.add('active');
-    });
+    b.addEventListener('click', () => activateTab(b.dataset.tab));
   });
 
   document.querySelectorAll('.layer-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-      btn.classList.toggle('active');
+      const key = btn.dataset.layer;
+      activeLayers[key] = !activeLayers[key];
+      btn.classList.toggle('active', activeLayers[key]);
+
+      if (key === 'threats') {
+        markerGroup.visible = activeLayers.threats;
+        ringGroup.visible = activeLayers.threats;
+      }
+      if (key === 'conflicts') {
+        heatZones.forEach((z) => { z.visible = activeLayers.conflicts; });
+      }
+      if (key === 'alliances') {
+        borderGroup.visible = activeLayers.alliances ? false : true;
+      }
     });
   });
 
-  attachEventById('briefbtn', 'click', () => {
-    const n = document.getElementById('newslist');
-    if (n) n.scrollTop = 0;
+  attachById('briefbtn', 'click', () => activateTab('news'));
+  attachById('alertbtn', 'click', () => {
+    const b = document.getElementById('alertbtn');
+    if (!b) return;
+    b.classList.toggle('red');
   });
 
-  attachEventById('alertbtn', 'click', () => {
-    const btn = document.getElementById('alertbtn');
-    if (!btn) return;
-    btn.classList.toggle('red');
+  attachById('weatherSearchBtn', 'click', runWeatherSearch);
+  attachById('weatherCity', 'keydown', (e) => {
+    if (e.key === 'Enter') runWeatherSearch();
   });
+}
+
+async function runWeatherSearch() {
+  const input = document.getElementById('weatherCity');
+  const out = document.getElementById('weatherResult');
+  if (!input || !out) return;
+
+  const city = input.value.trim();
+  if (!city) {
+    out.innerHTML = '<div class="weatherCurrent">Enter a city name to search.</div>';
+    return;
+  }
+
+  out.innerHTML = '<div class="weatherCurrent">Searching location and loading forecast...</div>';
+
+  try {
+    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
+    const geo = await geoRes.json();
+    const place = geo.results && geo.results[0];
+    if (!place) {
+      out.innerHTML = '<div class="weatherCurrent">City not found.</div>';
+      return;
+    }
+
+    const lat = place.latitude;
+    const lon = place.longitude;
+    flyTo(lat, lon);
+
+    const wRes = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+      '&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,apparent_temperature' +
+      '&hourly=temperature_2m' +
+      '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum' +
+      '&timezone=auto&forecast_days=7'
+    );
+    const w = await wRes.json();
+
+    const current = w.current || {};
+    const daily = w.daily || {};
+
+    const cards = [];
+    const times = daily.time || [];
+    const mins = daily.temperature_2m_min || [];
+    const maxs = daily.temperature_2m_max || [];
+    const codes = daily.weather_code || [];
+
+    for (let i = 0; i < Math.min(times.length, 7); i += 1) {
+      cards.push(`
+        <div class="dayCard">
+          <div class="dayName">${dayName(times[i])}</div>
+          <div class="dayIcon">${weatherEmoji(codes[i])}</div>
+          <div class="dayTemp">${Math.round(mins[i])}° / ${Math.round(maxs[i])}°</div>
+        </div>
+      `);
+    }
+
+    out.innerHTML = `
+      <div class="weatherCurrent">
+        <div class="weatherCity">${place.name}, ${place.country || ''}</div>
+        <div class="weatherMain">
+          <div>
+            <div class="weatherTemp">${Math.round(current.temperature_2m || 0)}°C</div>
+            <div class="weatherMeta">${weatherText(current.weather_code || 0)} ${weatherEmoji(current.weather_code || 0)}</div>
+          </div>
+          <div class="weatherMeta">
+            <div>Feels like: ${Math.round(current.apparent_temperature || 0)}°C</div>
+            <div>Humidity: ${Math.round(current.relative_humidity_2m || 0)}%</div>
+            <div>Wind: ${Math.round(current.wind_speed_10m || 0)} km/h</div>
+          </div>
+        </div>
+      </div>
+      <div class="forecastRow">${cards.join('')}</div>
+    `;
+  } catch {
+    out.innerHTML = '<div class="weatherCurrent">Weather service unavailable right now.</div>';
+  }
 }
 
 window.addEventListener('load', async () => {
   setupEvents();
   initGlobe();
+  await loadCountryBorders();
   await loadNews();
   await loadThreats();
   updateClock();
-  setInterval(() => {
-    updateClock();
-    const el = document.getElementById('lastUpdateLive');
-    if (el && lastUpdateMs) {
-      const diff = Math.floor((Date.now() - lastUpdateMs) / 1000);
-      const m = Math.floor(diff / 60);
-      const s = diff % 60;
-      el.textContent = `UPDATED: ${m}m ${s}s AGO`;
-    }
-  }, 1000);
+  setInterval(updateClock, 1000);
 });
 </script>
 </body>

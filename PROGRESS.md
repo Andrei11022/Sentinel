@@ -1,5 +1,51 @@
 ### Current session — Data-driven globe implementation
 
+**✅ Intelligence globe rebuild (June 30, 2026):**
+- Rewrote [index.html](index.html) completely as one clean HTML file with one script block and one Three.js import.
+- Upgraded globe base texture to cloudless, country-visible map:
+  - `https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg`
+- Implemented live GeoJSON country border rendering on the globe:
+  - Fetches Natural Earth country polygons from datasets/geo-countries.
+  - Draws border lines using `ll2v3(lat, lon, GR + 0.001)` and `THREE.LineBasicMaterial`.
+- Added rotating country click zones (attached to `globeMesh`), preserving country intel interactions.
+
+**✅ Live threat visualization pipeline (no hardcoded coordinates):**
+- `loadThreats()` now fetches only `/api/threats` data.
+- For each threat with numeric lat/lon:
+  - Adds glowing sphere marker.
+  - Adds pulsing ring marker (animated each frame in `animate()`).
+- Added `heatZones` top-level array and conflict heat overlays for `HIGH` / `CRITICAL` threats.
+- Marker hover raycast now shows tooltip with:
+  - title
+  - severity badge
+  - country
+  - risk score
+  - description
+
+**✅ Weather tab added:**
+- New sidebar tab: `🌤 WEATHER`.
+- Search workflow implemented with free Open-Meteo APIs:
+  - geocoding endpoint to resolve city -> lat/lon
+  - forecast endpoint for current + 7-day daily forecast
+- Displays:
+  - city and country
+  - current temperature
+  - feels like
+  - humidity
+  - wind speed
+  - weather condition text mapped from `weather_code`
+  - 7-day cards with weekday, emoji condition icon, min/max temps
+- On successful city lookup, globe flies to that location via `flyTo(lat, lon)`.
+
+**✅ Stability and path checks:**
+- No duplicate script blocks remain.
+- No `data-duplicate-block="disabled"` block remains.
+- No `/api/api/*` path usage remains.
+- Diagnostics check for [index.html](index.html): no errors.
+- Live endpoint sanity check on shared browser page:
+  - `/api/news?type=world` -> `200`, articles returned
+  - `/api/threats` -> `200`, threats returned
+
 **✅ Latest stabilization pass (June 30, 2026):**
 - Rewrote [index.html](index.html) as a single clean document to eliminate persistent mixed-state corruption from duplicated blocks.
 - Fixed runtime crash `TypeError: Cannot read properties of null (reading 'addEventListener')` by using null-safe event binding helper:
