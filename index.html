@@ -8,234 +8,161 @@
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap');
 :root{
   --bg:#030912;--panel:#05101e;--panel2:#060d1a;--border:#0d1e36;
-  --nb:#00d4ff;--nr:#ff2244;--no:#ff7700;--ng:#00ff88;--np:#cc44ff;
+  --nb:#00d4ff;--nr:#ff2244;--no:#ff7700;--ny:#f0c94d;--ng:#00ff88;--np:#cc44ff;
   --text:#b8d0ef;--muted:#2a4a6a;--dim:#1a3050;
   --gb:0 0 16px #00d4ff55;--gr:0 0 16px #ff224455;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;overflow:hidden;}
 
-/* LOADER */
-#loader{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;}
-#loader h1{font-family:'Rajdhani',sans-serif;font-size:3rem;font-weight:700;letter-spacing:.45em;color:var(--nb);text-shadow:var(--gb);animation:pulse 1.4s ease-in-out infinite;}
-.lbar{width:320px;height:2px;background:var(--border);border-radius:2px;overflow:hidden;}
+#loader{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+#loader h1{font-family:'Rajdhani',sans-serif;font-size:3rem;letter-spacing:.42em;color:var(--nb);text-shadow:var(--gb);animation:breathe 1.5s ease-in-out infinite;}
+.lbar{width:320px;height:2px;background:var(--border);overflow:hidden;border-radius:2px;}
 .lfill{height:100%;width:0;background:linear-gradient(90deg,#0044ff,var(--nb));animation:fill 2.8s ease-in-out forwards;}
-.lstatus{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--nb);letter-spacing:.12em;min-height:16px;}
-@keyframes fill{to{width:100%;}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.lstatus{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--nb);letter-spacing:.11em;}
 
-/* APP LAYOUT */
-#app{display:none;width:100vw;height:100vh;grid-template-columns:1fr 390px;grid-template-rows:52px 1fr 155px;grid-template-areas:"tb tb" "gl sb" "st sb";}
+#app{display:none;width:100vw;height:100vh;grid-template-columns:1fr 390px;grid-template-rows:58px 1fr 155px;grid-template-areas:"tb tb" "gl sb" "st sb";}
 
-/* TOPBAR */
-#tb{grid-area:tb;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#040a1699;border-bottom:1px solid var(--border);backdrop-filter:blur(10px);z-index:100;}
-.logo{font-family:'Rajdhani',sans-serif;font-size:1.25rem;font-weight:700;letter-spacing:.3em;color:var(--nb);text-shadow:var(--gb);}
-.logo em{color:var(--nr);font-style:normal;}
-.tmeta{display:flex;gap:20px;font-family:'Share Tech Mono',monospace;font-size:.63rem;color:var(--muted);}
-.tmeta b{color:var(--nb);}
-#tclock{color:var(--ng);}
+#tb{grid-area:tb;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--border);background:#040a1699;backdrop-filter:blur(10px);z-index:30;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:1.2rem;font-weight:700;letter-spacing:.28em;color:var(--nb);text-shadow:var(--gb);}
+.logo em{font-style:normal;color:var(--nr);} 
+.tmeta{display:flex;gap:14px;font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);align-items:center;}
+.tmeta b{color:var(--nb);} 
+#tclock{color:var(--ng);} 
+#lastUpdateLive{color:var(--ny);} 
 .tbns{display:flex;gap:8px;}
-.btn{font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:700;letter-spacing:.08em;padding:5px 13px;border:1px solid currentColor;background:transparent;cursor:pointer;transition:all .2s;color:var(--nb);}
-.btn:hover{background:#00d4ff12;box-shadow:var(--gb);}
-.btn.red{color:var(--nr);}
-.btn.red:hover{background:#ff224412;box-shadow:var(--gr);}
+.btn{font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:700;padding:5px 12px;border:1px solid currentColor;background:transparent;color:var(--nb);cursor:pointer;transition:all .2s;}
+.btn:hover{background:#00d4ff12;box-shadow:var(--gb);} 
+.btn.red{color:var(--nr);} 
+.btn.red:hover{background:#ff224412;box-shadow:var(--gr);} 
 .btn:disabled{opacity:.5;cursor:not-allowed;}
 
-/* GLOBE */
-#gl{grid-area:gl;position:relative;overflow:hidden;background:radial-gradient(ellipse at center, #040f1e 0%, var(--bg) 100%);}
-#gc{width:100%;height:100%;display:block;}
-#ghud{position:absolute;top:12px;left:14px;font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--dim);line-height:1.9;pointer-events:none;}
-.rbadge{display:inline-block;font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.1em;padding:2px 9px;border:1px solid var(--nr);color:var(--nr);text-shadow:var(--gr);box-shadow:var(--gr);margin-top:3px;}
+#gl{grid-area:gl;position:relative;overflow:hidden;background:radial-gradient(ellipse at center, #041324 0%, var(--bg) 72%);} 
+#gc{width:100%;height:100%;display:block;} 
+#ghud{position:absolute;left:14px;top:12px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:#244564;line-height:1.8;pointer-events:none;z-index:5;}
+#layers{position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:5px;z-index:7;}
+.layer-btn{font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:4px 9px;background:#040a16cc;color:var(--muted);border:1px solid var(--border);cursor:pointer;transition:all .2s;}
+.layer-btn.active{color:var(--nb);border-color:var(--nb);background:#00d4ff11;box-shadow:var(--gb);} 
 
-/* LAYER CONTROLS */
-#layers{position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:5px;}
-.layer-btn{font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:4px 8px;border:1px solid var(--border);background:#040a16cc;color:var(--muted);cursor:pointer;transition:all .2s;text-align:left;backdrop-filter:blur(4px);}
-.layer-btn.active{border-color:var(--nb);color:var(--nb);background:#00d4ff0a;}
+.rbadge{display:inline-block;font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:700;color:var(--nr);border:1px solid var(--nr);padding:2px 8px;letter-spacing:.08em;box-shadow:var(--gr);} 
+.rbadge.pulse{animation:riskPulse 1.3s ease-in-out infinite;} 
 
-/* TOOLTIPS */
-#ctip{position:absolute;background:#04091aee;border:1px solid var(--nb);box-shadow:var(--gb);padding:13px 15px;max-width:290px;pointer-events:none;display:none;z-index:200;backdrop-filter:blur(12px);font-size:.75rem;line-height:1.65;}
-#ctip h3{font-family:'Rajdhani',sans-serif;font-size:1.05rem;font-weight:700;color:var(--nb);margin-bottom:5px;display:flex;align-items:center;gap:6px;}
-#ctip .cr{display:inline-block;font-size:.58rem;padding:1px 6px;border-radius:2px;font-family:'Share Tech Mono',monospace;}
-.rCRITICAL{background:#ff224422;color:var(--nr);border:1px solid var(--nr);}
-.rHIGH{background:#ff770022;color:var(--no);border:1px solid var(--no);}
-.rMEDIUM{background:#ffaa0022;color:#ffaa00;border:1px solid #ffaa00;}
-.rLOW{background:#00d4ff15;color:var(--nb);border:1px solid var(--nb);}
-.rUNKNOWN{background:#1a2a3a;color:var(--muted);border:1px solid var(--border);}
-#ctip .row{display:flex;justify-content:space-between;border-bottom:1px solid #0d1e3644;padding:3px 0;gap:10px;}
-#ctip .row span:first-child{color:var(--muted);font-size:.66rem;white-space:nowrap;}
-#ctip .row span:last-child{color:var(--text);text-align:right;font-size:.7rem;}
-#ctip .rel{margin-top:6px;font-size:.67rem;color:#1a4a6a;line-height:1.5;border-top:1px solid var(--border);padding-top:5px;}
+#ctip,#mtip{position:absolute;display:none;pointer-events:none;z-index:20;background:#04091aee;border:1px solid var(--nb);box-shadow:var(--gb);backdrop-filter:blur(12px);} 
+#ctip{padding:12px 14px;max-width:290px;font-size:.72rem;line-height:1.6;}
+#ctip h3{font-family:'Rajdhani',sans-serif;font-size:1.03rem;color:var(--nb);margin-bottom:4px;} 
+#ctip .row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #0d1e363d;padding:2px 0;} 
+#ctip .row span:first-child{color:var(--muted);} 
+#ctip .cr{font-size:.56rem;padding:1px 6px;border:1px solid var(--border);} 
+#ctip .rel{margin-top:5px;padding-top:4px;border-top:1px solid var(--border);font-size:.66rem;color:#3d6c95;} 
+#mtip{padding:10px 12px;max-width:260px;font-size:.7rem;} 
+#mtip .mtt{font-family:'Rajdhani',sans-serif;font-size:.92rem;font-weight:700;color:var(--nb);} 
+#mtip .md{line-height:1.45;color:var(--text);margin:4px 0;} 
+#mtip .mt,#mtip .msc{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);} 
 
-#mtip{position:absolute;background:#04091aee;border:1px solid var(--nb);box-shadow:var(--gb);padding:11px 13px;max-width:240px;pointer-events:none;display:none;z-index:201;backdrop-filter:blur(10px);}
-#mtip .mtt{font-family:'Rajdhani',sans-serif;font-size:.95rem;font-weight:700;color:var(--nb);margin-bottom:3px;}
-.sH{background:#ff224422;color:var(--nr);border:1px solid var(--nr);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;margin-bottom:4px;}
-.sM{background:#ff770022;color:var(--no);border:1px solid var(--no);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;margin-bottom:4px;}
-.sL{background:#00d4ff15;color:var(--nb);border:1px solid var(--nb);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;margin-bottom:4px;}
-#mtip .md{font-size:.73rem;color:var(--text);margin-bottom:4px;}
-#mtip .mt{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);}
-#mtip .msc{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--np);margin-top:3px;}
+.sH,.sM,.sL{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:1px 6px;border:1px solid currentColor;margin:3px 0;} 
+.sH{color:var(--nr);background:#ff224422;} 
+.sM{color:var(--no);background:#ff770022;} 
+.sL{color:var(--ny);background:#f0c94d1a;} 
 
-/* STATS */
-#st{grid-area:st;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);border-right:1px solid var(--border);}
-.sc{background:var(--panel);padding:12px 14px;display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;}
-.sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;}
-.sc.cb::before{background:var(--nb);box-shadow:var(--gb);}
-.sc.cr::before{background:var(--nr);box-shadow:var(--gr);}
-.sc.co::before{background:var(--no);}
-.sc.cg::before{background:var(--ng);}
-.slb{font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
-.sv{font-family:'Rajdhani',sans-serif;font-size:1.55rem;font-weight:700;line-height:1;}
-.sc.cb .sv{color:var(--nb);text-shadow:var(--gb);}
-.sc.cr .sv{color:var(--nr);text-shadow:var(--gr);}
-.sc.co .sv{color:var(--no);}
-.sc.cg .sv{color:var(--ng);}
-.ss{font-size:.6rem;color:var(--muted);}
+#st{grid-area:st;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);border-right:1px solid var(--border);} 
+.sc{background:var(--panel);padding:12px 14px;position:relative;overflow:hidden;} 
+.sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;} 
+.sc.cb::before{background:var(--nb);box-shadow:var(--gb);} 
+.sc.cr::before{background:var(--nr);box-shadow:var(--gr);} 
+.sc.co::before{background:var(--no);} 
+.sc.cg::before{background:var(--ng);} 
+.slb{font-family:'Share Tech Mono',monospace;font-size:.55rem;color:var(--muted);letter-spacing:.09em;text-transform:uppercase;} 
+.sv{font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;line-height:1.1;} 
+.sc.cr .sv{color:var(--nr);text-shadow:var(--gr);} 
+.sc.co .sv{color:var(--no);} 
+.sc.cb .sv{color:var(--nb);text-shadow:var(--gb);} 
+.sc.cg .sv{color:var(--ng);} 
+#sri.pulse{animation:riskPulse 1.3s ease-in-out infinite;} 
+.ss{font-size:.6rem;color:var(--muted);} 
 
-/* SIDEBAR */
-#sb{grid-area:sb;background:var(--panel2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border);flex-shrink:0;}
-.tab{padding:7px 4px;font-family:'Rajdhani',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.02em;background:transparent;border:none;border-bottom:2px solid transparent;color:#5a7a9a;cursor:pointer;transition:all .2s;text-align:center;white-space:nowrap;}
-.tab.active{color:var(--nb);border-bottom-color:var(--nb);background:#00d4ff08;}
-.tabp{display:none;flex:1;overflow:hidden;flex-direction:column;}
-.tabp.active{display:flex;}
-.ph{padding:7px 12px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);letter-spacing:.1em;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;justify-content:space-between;align-items:center;}
-.ph .pfeed{color:var(--ng);font-size:.56rem;}
-.scroll{flex:1;overflow-y:auto;padding:5px;}
-.scroll::-webkit-scrollbar{width:3px;}
-.scroll::-webkit-scrollbar-thumb{background:var(--border);}
+#sb{grid-area:sb;background:var(--panel2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;} 
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border);background:linear-gradient(180deg,#071222,#050d1b);} 
+.tab{padding:8px 4px;border:none;border-bottom:2px solid transparent;background:transparent;color:#5e7f9f;font-family:'Rajdhani',sans-serif;font-size:.62rem;font-weight:700;cursor:pointer;transition:all .18s;} 
+.tab.active{color:#d7ecff;background:linear-gradient(180deg,#0d243f,#07172d);border-bottom-color:var(--nb);text-shadow:0 0 8px #00d4ff88;} 
+.tabp{display:none;flex:1;overflow:hidden;flex-direction:column;} 
+.tabp.active{display:flex;} 
+.ph{padding:8px 12px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);display:flex;justify-content:space-between;align-items:center;} 
+.pfeed{color:var(--ng);} 
+.scroll{flex:1;overflow-y:auto;padding:6px;} 
+.scroll::-webkit-scrollbar{width:4px;} 
+.scroll::-webkit-scrollbar-thumb{background:#12304f;border-radius:4px;} 
 
-/* NEWS */
-.ni{padding:8px 10px;border-bottom:1px solid #0d1e3630;cursor:pointer;transition:background .12s;}
-.ni:hover{background:#00d4ff07;}
-.ntag{font-family:'Share Tech Mono',monospace;font-size:.57rem;letter-spacing:.06em;margin-bottom:3px;}
-.ntag.CONFLICT{color:var(--nr);}
-.ntag.MILITARY{color:#ff6600;}
-.ntag.NUCLEAR{color:var(--np);}
-.ntag.CYBER{color:#00ff88;}
-.ntag.GEOPOLITICS{color:var(--no);}
-.ntag.DISASTER{color:#ffaa00;}
-.ntag.INTEL{color:var(--nb);}
-.nh{font-size:.79rem;line-height:1.4;color:var(--text);}
-.nm{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px;}
-.nsrc{padding:1px 5px;border:1px solid var(--border);font-size:.54rem;}
-.nsc{font-family:'Share Tech Mono',monospace;font-size:.56rem;}
-.nsc.hi{color:var(--nr);}
-.nsc.me{color:var(--no);}
-.nsc.lo{color:var(--nb);}
+.ni{padding:9px 10px;border:1px solid #10254255;margin-bottom:5px;cursor:pointer;transition:all .15s;position:relative;} 
+.ni:hover{background:#00d4ff0d;border-color:#1c4268;} 
+.nh{font-size:.77rem;line-height:1.42;color:var(--text);} 
+.nm{margin-top:4px;font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--muted);display:flex;gap:7px;align-items:center;flex-wrap:wrap;} 
+.ncred{position:absolute;left:0;bottom:0;height:2px;background:var(--nb);} 
+.nflag{font-size:.8rem;} 
+.nsrc{padding:1px 5px;border:1px solid #1a3352;} 
+.ntag{font-family:'Share Tech Mono',monospace;font-size:.56rem;margin-bottom:3px;letter-spacing:.06em;} 
+.ntag.CONFLICT{color:var(--nr);} .ntag.MILITARY{color:var(--no);} .ntag.NUCLEAR{color:var(--np);} .ntag.CYBER{color:var(--ng);} .ntag.GEOPOLITICS{color:#f0b45b;} .ntag.DISASTER{color:var(--ny);} .ntag.INTEL{color:var(--nb);} 
 
-/* WARNINGS */
-.wi{padding:8px 10px;border:1px solid var(--border);margin-bottom:4px;cursor:pointer;transition:border-color .2s;position:relative;}
-.wi:hover{border-color:var(--nb);}
-.witp{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
-.witn{font-family:'Rajdhani',sans-serif;font-size:.86rem;font-weight:600;}
-.wisv{font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:1px 5px;}
-.wd{font-size:.7rem;color:var(--muted);line-height:1.4;}
-.wsc{font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--np);margin-top:2px;}
-.wdot{position:absolute;right:7px;bottom:7px;width:5px;height:5px;border-radius:50%;animation:blink 1.6s ease-in-out infinite;}
-.dH{background:var(--nr);box-shadow:0 0 6px var(--nr);}
-.dM{background:var(--no);box-shadow:0 0 6px var(--no);}
-.dL{background:var(--nb);box-shadow:0 0 6px var(--nb);}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.1}}
+.wi{padding:9px 10px;border:1px solid var(--border);margin-bottom:6px;cursor:pointer;position:relative;background:#071122;transition:all .15s;} 
+.wi:hover{border-color:#1c4167;} 
+.wi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--nb);} 
+.wi.CRITICAL::before{background:var(--nr);} .wi.HIGH::before{background:var(--no);} .wi.MEDIUM::before{background:var(--ny);} 
+.witp{display:flex;justify-content:space-between;gap:8px;align-items:center;} 
+.witn{font-family:'Rajdhani',sans-serif;font-size:.84rem;font-weight:700;padding-right:6px;} 
+.wisv{font-family:'Share Tech Mono',monospace;font-size:.55rem;padding:1px 5px;border:1px solid currentColor;}
+.wdesc{font-size:.7rem;color:var(--muted);margin-top:3px;line-height:1.4;} 
+.wmeta{font-family:'Share Tech Mono',monospace;font-size:.56rem;color:#5f85aa;margin-top:4px;display:flex;gap:8px;align-items:center;} 
+.wdot{width:6px;height:6px;border-radius:50%;display:inline-block;} 
+.wdot.CRITICAL{background:var(--nr);box-shadow:0 0 7px var(--nr);animation:blink 1.1s steps(2,end) infinite;} 
+.wdot.HIGH{background:var(--no);box-shadow:0 0 6px var(--no);} 
+.wdot.MEDIUM{background:var(--ny);box-shadow:0 0 6px var(--ny);} 
 
-/* CORRELATION */
-.cc{border:1px solid var(--border);padding:9px;margin-bottom:6px;}
-.ccti{font-family:'Rajdhani',sans-serif;font-size:.88rem;font-weight:700;color:var(--nb);margin-bottom:3px;}
-.ccsc{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:1px 7px;background:#00d4ff10;border:1px solid var(--nb);color:var(--nb);margin-bottom:4px;}
-.ccac{font-size:.65rem;color:var(--np);margin-bottom:3px;font-family:'Share Tech Mono',monospace;}
-.ccd{font-size:.71rem;color:var(--muted);line-height:1.5;}
+.cc{border:1px solid var(--border);padding:9px;margin-bottom:6px;} 
+.ccti{font-family:'Rajdhani',sans-serif;font-size:.87rem;font-weight:700;color:var(--nb);} 
+.ccsc{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 7px;margin:3px 0;border:1px solid var(--nb);background:#00d4ff10;color:var(--nb);} 
+.ccac{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--np);} 
+.ccd{font-size:.7rem;color:var(--muted);line-height:1.45;margin-top:2px;} 
 
-/* INTEL MAP */
-#imwrap{flex:1;position:relative;overflow:hidden;min-height:200px;}
+#imwrap{flex:1;position:relative;overflow:hidden;min-height:220px;} 
 #imsvg{width:100%;height:100%;}
-.anode{cursor:pointer;}
-.anode:hover rect{filter:brightness(1.6);}
-.ileg{padding:5px 10px;font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--muted);border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0;}
-.ileg span{display:flex;align-items:center;gap:4px;}
-.ileg i{display:inline-block;width:10px;height:2px;border-radius:1px;}
+.anode{cursor:pointer;} 
+.anode:hover rect{filter:brightness(1.5);} 
+.ileg{padding:6px 10px;border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--muted);} 
+.ileg span{display:flex;align-items:center;gap:4px;} 
+.ileg i{display:inline-block;width:10px;height:2px;} 
 
-/* POLITICIANS */
-.pi{padding:8px 10px;border:1px solid var(--border);margin-bottom:4px;}
-.pitp{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
-.pifg{font-size:1rem;}
-.pinm{font-family:'Rajdhani',sans-serif;font-size:.88rem;font-weight:700;color:var(--nb);}
-.piti{font-size:.65rem;color:var(--no);font-family:'Share Tech Mono',monospace;}
-.piinf{font-size:.7rem;color:var(--muted);line-height:1.5;}
-.pitg{display:inline-block;font-size:.56rem;padding:1px 5px;border:1px solid var(--border);margin-right:3px;margin-top:3px;}
-.pitg.right{border-color:var(--nr);color:var(--nr);}
-.pitg.left{border-color:#4488ff;color:#4488ff;}
-.pitg.center{border-color:var(--no);color:var(--no);}
-.pitg.auth{border-color:var(--np);color:var(--np);}
+.mec{border:1px solid var(--border);margin-bottom:5px;} 
+.meh{padding:7px 9px;display:flex;gap:7px;align-items:center;cursor:pointer;background:#041120;border-bottom:1px solid var(--border);} 
+.meh:hover{background:#06203a;} 
+.mecn{font-family:'Rajdhani',sans-serif;font-size:.86rem;font-weight:700;color:var(--nb);} 
+.mest{margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.55rem;padding:1px 6px;border:1px solid var(--border);} 
+.meb{display:none;padding:8px 10px;font-size:.7rem;line-height:1.55;color:var(--muted);} 
+.meb.open{display:block;} 
 
-/* MIDDLE EAST */
-.mec{border:1px solid var(--border);margin-bottom:5px;}
-.meh{padding:7px 9px;background:#040a16;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;cursor:pointer;}
-.meh:hover{background:#05101e;}
-.mefg{font-size:.95rem;}
-.mecn{font-family:'Rajdhani',sans-serif;font-size:.86rem;font-weight:700;color:var(--nb);}
-.mest{font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:1px 6px;margin-left:auto;}
-.mest.war{background:#ff224415;color:var(--nr);border:1px solid var(--nr);}
-.mest.tension{background:#ff770015;color:var(--no);border:1px solid var(--no);}
-.mest.stable{background:#00ff8815;color:var(--ng);border:1px solid var(--ng);}
-.meb{padding:8px 10px;font-size:.7rem;color:var(--muted);line-height:1.6;display:none;}
-.meb.open{display:block;}
+.pi{padding:9px 10px;border:1px solid var(--border);margin-bottom:5px;} 
+.pitp{display:flex;gap:7px;align-items:center;margin-bottom:4px;} 
+.pinm{font-family:'Rajdhani',sans-serif;font-size:.88rem;font-weight:700;color:var(--nb);} 
+.piti{font-size:.64rem;color:var(--no);font-family:'Share Tech Mono',monospace;} 
+.piinf{font-size:.7rem;line-height:1.45;color:var(--muted);} 
+.pitg{display:inline-block;padding:1px 5px;border:1px solid var(--border);font-size:.55rem;margin-right:3px;margin-top:3px;} 
 
-/* BRIEF BOX */
-#briefbox{padding:9px 12px;border-top:1px solid var(--border);flex-shrink:0;font-size:.71rem;line-height:1.7;color:var(--muted);font-family:'Share Tech Mono',monospace;max-height:105px;overflow-y:auto;display:none;}
-#briefbox.show{display:block;}
-#briefbox b{color:var(--nb);}
+#briefbox{display:none;padding:9px 12px;border-top:1px solid var(--border);max-height:140px;overflow-y:auto;font-family:'Share Tech Mono',monospace;font-size:.69rem;line-height:1.58;color:var(--muted);} 
+#briefbox.show{display:block;} 
+#briefbox b{color:var(--nb);} 
 
-/* ENTITIES PANEL */
-.etag{display:inline-flex;align-items:center;gap:4px;font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:2px 7px;border:1px solid var(--border);margin:2px;cursor:pointer;transition:border-color .15s;}
-.etag:hover{border-color:var(--nb);}
-.etag.person{border-color:#cc44ff55;color:var(--np);}
-.etag.org{border-color:#00d4ff55;color:var(--nb);}
-.etag.location{border-color:#ff770055;color:var(--no);}
+.etags{display:flex;gap:4px;flex-wrap:wrap;padding:5px 10px;border-bottom:1px solid var(--border);} 
+.etag{font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:2px 6px;border:1px solid var(--border);} 
 
+body::after{content:'';position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,#00000010 2px,#00000010 4px);z-index:9990;} 
 
-/* CONFLICT ITEMS */
-.cfi{padding:9px 10px;border:1px solid var(--border);margin-bottom:5px;cursor:pointer;transition:border-color .2s;position:relative;}
-.cfi:hover{border-color:var(--nr);}
-.cfi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
-.cfi-country{font-family:'Rajdhani',sans-serif;font-size:.9rem;font-weight:700;color:var(--nb);}
-.cfi-type{font-family:'Share Tech Mono',monospace;font-size:.57rem;padding:1px 5px;}
-.cfi-region{font-size:.68rem;color:var(--no);margin-bottom:3px;font-family:'Share Tech Mono',monospace;}
-.cfi-notes{font-size:.7rem;color:var(--muted);line-height:1.4;}
-.cfi-stats{display:flex;gap:10px;margin-top:4px;font-family:'Share Tech Mono',monospace;font-size:.6rem;}
-.cfi-fatal{color:var(--nr);}
-.cfi-score{color:var(--np);}
-.cfi-date{color:var(--muted);}
-
-/* FORECAST CARDS */
-.fci{border:1px solid var(--border);padding:10px;margin-bottom:7px;}
-.fci-title{font-family:'Rajdhani',sans-serif;font-size:.92rem;font-weight:700;color:var(--nr);margin-bottom:5px;}
-.fci-meta{display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
-.fci-prob{font-family:'Share Tech Mono',monospace;font-size:.62rem;padding:2px 8px;background:#ff224418;border:1px solid var(--nr);color:var(--nr);}
-.fci-time{font-family:'Share Tech Mono',monospace;font-size:.62rem;padding:2px 8px;background:#ff770018;border:1px solid var(--no);color:var(--no);}
-.fci-sev{font-family:'Share Tech Mono',monospace;font-size:.62rem;padding:2px 8px;}
-.fci-trigger{font-size:.72rem;color:var(--text);margin-bottom:5px;}
-.fci-trigger b{color:var(--no);}
-.fci-cascade{margin-top:5px;padding-top:5px;border-top:1px solid var(--border);}
-.fci-cascade-item{font-size:.68rem;color:var(--muted);padding:1px 0;display:flex;align-items:flex-start;gap:5px;}
-.fci-cascade-item::before{content:'→';color:var(--nr);flex-shrink:0;}
-
-/* ENTITY TAGS */
-.etags{display:flex;flex-wrap:wrap;gap:3px;padding:6px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
-.etag{font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:2px 6px;border:1px solid var(--border);cursor:pointer;transition:border-color .15s;}
-.etag:hover{border-color:var(--nb);}
-.etag.person{border-color:#cc44ff44;color:var(--np);}
-.etag.org{border-color:#00d4ff44;color:var(--nb);}
-.etag.loc{border-color:#ff770044;color:var(--no);}
-.etag.HIGH{border-color:var(--nr)!important;color:var(--nr)!important;}
-
-/* RISK MATRIX */
-.rmi{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid #0d1e3625;}
-.rmi-flag{font-size:.9rem;}
-.rmi-name{font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:600;width:80px;}
-.rmi-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
-.rmi-bar{height:100%;border-radius:3px;transition:width .4s;}
-.rmi-score{font-family:'Share Tech Mono',monospace;font-size:.6rem;width:35px;text-align:right;}
-.rmi-trend{font-size:.65rem;width:20px;text-align:center;}
-
-body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,#00000010 2px,#00000010 4px);pointer-events:none;z-index:9990;}
+@keyframes fill{to{width:100%;}}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.1}}
+@keyframes riskPulse{0%,100%{box-shadow:0 0 0 #ff224400,0 0 12px #ff224444;}50%{box-shadow:0 0 0 #ff224400,0 0 22px #ff2244aa;}}
+@media (max-width:1120px){
+  #app{grid-template-columns:1fr;grid-template-rows:58px 52vh 150px 1fr;grid-template-areas:"tb" "gl" "st" "sb";}
+  #sb{border-left:none;border-top:1px solid var(--border);} 
+  .tabs{grid-template-columns:repeat(4,1fr);} 
+}
 </style>
 </head>
 <body>
@@ -250,10 +177,11 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     <div class="logo">SENTINEL <em>//</em> GLOBAL INTELLIGENCE</div>
     <div class="tmeta">
       <span>STATUS: <b>ACTIVE</b></span>
-      <span>THREATS: <b id="tct">—</b></span>
-      <span>RISK: <b id="tri">—</b></span>
-      <span>SOURCES: <b id="tsrc">LOADING</b></span>
+      <span>THREATS: <b id="tct">0</b></span>
+      <span>RISK: <b id="tri">0/100</b></span>
+      <span>SOURCES: <b id="tsrc">0 SOURCES</b></span>
       <span id="tclock">00:00:00 UTC</span>
+      <span id="lastUpdateLive">UPDATED: --</span>
     </div>
     <div class="tbns">
       <button class="btn" id="briefbtn">🔊 BRIEF ME</button>
@@ -267,13 +195,13 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <div>LAT/LON TRACKING ACTIVE</div>
       <div>MARKERS: <span id="mct">0</span></div>
       <div>FEED: MULTI-SOURCE LIVE</div>
-      <div class="rbadge" id="rbadge">RISK: —</div>
+      <div class="rbadge" id="rbadge">RISK: LOW</div>
       <div style="margin-top:6px;font-size:.56rem;color:#0f2535">CLICK COUNTRY → INTEL CARD<br>DRAG ROTATE · SCROLL ZOOM<br>DBL-CLICK TOGGLE AUTO-ROTATE</div>
     </div>
     <div id="layers">
       <button class="layer-btn active" data-layer="threats">⚠ THREATS</button>
       <button class="layer-btn" data-layer="alliances">🔗 ALLIANCES</button>
-      <button class="layer-btn" data-layer="conflicts">⚔ CONFLICTS</button>
+      <button class="layer-btn active" data-layer="conflicts">⚔ CONFLICTS</button>
     </div>
     <div id="ctip"></div>
     <div id="mtip">
@@ -286,10 +214,10 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
   </div>
 
   <div id="st">
-    <div class="sc cr"><div class="slb">HIGH SEVERITY</div><div class="sv" id="sh">—</div><div class="ss">Active conflicts</div></div>
-    <div class="sc co"><div class="slb">MEDIUM SEVERITY</div><div class="sv" id="sm">—</div><div class="ss">Developing</div></div>
-    <div class="sc cb"><div class="slb">TOTAL MONITORED</div><div class="sv" id="st2">—</div><div class="ss">Events tracked</div></div>
-    <div class="sc cg"><div class="slb">GLOBAL RISK INDEX</div><div class="sv" id="sri">—</div><div class="ss">Updated live</div></div>
+    <div class="sc cr"><div class="slb">HIGH SEVERITY</div><div class="sv" id="sh">0</div><div class="ss">Active conflicts</div></div>
+    <div class="sc co"><div class="slb">MEDIUM SEVERITY</div><div class="sv" id="sm">0</div><div class="ss">Developing</div></div>
+    <div class="sc cb"><div class="slb">TOTAL MONITORED</div><div class="sv" id="st2">0</div><div class="ss">Events tracked</div></div>
+    <div class="sc cg"><div class="slb">GLOBAL RISK INDEX</div><div class="sv" id="sri">0</div><div class="ss">Updated live</div></div>
   </div>
 
   <div id="sb">
@@ -305,39 +233,38 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     </div>
 
     <div class="tabp active" id="tab-news">
-      <div class="ph">// LIVE INTELLIGENCE FEED<span class="pfeed" id="feedstatus">● CONNECTING</span></div>
+      <div class="ph">// LIVE INTELLIGENCE FEED <span class="pfeed" id="feedstatus">● CONNECTING</span></div>
       <div class="scroll" id="newslist"></div>
       <div id="briefbox"></div>
     </div>
     <div class="tabp" id="tab-warnings">
-      <div class="ph">// ACTIVE WARNINGS — GLOBAL</div>
+      <div class="ph">// ALERTS PANEL — LIVE EVENTS</div>
       <div class="scroll" id="warnlist"></div>
     </div>
     <div class="tabp" id="tab-analytics">
-      <div class="ph">// CORRELATION ENGINE — AI ANALYSIS</div>
-      <div class="scroll" id="analytics"><div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--dim)">Awaiting feed...</div></div>
+      <div class="ph">// CORRELATION ENGINE — LIVE PATTERNS</div>
+      <div class="scroll" id="analytics"></div>
     </div>
     <div class="tabp" id="tab-intel">
       <div class="ph">// GEOPOLITICAL ACTOR NETWORK</div>
       <div id="imwrap"><svg id="imsvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
       <div class="ileg">
         <span><i style="background:#ff2244"></i>Adversarial</span>
-        <span><i style="background:#ff7700"></i>Allied</span>
-        <span><i style="background:#00d4ff"></i>Diplomatic</span>
+        <span><i style="background:#44b3ff"></i>Allied</span>
         <span><i style="background:#00ff88"></i>Economic</span>
       </div>
-    </div>
-    <div class="tabp" id="tab-leaders">
-      <div class="ph">// WORLD LEADERS & INFLUENTIAL FIGURES</div>
-      <div class="scroll" id="leaders"></div>
     </div>
     <div class="tabp" id="tab-conflicts">
       <div class="ph">// ACTIVE CONFLICT ZONES — ACLED DATA</div>
       <div class="scroll" id="conflictlist"></div>
     </div>
     <div class="tabp" id="tab-forecast">
-      <div class="ph">// PREDICTIVE INTELLIGENCE — SCENARIO ENGINE</div>
+      <div class="ph">// PREDICTIVE INTELLIGENCE</div>
       <div class="scroll" id="forecastlist"></div>
+    </div>
+    <div class="tabp" id="tab-leaders">
+      <div class="ph">// WORLD LEADERS & INFLUENTIAL FIGURES</div>
+      <div class="scroll" id="leaders"></div>
     </div>
     <div class="tabp" id="tab-mideast">
       <div class="ph">// MIDDLE EAST INTELLIGENCE</div>
@@ -348,241 +275,589 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// ═══════════════════════════════════
-// API CONFIG - auto-detects environment
-// ═══════════════════════════════════
-const IS_LOCAL = location.hostname === 'localhost' || location.protocol === 'file:';
-const API = '/api';
-// If running locally before deploy, use the Vercel URL above.
-// After deploy, relative /api paths work automatically.
+const API='/api';
+const EARTH_RADIUS=1.6;
+const COUNTRY_GEOJSON='https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
 
-// ═══════════════════════════════════
-// GLOBE SETUP
-// ═══════════════════════════════════
-let scene, camera, renderer, globeMesh, markers=[], countrySpheres=[];
-let isDrag=false, prevMouse={x:0,y:0};
-let rotX=0, rotY=0, targetRotX=0, targetRotY=0;
-let autoRot=true;
-let raycaster, mouse;
-const GR=1.6;
-let activeLayers={threats:true,alliances:false,conflicts:false};
-let allianceArcs=[], conflictArcs=[];
+let scene,camera,renderer,globeMesh;
+let raycaster,mouse;
+let autoRot=true,isDrag=false;
+let rotX=0,rotY=0,targetRotX=0,targetRotY=0;
+let prevMouse={x:0,y:0};
+let activeLayers={threats:true,alliances:false,conflicts:true};
 
-const COUNTRY_CENTERS=[
-  {code:'US',lat:38,lon:-97},{code:'RU',lat:61,lon:100},{code:'CN',lat:35,lon:105},
-  {code:'UA',lat:49,lon:32},{code:'IR',lat:32,lon:53},{code:'IL',lat:31.5,lon:34.8},
-  {code:'SA',lat:24,lon:45},{code:'IN',lat:20,lon:77},{code:'TR',lat:39,lon:35},
-  {code:'DE',lat:51,lon:10},{code:'GB',lat:54,lon:-2},{code:'FR',lat:46,lon:2},
-  {code:'KP',lat:40,lon:127},{code:'JP',lat:36,lon:138},{code:'BR',lat:-10,lon:-53},
-  {code:'PK',lat:30,lon:70},{code:'SD',lat:15,lon:32},{code:'MM',lat:19,lon:96},
-  {code:'YE',lat:15,lon:48},{code:'SY',lat:35,lon:38},{code:'LB',lat:33.8,lon:35.9},
-  {code:'VE',lat:8,lon:-66},{code:'ML',lat:17,lon:-4},{code:'LY',lat:26,lon:17},
-];
+let borderGroup=new THREE.Group();
+let borderLines=[];
+let fillTextureMesh;
+let fillCanvas,fillCtx;
+let countryShapes=[];
+let countryCodeMap={};
+let countryRiskMap={};
+let conflictCountries=new Set();
+
+let markerGroup=new THREE.Group();
+let markerPickables=[];
+let heatGroup=new THREE.Group();
+let markerClusters=[];
+let expandedClusterId=null;
+
+let allianceGroup=new THREE.Group();
+let allianceFlows=[];
+let arcData=[];
+
+let liveArticles=[];
+let liveThreats=[];
+let liveConflicts=[];
+let lastUpdateMs=0;
+
+const COUNTRY_CENTERS={
+  US:[38,-97],RU:[61,100],CN:[35,105],UA:[49,32],IR:[32,53],IL:[31.5,34.8],SA:[24,45],IN:[20,77],TR:[39,35],DE:[51,10],GB:[54,-2],FR:[46,2],KP:[40,127],JP:[36,138],BR:[-10,-53],PK:[30,70],SD:[15,32],MM:[19,96],YE:[15,48],SY:[35,38],LB:[33.8,35.9],VE:[8,-66],ML:[17,-4],LY:[26,17],PS:[31.4,34.4],SO:[5,46],IQ:[33,44],ET:[9,40],HT:[19,-72],AF:[34,66],NG:[9,8],TW:[23.7,121]
+};
+
+const FLAG_BY_CODE={
+  US:'🇺🇸',RU:'🇷🇺',CN:'🇨🇳',UA:'🇺🇦',IR:'🇮🇷',IL:'🇮🇱',SA:'🇸🇦',IN:'🇮🇳',TR:'🇹🇷',DE:'🇩🇪',GB:'🇬🇧',FR:'🇫🇷',KP:'🇰🇵',JP:'🇯🇵',BR:'🇧🇷',PK:'🇵🇰',SD:'🇸🇩',MM:'🇲🇲',YE:'🇾🇪',SY:'🇸🇾',LB:'🇱🇧',VE:'🇻🇪',ML:'🇲🇱',LY:'🇱🇾',PS:'🇵🇸',SO:'🇸🇴',IQ:'🇮🇶',ET:'🇪🇹',HT:'🇭🇹',AF:'🇦🇫',NG:'🇳🇬',TW:'🇹🇼'
+};
 
 function ll2v3(lat,lon,r){
-  const phi=(90-lat)*Math.PI/180, theta=(lon+180)*Math.PI/180;
+  const phi=(90-lat)*Math.PI/180;
+  const theta=(lon+180)*Math.PI/180;
   return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta));
+}
+
+function haversineKm(lat1,lon1,lat2,lon2){
+  const R=6371;
+  const toRad=(d)=>d*Math.PI/180;
+  const dLat=toRad(lat2-lat1);
+  const dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function getFlagForHeadline(title){
+  const t=(title||'').toLowerCase();
+  const checks=[
+    ['UA',['ukraine','kyiv']],['RU',['russia','moscow']],['IL',['israel']],['PS',['gaza','west bank','palestine']],['IR',['iran']],['CN',['china','beijing']],['TW',['taiwan']],['KP',['north korea','pyongyang']],['YE',['yemen','houthi']],['LB',['lebanon','hezbollah']],['SD',['sudan']],['MM',['myanmar']],['PK',['pakistan']],['SY',['syria']],['TR',['turkey']],['IQ',['iraq']],['US',['united states','usa','washington']]
+  ];
+  for(const [code,list] of checks){
+    if(list.some(k=>t.includes(k))) return FLAG_BY_CODE[code]||'🏳';
+  }
+  return '🌐';
+}
+
+function getCountryCodeFromHeadline(title){
+  const t=(title||'').toLowerCase();
+  const checks=[
+    ['UA',['ukraine','kyiv']],['RU',['russia','moscow']],['IL',['israel']],['PS',['gaza','west bank','palestine']],['IR',['iran']],['CN',['china','beijing']],['TW',['taiwan']],['KP',['north korea','pyongyang']],['YE',['yemen','houthi']],['LB',['lebanon','hezbollah']],['SD',['sudan']],['MM',['myanmar']],['PK',['pakistan']],['SY',['syria']],['TR',['turkey']],['IQ',['iraq']],['SO',['somalia']],['ML',['mali']],['VE',['venezuela','guyana']],['ET',['ethiopia']],['HT',['haiti']],['AF',['afghanistan']],['NG',['nigeria']]
+  ];
+  for(const [code,list] of checks){
+    if(list.some(k=>t.includes(k))) return code;
+  }
+  return null;
+}
+
+function timeAgo(d){
+  const diff=Math.floor((Date.now()-new Date(d))/1000);
+  if(diff<60) return `${diff}s ago`;
+  if(diff<3600) return `${Math.floor(diff/60)}m ago`;
+  if(diff<86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+
+function activateTab(name){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tabp').forEach(p=>p.classList.remove('active'));
+  const btn=document.querySelector(`.tab[data-tab="${name}"]`);
+  const tab=document.getElementById(`tab-${name}`);
+  if(btn) btn.classList.add('active');
+  if(tab) tab.classList.add('active');
+}
+
+async function apiGet(path){
+  const r=await fetch(API+path);
+  if(!r.ok) throw new Error(`API ${r.status}`);
+  return r.json();
+}
+
+async function apiPost(path,body){
+  const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(`API ${r.status}`);
+  return r.json();
+}
+
+function updateLastUpdated(){
+  const el=document.getElementById('lastUpdateLive');
+  if(!lastUpdateMs){el.textContent='UPDATED: --';return;}
+  const diff=Math.floor((Date.now()-lastUpdateMs)/1000);
+  const m=Math.floor(diff/60);
+  const s=diff%60;
+  el.textContent=`UPDATED: ${m}m ${s}s AGO`;
+}
+
+function setRiskUI(risk){
+  const sri=document.getElementById('sri');
+  const tri=document.getElementById('tri');
+  const rb=document.getElementById('rbadge');
+  sri.textContent=risk;
+  tri.textContent=`${risk}/100`;
+  rb.textContent=`RISK: ${risk>70?'CRITICAL':risk>45?'ELEVATED':'MODERATE'}`;
+  sri.classList.toggle('pulse',risk>70);
+  rb.classList.toggle('pulse',risk>70);
 }
 
 function initGlobe(){
   const cv=document.getElementById('gc');
   const W=cv.clientWidth,H=cv.clientHeight;
   renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
-  renderer.setSize(W,H); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(W,H);
   renderer.setClearColor(0x000000,0);
+
   scene=new THREE.Scene();
   camera=new THREE.PerspectiveCamera(45,W/H,0.1,100);
-  camera.position.set(0,0,4.5);
+  camera.position.set(0,0,4.6);
 
-  scene.add(new THREE.AmbientLight(0x112233,2.5));
-  const sun=new THREE.DirectionalLight(0x5588bb,2); sun.position.set(5,3,5); scene.add(sun);
-  const rim=new THREE.DirectionalLight(0x001133,1.2); rim.position.set(-5,-2,-3); scene.add(rim);
+  scene.add(new THREE.AmbientLight(0x1b2d44,2.5));
+  const sun=new THREE.DirectionalLight(0x6699cc,2.2); sun.position.set(5,2,6); scene.add(sun);
+  const rim=new THREE.DirectionalLight(0x001133,1.2); rim.position.set(-4,-2,-3); scene.add(rim);
 
-  const geo=new THREE.SphereGeometry(GR,64,64);
-
-  // Build fallback texture first so the globe never renders as a plain blue sphere.
-  const tc=document.createElement('canvas'); tc.width=2048; tc.height=1024;
-  const cx=tc.getContext('2d');
-  cx.fillStyle='#031525'; cx.fillRect(0,0,2048,1024);
-  cx.strokeStyle='#0a2540'; cx.lineWidth=1;
-  for(let i=0;i<=18;i++){cx.beginPath();cx.moveTo(0,i*1024/18);cx.lineTo(2048,i*1024/18);cx.stroke();}
-  for(let i=0;i<=36;i++){cx.beginPath();cx.moveTo(i*2048/36,0);cx.lineTo(i*2048/36,1024);cx.stroke();}
-  function ll(lo,la){return[(lo+180)/360*2048,(90-la)/180*1024];}
-  function poly(pts){cx.fillStyle='#0d3a5c';cx.strokeStyle='#1a5a8a';cx.lineWidth=1.5;cx.beginPath();pts.forEach(([lo,la],i)=>{const[x,y]=ll(lo,la);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});cx.closePath();cx.fill();cx.stroke();}
-  poly([[-168,72],[-140,72],[-125,60],[-105,50],[-80,45],[-75,55],[-65,47],[-60,47],[-80,42],[-90,30],[-100,22],[-120,20],[-130,25],[-140,35],[-155,58],[-165,62]]);
-  poly([[-70,76],[-20,76],[-18,70],[-30,60],[-50,60],[-65,68]]);
-  poly([[-75,12],[-60,10],[-50,0],[-35,-5],[-35,-20],[-55,-35],[-65,-55],[-70,-55],[-75,-40],[-80,-10],[-80,0]]);
-  poly([[-10,36],[5,36],[20,38],[30,45],[30,55],[25,60],[15,58],[10,55],[5,52],[-5,48],[-10,44]]);
-  poly([[5,58],[15,58],[28,71],[20,70],[15,65],[10,60]]);
-  poly([[-5,50],[2,51],[2,56],[-5,58],[-6,54]]);
-  poly([[-18,15],[40,15],[50,12],[45,2],[40,-5],[35,-25],[25,-35],[15,-30],[10,-15],[-5,5],[-18,15]]);
-  poly([[30,70],[60,75],[80,73],[100,70],[120,68],[140,70],[160,65],[170,55],[150,45],[130,42],[110,40],[90,38],[70,40],[55,45],[40,50],[30,55],[30,70]]);
-  poly([[35,38],[60,38],[65,25],[55,22],[45,22],[38,28]]);
-  poly([[65,24],[90,24],[88,8],[80,8],[72,20]]);
-  poly([[95,28],[110,20],[110,5],[100,2],[95,5],[90,20]]);
-  poly([[110,20],[130,28],[135,38],[125,42],[115,38],[108,30]]);
-  poly([[130,31],[132,34],[135,38],[136,36],[132,33]]);
-  poly([[114,-22],[122,-18],[136,-12],[142,-10],[148,-18],[152,-28],[150,-38],[142,-38],[130,-32],[116,-32],[114,-22]]);
-  const fallbackTex=new THREE.CanvasTexture(tc);
-
-  const tl=new THREE.TextureLoader();
-  const tex=tl.load(
+  const baseGeo=new THREE.SphereGeometry(EARTH_RADIUS,64,64);
+  const fallbackTex=createFallbackEarthTexture();
+  const texLoader=new THREE.TextureLoader();
+  const liveTex=texLoader.load(
     'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/land_ocean_ice_cloud_2048.jpg',
-    ()=>{},
-    undefined,
-    ()=>{
-      if(globeMesh){
-        globeMesh.material.map=fallbackTex;
-        globeMesh.material.needsUpdate=true;
-      }
-    }
+    ()=>{},undefined,
+    ()=>{ if(globeMesh){ globeMesh.material.map=fallbackTex; globeMesh.material.needsUpdate=true; } }
   );
-  const mat=new THREE.MeshPhongMaterial({map:tex,emissive:new THREE.Color(0x000d1a),emissiveIntensity:0.08,shininess:10,specular:new THREE.Color(0x082030)});
-  globeMesh=new THREE.Mesh(geo,mat); scene.add(globeMesh);
+  globeMesh=new THREE.Mesh(baseGeo,new THREE.MeshPhongMaterial({map:liveTex,emissive:new THREE.Color(0x00182d),emissiveIntensity:.09,shininess:10,specular:new THREE.Color(0x0a233c)}));
+  scene.add(globeMesh);
 
-  // Lat/lon wireframe overlay
-  const wg=new THREE.SphereGeometry(GR+0.002,24,16);
-  const wm=new THREE.MeshBasicMaterial({color:0x062040,wireframe:true,transparent:true,opacity:0.22});
-  globeMesh.add(new THREE.Mesh(wg,wm));
+  const atmosphere=new THREE.Mesh(new THREE.SphereGeometry(EARTH_RADIUS*1.05,36,36),new THREE.MeshBasicMaterial({color:0x0077ff,transparent:true,opacity:.055,side:THREE.FrontSide}));
+  scene.add(atmosphere);
 
-  // Atmosphere
-  const ag=new THREE.SphereGeometry(GR*1.045,32,32);
-  const am=new THREE.MeshBasicMaterial({color:0x0033aa,transparent:true,opacity:0.05,side:THREE.FrontSide});
-  scene.add(new THREE.Mesh(ag,am));
+  fillCanvas=document.createElement('canvas');
+  fillCanvas.width=2048;fillCanvas.height=1024;
+  fillCtx=fillCanvas.getContext('2d');
+  const fillTex=new THREE.CanvasTexture(fillCanvas);
+  fillTextureMesh=new THREE.Mesh(new THREE.SphereGeometry(EARTH_RADIUS*1.0015,64,64),new THREE.MeshBasicMaterial({map:fillTex,transparent:true,opacity:1,depthWrite:false}));
+  globeMesh.add(fillTextureMesh);
 
-  // Country click zones
-  raycaster=new THREE.Raycaster(); mouse=new THREE.Vector2();
-  COUNTRY_CENTERS.forEach(cc=>{
-    const cg=new THREE.SphereGeometry(0.18,8,8);
-    const cm=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});
-    const cs=new THREE.Mesh(cg,cm);
-    cs.position.copy(ll2v3(cc.lat,cc.lon,GR)); cs.userData={code:cc.code};
-    scene.add(cs); countrySpheres.push(cs);
-  });
+  scene.add(borderGroup);
+  scene.add(markerGroup);
+  scene.add(heatGroup);
+  scene.add(allianceGroup);
+
+  raycaster=new THREE.Raycaster();
+  mouse=new THREE.Vector2();
 
   cv.addEventListener('mousedown',e=>{isDrag=true;autoRot=false;prevMouse={x:e.clientX,y:e.clientY};});
   window.addEventListener('mouseup',()=>{isDrag=false;});
-  cv.addEventListener('mousemove',onMove);
-  cv.addEventListener('click',onClick);
+  cv.addEventListener('mousemove',onMouseMove);
+  cv.addEventListener('click',onGlobeClick);
   cv.addEventListener('wheel',e=>{camera.position.z=Math.max(2.4,Math.min(9,camera.position.z+e.deltaY*.005));},{passive:true});
   cv.addEventListener('dblclick',()=>{autoRot=!autoRot;});
   window.addEventListener('resize',onResize);
+
   animate();
+  loadCountryBorders();
 }
 
-function addMarker(w){
-  const pos=ll2v3(w.lat,w.lon,GR+0.01);
-  const col=w.severity==='HIGH'?0xff2244:w.severity==='MEDIUM'?0xff7700:0x00d4ff;
-  const cg=new THREE.ConeGeometry(0.012,0.06,8);
-  const cm=new THREE.MeshBasicMaterial({color:col});
-  const sp=new THREE.Mesh(cg,cm);
-  sp.position.copy(pos); sp.lookAt(0,0,0); sp.rotateX(Math.PI/2);
-  sp.userData={warning:w}; globeMesh.add(sp);
-  const rg=new THREE.RingGeometry(0.022,0.032,16);
-  const rm=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.8,side:THREE.DoubleSide});
-  const ring=new THREE.Mesh(rg,rm);
-  ring.position.copy(pos); ring.lookAt(0,0,0);
-  ring.userData={phase:Math.random()*Math.PI*2}; globeMesh.add(ring);
-  markers.push({sp,ring,warning:w});
-  document.getElementById('mct').textContent=markers.length;
+function createFallbackEarthTexture(){
+  const c=document.createElement('canvas'); c.width=2048;c.height=1024;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#031526'; ctx.fillRect(0,0,c.width,c.height);
+  ctx.strokeStyle='#0a2542'; ctx.lineWidth=1;
+  for(let i=0;i<=18;i++){ctx.beginPath();ctx.moveTo(0,i*c.height/18);ctx.lineTo(c.width,i*c.height/18);ctx.stroke();}
+  for(let i=0;i<=36;i++){ctx.beginPath();ctx.moveTo(i*c.width/36,0);ctx.lineTo(i*c.width/36,c.height);ctx.stroke();}
+  return new THREE.CanvasTexture(c);
 }
 
-function addAllianceArcs(){
-  const arcs=[
-    {from:[38,-97],to:[51,10],col:0x00d4ff},
-    {from:[38,-97],to:[54,-2],col:0x00d4ff},
-    {from:[38,-97],to:[31.5,34.8],col:0xff7700},
-    {from:[61,100],to:[32.4,53.6],col:0xff7700},
-    {from:[61,100],to:[40,127],col:0xff7700},
-    {from:[32.4,53.6],to:[31.5,34.8],col:0xff2244},
-    {from:[35,105],to:[61,100],col:0x00ff88},
-  ];
-  arcs.forEach(a=>{
-    const p1=ll2v3(a.from[0],a.from[1],GR+0.03);
-    const p2=ll2v3(a.to[0],a.to[1],GR+0.03);
-    const mid=new THREE.Vector3().addVectors(p1,p2).multiplyScalar(0.5);
-    mid.normalize().multiplyScalar(GR+0.5);
-    const curve=new THREE.QuadraticBezierCurve3(p1,mid,p2);
-    const pts=curve.getPoints(50);
-    const g=new THREE.BufferGeometry().setFromPoints(pts);
-    const m=new THREE.LineBasicMaterial({color:a.col,transparent:true,opacity:0.55,linewidth:1});
-    const arc=new THREE.Line(g,m);
-    arc.userData={isAlliance:true};
-    scene.add(arc); allianceArcs.push(arc);
-    arc.visible=activeLayers.alliances;
+async function loadCountryBorders(){
+  try{
+    const r=await fetch(COUNTRY_GEOJSON);
+    if(!r.ok) throw new Error(`geo ${r.status}`);
+    const geo=await r.json();
+    ingestCountryGeoJSON(geo);
+    renderCountryRiskFills();
+  }catch(_e){
+    addFallbackGridLines();
+  }
+}
+
+function ingestCountryGeoJSON(geo){
+  borderGroup.clear();
+  borderLines=[];
+  countryShapes=[];
+  countryCodeMap={};
+
+  const defaultMat=new THREE.LineBasicMaterial({color:0x0a3060,transparent:true,opacity:.9});
+
+  (geo.features||[]).forEach((f)=>{
+    const props=f.properties||{};
+    const code=(props.ISO3166_1_Alpha_2||props.ISO_A2||props.iso_a2||'').toUpperCase();
+    const geom=f.geometry||{};
+    if(!geom.coordinates) return;
+
+    const pushLine=(ring)=>{
+      const pts=[];
+      ring.forEach(([lon,lat])=>pts.push(ll2v3(lat,lon,EARTH_RADIUS*1.002)));
+      if(pts.length<2) return;
+      const g=new THREE.BufferGeometry().setFromPoints(pts);
+      const l=new THREE.Line(g,defaultMat.clone());
+      l.userData={countryCode:code};
+      borderGroup.add(l);
+      borderLines.push(l);
+    };
+
+    const pushShape=(ring)=>{
+      if(!Array.isArray(ring)||ring.length<3) return;
+      countryShapes.push({code,ring});
+      if(code && !countryCodeMap[code] && ring.length){
+        const c=ring[Math.floor(ring.length/2)];
+        countryCodeMap[code]=[c[1],c[0]];
+      }
+    };
+
+    if(geom.type==='Polygon'){
+      geom.coordinates.forEach((ring,idx)=>{ if(idx===0) pushShape(ring); pushLine(ring); });
+    }else if(geom.type==='MultiPolygon'){
+      geom.coordinates.forEach(poly=>poly.forEach((ring,idx)=>{ if(idx===0) pushShape(ring); pushLine(ring); }));
+    }
   });
 }
 
-function onMove(e){
+function addFallbackGridLines(){
+  borderGroup.clear();
+  borderLines=[];
+  const mat=new THREE.LineBasicMaterial({color:0x0a3060,transparent:true,opacity:.7});
+  for(let lat=-70;lat<=70;lat+=20){
+    const pts=[];
+    for(let lon=-180;lon<=180;lon+=4){ pts.push(ll2v3(lat,lon,EARTH_RADIUS*1.002)); }
+    borderGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),mat.clone()));
+  }
+  for(let lon=-180;lon<180;lon+=20){
+    const pts=[];
+    for(let lat=-90;lat<=90;lat+=4){ pts.push(ll2v3(lat,lon,EARTH_RADIUS*1.002)); }
+    borderGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),mat.clone()));
+  }
+}
+
+function renderCountryRiskFills(){
+  if(!fillCtx||!fillTextureMesh) return;
+  const W=fillCanvas.width,H=fillCanvas.height;
+  fillCtx.clearRect(0,0,W,H);
+
+  const project=(lon,lat)=>[(lon+180)/360*W,(90-lat)/180*H];
+
+  countryShapes.forEach(({code,ring})=>{
+    const risk=countryRiskMap[code]||0;
+    let fill='';
+    if(risk>70) fill='rgba(255,34,68,0.13)';
+    else if(risk>=45) fill='rgba(255,119,0,0.08)';
+    if(fill){
+      fillCtx.beginPath();
+      ring.forEach(([lon,lat],i)=>{const [x,y]=project(lon,lat); if(i===0) fillCtx.moveTo(x,y); else fillCtx.lineTo(x,y);});
+      fillCtx.closePath();
+      fillCtx.fillStyle=fill;
+      fillCtx.fill();
+    }
+  });
+
+  fillTextureMesh.material.map.needsUpdate=true;
+  updateBorderColors();
+}
+
+function updateBorderColors(){
+  borderLines.forEach(line=>{
+    const code=line.userData.countryCode;
+    const active=code && conflictCountries.has(code);
+    line.material.color.set(active?0xff2244:0x0a3060);
+    line.material.opacity=active?1:.9;
+  });
+}
+
+function buildThreatClusters(events,maxKm=300){
+  const clusters=[];
+  events.forEach(ev=>{
+    if(typeof ev.lat!=='number'||typeof ev.lon!=='number') return;
+    let found=null;
+    for(const c of clusters){
+      if(haversineKm(c.lat,c.lon,ev.lat,ev.lon)<=maxKm){found=c;break;}
+    }
+    if(found){
+      found.items.push(ev);
+      found.lat=(found.lat*(found.items.length-1)+ev.lat)/found.items.length;
+      found.lon=(found.lon*(found.items.length-1)+ev.lon)/found.items.length;
+    }else{
+      clusters.push({id:`cl-${clusters.length}-${Date.now()}`,lat:ev.lat,lon:ev.lon,items:[ev]});
+    }
+  });
+  return clusters;
+}
+
+function clearThreatVisuals(){
+  markerGroup.clear();
+  markerPickables=[];
+  heatGroup.clear();
+}
+
+function redrawThreatVisuals(){
+  clearThreatVisuals();
+  markerClusters=buildThreatClusters(liveThreats,300);
+
+  markerClusters.forEach(cl=>{
+    if(cl.items.length>1 && expandedClusterId!==cl.id){
+      createClusterMarker(cl);
+    }else if(cl.items.length>1 && expandedClusterId===cl.id){
+      cl.items.forEach((ev,idx)=>{
+        const offsetLon=(idx-(cl.items.length-1)/2)*1.3;
+        createThreatMarker({...ev,lat:ev.lat+(idx%2===0?0.45:-0.45),lon:ev.lon+offsetLon},false);
+      });
+    }else{
+      createThreatMarker(cl.items[0],false);
+    }
+  });
+
+  if(activeLayers.conflicts){
+    liveConflicts.slice(0,12).forEach(cf=>addHeatZone(cf.lat,cf.lon));
+  }
+
+  document.getElementById('mct').textContent=String(markerPickables.filter(p=>p.userData.kind!=='cluster-expanded').length);
+}
+
+function createClusterMarker(cluster){
+  const pos=ll2v3(cluster.lat,cluster.lon,EARTH_RADIUS+0.02);
+  const size=Math.min(0.08,0.035+cluster.items.length*0.006);
+
+  const circle=new THREE.Mesh(new THREE.CircleGeometry(size,28),new THREE.MeshBasicMaterial({color:0xff2244,transparent:true,opacity:.72,side:THREE.DoubleSide}));
+  circle.position.copy(pos);
+  circle.lookAt(0,0,0);
+  markerGroup.add(circle);
+
+  const ring=new THREE.Mesh(new THREE.RingGeometry(size*1.15,size*1.45,24),new THREE.MeshBasicMaterial({color:0xff2244,transparent:true,opacity:.65,side:THREE.DoubleSide}));
+  ring.position.copy(pos);
+  ring.lookAt(0,0,0);
+  markerGroup.add(ring);
+
+  const sprite=makeCountSprite(cluster.items.length);
+  sprite.position.copy(ll2v3(cluster.lat,cluster.lon,EARTH_RADIUS+0.03));
+  sprite.scale.set(size*2.2,size*2.2,1);
+  markerGroup.add(sprite);
+
+  circle.userData={kind:'cluster',cluster};
+  markerPickables.push(circle);
+
+  ring.userData={pulse:true,base:size*1.25,speed:1.4};
+}
+
+function makeCountSprite(count){
+  const c=document.createElement('canvas'); c.width=128;c.height=128;
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,128,128);
+  ctx.fillStyle='rgba(4,15,28,0.9)';
+  ctx.beginPath(); ctx.arc(64,64,32,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#ff2244'; ctx.lineWidth=4; ctx.stroke();
+  ctx.fillStyle='#ffdde4'; ctx.font='700 42px Rajdhani'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(String(count),64,66);
+  const tex=new THREE.CanvasTexture(c);
+  return new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));
+}
+
+function createThreatMarker(w,isExpanded){
+  if(!w||typeof w.lat!=='number'||typeof w.lon!=='number') return;
+  const sev=(w.severity||'MEDIUM').toUpperCase();
+  const pos=ll2v3(w.lat,w.lon,EARTH_RADIUS+0.02);
+  let base=0.017+(Math.max(0,Math.min(100,Number(w.riskScore||50)))/100)*0.045;
+  if(sev==='CRITICAL') base*=1.2;
+
+  if(sev==='CRITICAL'){
+    const core=new THREE.Mesh(new THREE.CircleGeometry(base,22),new THREE.MeshBasicMaterial({color:0xff2244,transparent:true,opacity:.82,side:THREE.DoubleSide}));
+    core.position.copy(pos); core.lookAt(0,0,0); markerGroup.add(core);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(base*1.1,base*1.45,28),new THREE.MeshBasicMaterial({color:0xff2244,transparent:true,opacity:.75,side:THREE.DoubleSide}));
+    ring.position.copy(pos); ring.lookAt(0,0,0); markerGroup.add(ring);
+    ring.userData={pulse:true,base:base*1.22,speed:2.1};
+    core.userData={kind:isExpanded?'cluster-expanded':'event',warning:w}; markerPickables.push(core);
+  }else if(sev==='HIGH'){
+    const dot=new THREE.Mesh(new THREE.CircleGeometry(base*.72,20),new THREE.MeshBasicMaterial({color:0xff7700,transparent:true,opacity:.85,side:THREE.DoubleSide}));
+    dot.position.copy(pos); dot.lookAt(0,0,0); markerGroup.add(dot);
+    const glow=new THREE.Mesh(new THREE.CircleGeometry(base*1.5,20),new THREE.MeshBasicMaterial({color:0xff7700,transparent:true,opacity:.22,side:THREE.DoubleSide}));
+    glow.position.copy(pos); glow.lookAt(0,0,0); markerGroup.add(glow);
+    glow.userData={pulse:true,base:base*1.5,speed:1.5};
+    dot.userData={kind:isExpanded?'cluster-expanded':'event',warning:w}; markerPickables.push(dot);
+  }else{
+    const med=new THREE.Mesh(new THREE.CircleGeometry(base*.6,18),new THREE.MeshBasicMaterial({color:0xf0c94d,transparent:true,opacity:.88,side:THREE.DoubleSide}));
+    med.position.copy(pos); med.lookAt(0,0,0); markerGroup.add(med);
+    med.userData={kind:isExpanded?'cluster-expanded':'event',warning:w}; markerPickables.push(med);
+  }
+}
+
+function addHeatZone(lat,lon){
+  if(typeof lat!=='number'||typeof lon!=='number') return;
+  const zone=new THREE.Mesh(new THREE.SphereGeometry(0.12,18,18),new THREE.MeshBasicMaterial({color:0xff2244,transparent:true,opacity:.17,depthWrite:false}));
+  zone.position.copy(ll2v3(lat,lon,EARTH_RADIUS+0.08));
+  zone.userData={heatPulse:true,seed:Math.random()*Math.PI*2};
+  heatGroup.add(zone);
+}
+
+function clearAllianceArcs(){
+  allianceGroup.clear();
+  allianceFlows=[];
+}
+
+function buildAllianceArcs(){
+  clearAllianceArcs();
+  arcData.forEach(a=>{
+    const from=COUNTRY_CENTERS[a.fromCode];
+    const to=COUNTRY_CENTERS[a.toCode];
+    if(!from||!to) return;
+
+    const p1=ll2v3(from[0],from[1],EARTH_RADIUS+0.02);
+    const p2=ll2v3(to[0],to[1],EARTH_RADIUS+0.02);
+    const mid=new THREE.Vector3().addVectors(p1,p2).multiplyScalar(0.5).normalize().multiplyScalar(EARTH_RADIUS+0.58);
+    const curve=new THREE.QuadraticBezierCurve3(p1,mid,p2);
+    const pts=curve.getPoints(64);
+
+    let mat;
+    if(a.type==='adversarial'){
+      mat=new THREE.LineDashedMaterial({color:0xff2244,dashSize:0.05,gapSize:0.04,transparent:true,opacity:.8});
+    }else if(a.type==='economic'){
+      mat=new THREE.LineBasicMaterial({color:0x00ff88,transparent:true,opacity:.72});
+    }else{
+      mat=new THREE.LineBasicMaterial({color:0x44b3ff,transparent:true,opacity:.72});
+    }
+
+    const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),mat);
+    if(mat instanceof THREE.LineDashedMaterial) line.computeLineDistances();
+    allianceGroup.add(line);
+
+    const mover=new THREE.Mesh(new THREE.SphereGeometry(0.015,10,10),new THREE.MeshBasicMaterial({color:a.type==='adversarial'?0xff2244:a.type==='economic'?0x00ff88:0x44b3ff,transparent:true,opacity:.95}));
+    allianceGroup.add(mover);
+
+    allianceFlows.push({curve,mover,t:Math.random()});
+  });
+  allianceGroup.visible=activeLayers.alliances;
+}
+
+function extractArcDataFromIntel(links){
+  const actorCode={USA:'US',RUSSIA:'RU',UKRAINE:'UA',CHINA:'CN',IRAN:'IR',ISRAEL:'IL',NATO:'DE',HAMAS:'PS',HEZBOLLAH:'LB',HOUTHIS:'YE',EU:'FR',UN:'GB',TAIWAN:'TW','N.KOREA':'KP',N.KOREA:'KP',SAUDI:'SA'};
+  arcData=(links||[])
+    .map(l=>({
+      fromCode:actorCode[l.from],
+      toCode:actorCode[l.to],
+      type:l.type==='allied'?'allied':l.type==='economic'?'economic':'adversarial'
+    }))
+    .filter(a=>a.fromCode&&a.toCode&&a.fromCode!==a.toCode)
+    .slice(0,22);
+  buildAllianceArcs();
+}
+
+function onMouseMove(e){
   const cv=document.getElementById('gc');
   const rect=cv.getBoundingClientRect();
+
   if(isDrag){
     targetRotY+=(e.clientX-prevMouse.x)*.005;
     targetRotX+=(e.clientY-prevMouse.y)*.005;
     targetRotX=Math.max(-1.2,Math.min(1.2,targetRotX));
     prevMouse={x:e.clientX,y:e.clientY};
-    hideTips(); return;
+    hideTips();
+    return;
   }
+
   mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
   mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
   raycaster.setFromCamera(mouse,camera);
-  const mhits=raycaster.intersectObjects(markers.map(m=>m.sp));
-  if(mhits.length&&mhits[0].object.userData.warning){
-    showMtip(mhits[0].object.userData.warning,e.clientX,e.clientY);
+
+  const hits=raycaster.intersectObjects(markerPickables,true);
+  if(hits.length){
+    const obj=hits[0].object;
+    if(obj.userData.kind==='event'&&obj.userData.warning){
+      showMarkerTip(obj.userData.warning,e.clientX,e.clientY);
+      cv.style.cursor='pointer';
+      return;
+    }
+    if(obj.userData.kind==='cluster'){ cv.style.cursor='pointer'; return; }
+  }
+
+  const countryHits=raycaster.intersectObjects(borderLines);
+  if(countryHits.length && countryHits[0].object.userData.countryCode){
     cv.style.cursor='pointer';
-  } else {
-    document.getElementById('mtip').style.display='none';
+  }else{
     cv.style.cursor=isDrag?'grabbing':'grab';
+    document.getElementById('mtip').style.display='none';
   }
 }
 
-function onClick(e){
+function onGlobeClick(e){
   if(isDrag) return;
   const cv=document.getElementById('gc');
   const rect=cv.getBoundingClientRect();
   mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
   mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
   raycaster.setFromCamera(mouse,camera);
-  const chits=raycaster.intersectObjects(countrySpheres);
-  if(chits.length) showCtip(chits[0].object.userData.code,e.clientX,e.clientY);
-  else hideTips();
+
+  const markerHits=raycaster.intersectObjects(markerPickables,true);
+  if(markerHits.length){
+    const data=markerHits[0].object.userData;
+    if(data.kind==='cluster'&&data.cluster){
+      expandedClusterId=(expandedClusterId===data.cluster.id)?null:data.cluster.id;
+      redrawThreatVisuals();
+      return;
+    }
+    if(data.kind==='event'&&data.warning){
+      flyTo(data.warning.lat,data.warning.lon);
+      return;
+    }
+  }
+
+  const countryHits=raycaster.intersectObjects(borderLines);
+  if(countryHits.length){
+    const code=countryHits[0].object.userData.countryCode;
+    if(code) showCountryTip(code,e.clientX,e.clientY);
+    return;
+  }
+
+  expandedClusterId=null;
+  redrawThreatVisuals();
+  hideTips();
 }
 
-async function showCtip(code,x,y){
-  const area=document.getElementById('gl');
-  const rect=area.getBoundingClientRect();
+async function showCountryTip(code,x,y){
+  const area=document.getElementById('gl').getBoundingClientRect();
   const el=document.getElementById('ctip');
-  el.innerHTML=`<h3>🔄 Loading ${code}...</h3>`;
-  let tx=x-rect.left+14, ty=y-rect.top-10;
-  if(tx+300>rect.width) tx-=310;
-  if(ty+300>rect.height) ty-=310;
-  el.style.left=tx+'px'; el.style.top=ty+'px'; el.style.display='block';
+  let tx=x-area.left+12, ty=y-area.top-10;
+  if(tx+300>area.width) tx-=310;
+  if(ty+300>area.height) ty-=300;
+  el.style.left=`${tx}px`; el.style.top=`${ty}px`; el.style.display='block';
+  el.innerHTML=`<h3>Loading ${code}...</h3>`;
   try{
     const d=await apiGet(`/country?code=${code}`);
-    const rc=d.riskLevel||'UNKNOWN';
-    let html=`<h3>${d.flag||'🏳'} ${code} <span class="cr r${rc}">${rc}</span></h3>`;
-    const rows=[['Leader',d.leader],['Ideology',d.ideology],['Religion',d.religion],['Currency',d.currency],['Elections',d.elections],['GDP',d.gdp],['Military',d.military]];
-    rows.forEach(([k,v])=>{if(v)html+=`<div class="row"><span>${k}</span><span>${v}</span></div>`;});
-    if(d.alliance) html+=`<div class="rel"><b style="color:var(--nb)">Allied:</b> ${d.alliance}</div>`;
-    if(d.rivals) html+=`<div class="rel"><b style="color:var(--nr)">Rivals:</b> ${d.rivals}</div>`;
-    el.innerHTML=html;
-    el.style.left=tx+'px'; el.style.top=ty+'px';
-  }catch(e){el.innerHTML=`<h3>🏳 ${code}</h3><div style="color:var(--muted);font-size:.7rem">Intel not available</div>`;}
+    const risk=countryRiskMap[code]||0;
+    el.innerHTML=`
+      <h3>${d.flag||FLAG_BY_CODE[code]||'🏳'} ${code} <span class="cr">RISK ${risk}</span></h3>
+      <div class="row"><span>Leader</span><span>${d.leader||'Unknown'}</span></div>
+      <div class="row"><span>Ideology</span><span>${d.ideology||'Unknown'}</span></div>
+      <div class="row"><span>Currency</span><span>${d.currency||'Unknown'}</span></div>
+      <div class="row"><span>Military</span><span>${d.military||'Unknown'}</span></div>
+      <div class="rel">Allied: ${d.alliance||'No data'}</div>
+      <div class="rel">Rivals: ${d.rivals||'No data'}</div>
+    `;
+  }catch(_e){
+    const risk=countryRiskMap[code]||0;
+    el.innerHTML=`<h3>${FLAG_BY_CODE[code]||'🏳'} ${code}</h3><div class="rel">Risk Score: ${risk}</div><div class="rel">Live country card currently unavailable.</div>`;
+  }
 }
 
-function showMtip(w,x,y){
-  const area=document.getElementById('gl');
-  const rect=area.getBoundingClientRect();
-  document.getElementById('mt-title').textContent=w.title;
-  const sev=document.getElementById('mt-sev');
-  sev.innerHTML=`<span class="s${w.severity[0]}">${w.severity}</span>`;
-  document.getElementById('mt-desc').textContent=w.desc;
-  document.getElementById('mt-time').textContent='⏱ '+w.ts;
-  document.getElementById('mt-score').textContent=w.riskScore?`RISK SCORE: ${w.riskScore}/100`:'';
+function showMarkerTip(w,x,y){
+  const area=document.getElementById('gl').getBoundingClientRect();
   const el=document.getElementById('mtip');
-  let tx=x-rect.left+12, ty=y-rect.top-20;
-  if(tx+250>rect.width) tx-=260;
-  el.style.left=tx+'px'; el.style.top=ty+'px'; el.style.display='block';
+  document.getElementById('mt-title').textContent=w.title||'Event';
+  document.getElementById('mt-sev').innerHTML=`<span class="${w.severity==='CRITICAL'?'sH':w.severity==='HIGH'?'sM':'sL'}">${w.severity||'MEDIUM'}</span>`;
+  document.getElementById('mt-desc').textContent=w.desc||'';
+  document.getElementById('mt-time').textContent=`⏱ ${w.ts||''}`;
+  document.getElementById('mt-score').textContent=`RISK SCORE: ${w.riskScore||'-'}/100`;
+  let tx=x-area.left+12, ty=y-area.top-22;
+  if(tx+260>area.width) tx-=270;
+  el.style.left=`${tx}px`; el.style.top=`${ty}px`; el.style.display='block';
 }
 
 function hideTips(){
@@ -590,10 +865,10 @@ function hideTips(){
   document.getElementById('mtip').style.display='none';
 }
 
-function flyTo(w){
+function flyTo(lat,lon){
   autoRot=false;
-  targetRotY=-(w.lon+180)*Math.PI/180+Math.PI;
-  targetRotX=-(90-w.lat)*Math.PI/180+Math.PI/2;
+  targetRotY=-(lon+180)*Math.PI/180+Math.PI;
+  targetRotX=-(90-lat)*Math.PI/180+Math.PI/2;
 }
 
 function onResize(){
@@ -603,633 +878,1691 @@ function onResize(){
   renderer.setSize(cv.clientWidth,cv.clientHeight);
 }
 
-let t=0;
+let clockT=0;
 function animate(){
-  requestAnimationFrame(animate); t+=0.016;
-  if(autoRot) targetRotY+=0.0014;
-  rotX+=(targetRotX-rotX)*.08; rotY+=(targetRotY-rotY)*.08;
-  globeMesh.rotation.x=rotX; globeMesh.rotation.y=rotY;
-  countrySpheres.forEach(cs=>{cs.rotation.x=rotX;cs.rotation.y=rotY;});
-  allianceArcs.forEach(a=>{a.rotation.x=rotX;a.rotation.y=rotY;});
-  markers.forEach(m=>{
-    const ph=m.ring.userData.phase+t*1.9;
-    const s=1+Math.sin(ph)*.65;
-    m.ring.scale.set(s,s,s); m.ring.material.opacity=0.8-(s-1)*0.8;
+  requestAnimationFrame(animate);
+  clockT+=0.016;
+  if(autoRot) targetRotY+=0.00145;
+  rotX+=(targetRotX-rotX)*.08;
+  rotY+=(targetRotY-rotY)*.08;
+
+  [globeMesh,borderGroup,markerGroup,heatGroup,allianceGroup].forEach(o=>{if(o){o.rotation.x=rotX;o.rotation.y=rotY;}});
+
+  markerGroup.children.forEach(ch=>{
+    if(ch.userData.pulse){
+      const s=ch.userData.base*(1+Math.sin(clockT*ch.userData.speed)*0.45);
+      ch.scale.set(s/ch.userData.base,s/ch.userData.base,s/ch.userData.base);
+      ch.material.opacity=Math.max(.12,.65-(Math.sin(clockT*ch.userData.speed)+1)*.18);
+    }
   });
+
+  heatGroup.children.forEach((z,idx)=>{
+    if(z.userData.heatPulse){
+      z.material.opacity=0.1+0.12*(0.5+0.5*Math.sin(clockT*1.8+z.userData.seed+idx*.2));
+      const s=1+0.1*Math.sin(clockT*1.2+z.userData.seed);
+      z.scale.set(s,s,s);
+    }
+  });
+
+  allianceFlows.forEach(f=>{
+    f.t=(f.t+0.002)%1;
+    const p=f.curve.getPoint(f.t);
+    f.mover.position.copy(p);
+  });
+
   renderer.render(scene,camera);
 }
 
-// ═══════════════════════════════════
-// API HELPERS
-// ═══════════════════════════════════
-async function apiGet(path){
-  const r=await fetch(API+path);
-  if(!r.ok) throw new Error('API '+r.status);
-  return r.json();
-}
-async function apiPost(path,body){
-  const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!r.ok) throw new Error('API '+r.status);
-  return r.json();
-}
-
-// ═══════════════════════════════════
-// UTIL
-// ═══════════════════════════════════
-function timeAgo(d){
-  const diff=Math.floor((Date.now()-new Date(d))/1000);
-  if(diff<60) return diff+'s ago';
-  if(diff<3600) return Math.floor(diff/60)+'m ago';
-  if(diff<86400) return Math.floor(diff/3600)+'hr ago';
-  return Math.floor(diff/86400)+'d ago';
-}
-function activateTab(name){
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tabp').forEach(p=>p.classList.remove('active'));
-  document.querySelector(`.tab[data-tab="${name}"]`).classList.add('active');
-  document.getElementById('tab-'+name).classList.add('active');
+function renderNews(){
+  const list=document.getElementById('newslist');
+  if(!liveArticles.length){
+    list.innerHTML='<div class="ni"><div class="nh">Waiting for live intelligence feed...</div></div>';
+    return;
+  }
+  list.innerHTML='';
+  liveArticles.forEach(a=>{
+    const cred=Math.max(0,Math.min(100,Number(a.sourceCredibility||70)));
+    const credColor=cred>85?'#00ff88':cred>=70?'#f0c94d':'#ff7700';
+    const div=document.createElement('div');
+    div.className='ni';
+    div.innerHTML=`
+      <div class="ntag ${a.tag||'INTEL'}">${a.tag||'INTEL'}</div>
+      <div class="nh">${a.title||''}</div>
+      <div class="nm">
+        <span class="nflag">${getFlagForHeadline(a.title)}</span>
+        <span class="nsrc">${a.source||'Unknown'}</span>
+        <span>${timeAgo(a.publishedAt)}</span>
+        <span>THREAT ${Math.round(a.threatScore||50)}</span>
+      </div>
+      <div class="ncred" style="width:${cred}%;background:${credColor}"></div>
+    `;
+    div.onclick=()=>{ if(a.url) window.open(a.url,'_blank'); };
+    list.appendChild(div);
+  });
 }
 
-// ═══════════════════════════════════
-// DATA LOADING
-// ═══════════════════════════════════
-let liveArticles=[];
+function renderWarnings(){
+  const wl=document.getElementById('warnlist');
+  wl.innerHTML='';
+  if(!liveThreats.length){
+    wl.innerHTML='<div class="wi"><div class="wdesc">No live threat events available right now.</div></div>';
+    return;
+  }
+  liveThreats.forEach(w=>{
+    const sev=(w.severity||'MEDIUM').toUpperCase();
+    const icon=w.type==='nuclear'?'☢':w.type==='cyber'?'⌁':w.type==='military'?'⚔':w.type==='disaster'?'🌪':'⚠';
+    const badgeClass=sev==='CRITICAL'?'sH':sev==='HIGH'?'sM':'sL';
+    const div=document.createElement('div');
+    div.className=`wi ${sev}`;
+    div.innerHTML=`
+      <div class="witp">
+        <div class="witn">${icon} ${w.title}</div>
+        <span class="wisv ${badgeClass}">${sev}</span>
+      </div>
+      <div class="wdesc">${w.desc||''}</div>
+      <div class="wmeta">
+        <span class="wdot ${sev}"></span>
+        <span>${w.ts||''}</span>
+        <span>${w.type||'conflict'}</span>
+        <span>RISK ${w.riskScore||0}</span>
+      </div>
+    `;
+    div.onclick=()=>flyTo(w.lat,w.lon);
+    wl.appendChild(div);
+  });
+}
 
-async function loadThreats(){
-  try{
-    const d=await apiGet('/threats');
-    const {threats,meta}=d;
-    document.getElementById('sh').textContent=meta.highSeverity;
-    document.getElementById('sm').textContent=meta.mediumSeverity;
-    document.getElementById('st2').textContent=meta.total;
-    document.getElementById('sri').textContent=meta.globalRiskIndex;
-    document.getElementById('tct').textContent=meta.total;
-    document.getElementById('tri').textContent=meta.globalRiskIndex+'/100';
-    document.getElementById('rbadge').textContent='RISK: '+(meta.globalRiskIndex>70?'CRITICAL':meta.globalRiskIndex>40?'ELEVATED':'MODERATE');
-    const wl=document.getElementById('warnlist');
-    wl.innerHTML='';
-    threats.forEach(w=>{
-      addMarker(w);
-      const div=document.createElement('div'); div.className='wi';
-      const dc=w.severity==='HIGH'?'dH':w.severity==='MEDIUM'?'dM':'dL';
-      div.innerHTML=`<div class="witp"><div class="witn">${w.title}</div><span class="wisv s${w.severity[0]}">${w.severity}</span></div><div class="wd">${w.desc}</div><div class="wsc">RISK: ${w.riskScore}/100</div><div class="wdot ${dc}"></div>`;
-      div.onclick=()=>flyTo(w);
-      wl.appendChild(div);
-    });
-  }catch(e){console.error('Threats:',e);}
+function renderCorrelations(corrs){
+  const el=document.getElementById('analytics');
+  el.innerHTML='';
+  if(!(corrs||[]).length){
+    el.innerHTML='<div class="cc"><div class="ccd">No live correlations available for this cycle.</div></div>';
+    return;
+  }
+  corrs.forEach(c=>{
+    const div=document.createElement('div');
+    const actors=(c.actors||[]).join(' · ');
+    div.className='cc';
+    div.innerHTML=`<div class="ccti">${c.title||'Pattern'}</div><div class="ccsc">${c.score||''}</div><div class="ccac">${actors}</div><div class="ccd">${c.desc||''}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderIntelMap(actors,links){
+  const svg=document.getElementById('imsvg');
+  const wrap=document.getElementById('imwrap');
+  const W=Math.max(340,wrap.clientWidth||340), H=Math.max(360,wrap.clientHeight||360);
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML='';
+  const lc={adversarial:'#ff2244',allied:'#44b3ff',diplomatic:'#44b3ff',economic:'#00ff88'};
+
+  (links||[]).forEach(l=>{
+    const f=(actors||[]).find(a=>a.id===l.from),t=(actors||[]).find(a=>a.id===l.to);
+    if(!f||!t) return;
+    const x1=f.x*W,y1=f.y*H,x2=t.x*W,y2=t.y*H;
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',x1);line.setAttribute('y1',y1);line.setAttribute('x2',x2);line.setAttribute('y2',y2);
+    line.setAttribute('stroke',lc[l.type]||'#889db3'); line.setAttribute('stroke-width','1.6'); line.setAttribute('stroke-opacity','.7');
+    if(l.type==='adversarial') line.setAttribute('stroke-dasharray','5,3');
+    svg.appendChild(line);
+  });
+
+  (actors||[]).forEach(a=>{
+    const cx=a.x*W, cy=a.y*H;
+    const color=a.type==='state'?'#00d4ff':a.type==='org'?'#00ff88':'#ff7700';
+    const label=a.label||a.id;
+    const bw=Math.max(44,label.length*7+16);
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','anode');
+    g.setAttribute('transform',`translate(${cx},${cy})`);
+
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',-bw/2);rect.setAttribute('y',-11);rect.setAttribute('width',bw);rect.setAttribute('height',22);rect.setAttribute('rx',3);
+    rect.setAttribute('fill','#071425');rect.setAttribute('stroke',color);rect.setAttribute('stroke-width','1');
+    g.appendChild(rect);
+
+    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x','0');txt.setAttribute('y','4');txt.setAttribute('text-anchor','middle');txt.setAttribute('font-size','8');txt.setAttribute('fill',color);
+    txt.setAttribute('font-family','Rajdhani,sans-serif');txt.setAttribute('font-weight','700');
+    txt.textContent=label;
+    g.appendChild(txt);
+    svg.appendChild(g);
+  });
+
+  extractArcDataFromIntel(links||[]);
+}
+
+function renderConflicts(){
+  const el=document.getElementById('conflictlist');
+  el.innerHTML='';
+  if(!liveConflicts.length){
+    el.innerHTML='<div class="cc"><div class="ccd">No ACLED conflict records available in this cycle.</div></div>';
+    return;
+  }
+  liveConflicts.forEach(cf=>{
+    const sev=(cf.severity||'MEDIUM').toUpperCase();
+    const badge=sev==='HIGH'?'sH':'sM';
+    const div=document.createElement('div');
+    div.className='wi '+sev;
+    div.innerHTML=`
+      <div class="witp"><div class="witn">${cf.country} — ${cf.sub_event||cf.event}</div><span class="wisv ${badge}">${sev}</span></div>
+      <div class="wdesc">${cf.notes||''}</div>
+      <div class="wmeta"><span>${cf.region||''}</span><span>${cf.daysAgo===0?'Today':`${cf.daysAgo}d ago`}</span><span>Intensity ${cf.intensityScore||0}</span></div>
+    `;
+    div.onclick=()=>flyTo(cf.lat,cf.lon);
+    el.appendChild(div);
+  });
+}
+
+function renderForecast(matrix,scenarios){
+  const el=document.getElementById('forecastlist');
+  el.innerHTML='';
+  const hdr=document.createElement('div');
+  hdr.className='ph'; hdr.style.color='var(--no)';
+  hdr.textContent='// COUNTRY RISK MATRIX — ESCALATION';
+  el.appendChild(hdr);
+
+  (matrix||[]).slice(0,12).forEach(c=>{
+    const row=document.createElement('div'); row.className='wi';
+    const col=c.escalationProbability>80?'#ff2244':c.escalationProbability>60?'#ff7700':c.escalationProbability>45?'#f0c94d':'#00d4ff';
+    row.innerHTML=`
+      <div class="witp"><div class="witn">${FLAG_BY_CODE[c.code]||'🏳'} ${c.country}</div><span class="wisv" style="color:${col};border-color:${col}">${c.escalationProbability}%</span></div>
+      <div style="margin-top:4px;height:3px;background:#11243d;border-radius:2px;overflow:hidden"><div style="width:${c.escalationProbability}%;height:100%;background:${col}"></div></div>
+      <div class="wmeta"><span>Trend ${c.trend}</span><span>${c.riskLevel}</span></div>
+    `;
+    el.appendChild(row);
+  });
+
+  const hdr2=document.createElement('div'); hdr2.className='ph'; hdr2.style.marginTop='8px'; hdr2.style.color='var(--np)'; hdr2.textContent='// NEXT SCENARIOS'; el.appendChild(hdr2);
+  (scenarios||[]).slice(0,5).forEach(s=>{
+    const div=document.createElement('div'); div.className='cc';
+    div.innerHTML=`<div class="ccti">${s.title}</div><div class="ccsc">${s.probability} · ${s.timeline}</div><div class="ccd"><b>Trigger:</b> ${s.trigger}<br>${(s.cascade||[]).map(x=>`• ${x}`).join('<br>')}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderLeaders(){
+  const POLS=[
+    {flag:'🇺🇸',name:'Donald Trump',title:'President — United States',inf:'CRITICAL',desc:'America First doctrine with pressure on alliance burden-sharing and tariff-centric statecraft.',tags:['right','populist']},
+    {flag:'🇷🇺',name:'Vladimir Putin',title:'President — Russia',inf:'CRITICAL',desc:'Sustains battlefield pressure in Ukraine while using military and energy leverage.',tags:['auth','nationalist']},
+    {flag:'🇨🇳',name:'Xi Jinping',title:'General Secretary — China',inf:'CRITICAL',desc:'Drives strategic signaling in Indo-Pacific and long-horizon economic positioning.',tags:['auth','communist']},
+    {flag:'🇮🇱',name:'Benjamin Netanyahu',title:'Prime Minister — Israel',inf:'CRITICAL',desc:'Continues wartime posture across Gaza and northern axis with regional implications.',tags:['right','nationalist']},
+    {flag:'🇮🇷',name:'Ali Khamenei',title:'Supreme Leader — Iran',inf:'CRITICAL',desc:'Maintains proxy influence network and regional deterrence narratives.',tags:['auth','theocrat']},
+    {flag:'🇺🇦',name:'Volodymyr Zelensky',title:'President — Ukraine',inf:'HIGH',desc:'War leadership focused on sustained support pipelines and force resilience.',tags:['center','liberal']},
+    {flag:'🇸🇦',name:'Mohammed bin Salman',title:'Crown Prince — Saudi Arabia',inf:'HIGH',desc:'Balances economic modernization with regional power brokerage.',tags:['auth','conservative']}
+  ];
+  const el=document.getElementById('leaders'); el.innerHTML='';
+  POLS.forEach(p=>{
+    const clr=p.inf==='CRITICAL'?'var(--nr)':'var(--no)';
+    const div=document.createElement('div'); div.className='pi';
+    div.innerHTML=`
+      <div class="pitp"><span style="font-size:1rem">${p.flag}</span><div><div class="pinm">${p.name}</div><div class="piti">${p.title}</div></div><span style="margin-left:auto;color:${clr};border:1px solid ${clr};font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:2px 6px">${p.inf}</span></div>
+      <div class="piinf">${p.desc}</div>
+      <div>${p.tags.map(t=>`<span class="pitg">${t.toUpperCase()}</span>`).join('')}</div>
+    `;
+    el.appendChild(div);
+  });
+}
+
+function renderMideast(newsItems){
+  const el=document.getElementById('mideast');
+  el.innerHTML='';
+
+  const feedWrap=document.createElement('div');
+  const hdr=document.createElement('div'); hdr.className='ph'; hdr.style.color='var(--nr)'; hdr.textContent='// LIVE GUARDIAN MIDDLE EAST FEED';
+  feedWrap.appendChild(hdr);
+  (newsItems||[]).slice(0,10).forEach(a=>{
+    const item=document.createElement('div'); item.className='ni';
+    item.innerHTML=`<div class="ntag CONFLICT">ME INTEL</div><div class="nh">${a.title}</div><div class="nm"><span class="nflag">${getFlagForHeadline(a.title)}</span><span class="nsrc">${a.source}</span><span>${timeAgo(a.publishedAt)}</span></div>`;
+    item.onclick=()=>window.open(a.url,'_blank');
+    feedWrap.appendChild(item);
+  });
+  el.appendChild(feedWrap);
+
+  const cards=[
+    {flag:'🇮🇱',name:'Israel',status:'AT WAR',cls:'war',info:'Live reporting indicates sustained operational pressure and multi-front military signaling.'},
+    {flag:'🇵🇸',name:'Palestine',status:'CONFLICT ZONE',cls:'war',info:'Humanitarian and security indicators remain tightly coupled in current reporting.'},
+    {flag:'🇮🇷',name:'Iran',status:'HIGH TENSION',cls:'tension',info:'Nuclear, maritime, and proxy narratives remain central in headline clustering.'},
+    {flag:'🇸🇦',name:'Saudi Arabia',status:'PIVOT POINT',cls:'tension',info:'Energy influence and diplomatic balancing role remain strategically relevant.'},
+    {flag:'🇱🇧',name:'Lebanon',status:'CONFLICT',cls:'war',info:'Cross-border security incidents keep escalation risk elevated.'},
+    {flag:'🇸🇾',name:'Syria',status:'FRAGILE',cls:'tension',info:'Fragmented security environment and actor overlap continue.'},
+    {flag:'🇾🇪',name:'Yemen',status:'RED SEA AXIS',cls:'war',info:'Shipping corridor disruptions continue to shape regional risk.'},
+    {flag:'🇮🇶',name:'Iraq',status:'FRAGILE',cls:'tension',info:'Militia-state friction and external influence remain key drivers.'},
+    {flag:'🇯🇴',name:'Jordan',status:'STABLE',cls:'stable',info:'Maintains mediator and buffer role in current cycle.'},
+    {flag:'🇪🇬',name:'Egypt',status:'STABLE',cls:'stable',info:'Continues as critical diplomatic and logistics actor.'}
+  ];
+
+  cards.forEach(c=>{
+    const div=document.createElement('div'); div.className='mec';
+    div.innerHTML=`<div class="meh" onclick="this.nextElementSibling.classList.toggle('open')"><span>${c.flag}</span><span class="mecn">${c.name}</span><span class="mest">${c.status}</span></div><div class="meb">${c.info}</div>`;
+    el.appendChild(div);
+  });
 }
 
 async function loadNews(){
   document.getElementById('feedstatus').textContent='● FETCHING...';
   document.getElementById('feedstatus').style.color='var(--no)';
-  const nl=document.getElementById('newslist');
-  nl.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.67rem;color:var(--dim)">⟳ Connecting to intelligence network...</div>`;
   try{
     const d=await apiGet('/news?type=world');
-    liveArticles=d.articles||[];
-    const srcList=[...new Set(liveArticles.map(a=>a.source))];
-    document.getElementById('feedstatus').textContent=`● LIVE — ${srcList.join(', ')}`;
+    liveArticles=(d.articles||[]).filter(a=>a&&a.title);
+    const src=[...new Set(liveArticles.map(a=>a.source).filter(Boolean))];
+    document.getElementById('feedstatus').textContent=`● LIVE — ${src.join(', ')||'MULTI'}`;
     document.getElementById('feedstatus').style.color='var(--ng)';
-    document.getElementById('tsrc').textContent=srcList.length+' SOURCES';
-    nl.innerHTML='';
-    liveArticles.forEach(a=>{
-      const div=document.createElement('div'); div.className='ni';
-      const sc=a.threatScore>70?'hi':a.threatScore>45?'me':'lo';
-      div.innerHTML=`<div class="ntag ${a.tag}">${a.tag}</div><div class="nh">${a.title}</div><div class="nm"><span class="nsrc">${a.source}</span><span>${timeAgo(a.publishedAt)}</span><span class="nsc ${sc}">▲${a.threatScore}</span></div>`;
-      div.onclick=()=>window.open(a.url,'_blank');
-      nl.appendChild(div);
-    });
-    // Trigger AI analysis panels
-    loadAnalytics(liveArticles);
-    loadActors(liveArticles);
-    loadEntities(liveArticles);
-  }catch(e){
-    document.getElementById('feedstatus').textContent='● ERROR';
-    document.getElementById('feedstatus').style.color='var(--nr)';
-    nl.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--nr)">⚠ Feed error: ${e.message}</div>`;
+    document.getElementById('tsrc').textContent=`${src.length||0} SOURCES`;
+    renderNews();
+
+    const corr=await apiPost('/analyze',{type:'correlations',articles:liveArticles.slice(0,20)});
+    renderCorrelations(Array.isArray(corr.result)?corr.result:[]);
+
+    const actors=await apiPost('/analyze',{type:'actors',articles:liveArticles.slice(0,20)});
+    const graph=actors.result||{actors:[],links:[]};
+    renderIntelMap(graph.actors||[],graph.links||[]);
+
+    const ents=await apiPost('/entities',{articles:liveArticles.slice(0,15)});
+    const entities=ents.entities||{};
+    renderEntitiesBar(entities);
+
+    const me=await apiGet('/news?type=mideast');
+    renderMideast((me.articles||[]).filter(a=>a.source==='The Guardian'));
+
+    lastUpdateMs=Date.now();
+  }catch(_e){
+    document.getElementById('feedstatus').textContent='● LIVE — LIMITED';
+    document.getElementById('feedstatus').style.color='var(--ny)';
+    renderNews();
+    renderCorrelations([]);
+    renderIntelMap([],[]);
+    renderMideast([]);
   }
 }
 
-async function loadAnalytics(articles){
-  const al=document.getElementById('analytics');
-  al.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ RUNNING CORRELATION ENGINE...</div>`;
+function renderEntitiesBar(entities){
+  const old=document.getElementById('entity-bar'); if(old) old.remove();
+  const bar=document.createElement('div'); bar.id='entity-bar'; bar.className='etags';
+  (entities.people||[]).slice(0,5).forEach(p=>{const s=document.createElement('span'); s.className='etag'; s.textContent=`👤 ${p.name}`; bar.appendChild(s);});
+  (entities.orgs||entities.organizations||[]).slice(0,5).forEach(o=>{const s=document.createElement('span'); s.className='etag'; s.textContent=`🏛 ${o.name||o}`; bar.appendChild(s);});
+  (entities.locations||[]).slice(0,4).forEach(l=>{const s=document.createElement('span'); s.className='etag'; s.textContent=`📍 ${l.name||l}`; bar.appendChild(s);});
+  if(bar.children.length){
+    const nl=document.getElementById('newslist');
+    nl.parentNode.insertBefore(bar,nl);
+  }
+}
+
+async function loadThreats(){
   try{
-    const d=await apiPost('/analyze',{type:'correlations',articles:articles.slice(0,12)});
-    const corrs=Array.isArray(d.result)?d.result:[];
-    al.innerHTML='';
-    corrs.forEach(c=>{
-      const div=document.createElement('div'); div.className='cc';
-      const actors=c.actors?.map(a=>`<span class="etag org">${a}</span>`).join('')||'';
-      div.innerHTML=`<div class="ccti">${c.title}</div><div class="ccsc">${c.score}</div><div class="ccac">${actors}</div><div class="ccd">${c.desc}</div>`;
-      al.appendChild(div);
+    const d=await apiGet('/threats');
+    const threats=(d.threats||[]).map(t=>({...t,severity:(t.severity||'MEDIUM').toUpperCase()}));
+
+    liveThreats=threats.map(t=>{
+      const sev=t.severity==='CRITICAL'?t.severity:(Number(t.riskScore||0)>=85?'CRITICAL':t.severity);
+      const code=t.country||getCountryCodeFromHeadline(t.title)||null;
+      return {...t,severity:sev,country:code};
+    }).filter(t=>typeof t.lat==='number'&&typeof t.lon==='number');
+
+    conflictCountries=new Set(liveThreats.filter(t=>['CRITICAL','HIGH'].includes(t.severity)).map(t=>t.country).filter(Boolean));
+
+    countryRiskMap={};
+    liveThreats.forEach(t=>{
+      if(!t.country) return;
+      const v=Math.max(0,Math.min(100,Number(t.riskScore||50)));
+      countryRiskMap[t.country]=Math.max(countryRiskMap[t.country]||0,v);
     });
-    if(!corrs.length){
-      const fallback=buildLocalCorrelations(articles);
-      renderCorrelations(al,fallback);
-      al.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--dim)">Local fallback correlation model active</div>`;
+
+    const high=liveThreats.filter(t=>['CRITICAL','HIGH'].includes(t.severity)).length;
+    const medium=liveThreats.filter(t=>t.severity==='MEDIUM').length;
+    const total=liveThreats.length;
+    const risk=Math.round(liveThreats.reduce((s,t)=>s+Number(t.riskScore||50),0)/Math.max(total,1));
+
+    document.getElementById('sh').textContent=high;
+    document.getElementById('sm').textContent=medium;
+    document.getElementById('st2').textContent=total;
+    document.getElementById('tct').textContent=total;
+    setRiskUI(risk);
+
+    renderWarnings();
+    redrawThreatVisuals();
+    renderCountryRiskFills();
+    lastUpdateMs=Date.now();
+  }catch(_e){
+    liveThreats=[];
+    renderWarnings();
+    redrawThreatVisuals();
+  }
+}
+
+async function loadConflicts(){
+  try{
+    const d=await apiGet('/acled');
+    liveConflicts=d.conflicts||[];
+    liveConflicts.forEach(c=>{
+      const code=getCountryCodeFromHeadline(c.country||'')||null;
+      if(code){
+        const cur=countryRiskMap[code]||0;
+        countryRiskMap[code]=Math.max(cur,Math.min(99,55+Math.round(c.intensityScore||40)));
+        conflictCountries.add(code);
+      }
+    });
+    renderConflicts();
+    redrawThreatVisuals();
+    renderCountryRiskFills();
+    lastUpdateMs=Date.now();
+  }catch(_e){
+    liveConflicts=[];
+    renderConflicts();
+  }
+}
+
+async function loadForecast(){
+  try{
+    const rm=await apiGet('/forecast?type=risk_matrix');
+    const sd=await apiPost('/forecast',{type:'scenarios',articles:liveArticles.slice(0,10)});
+    renderForecast(rm.matrix||[],sd.scenarios||[]);
+  }catch(_e){
+    renderForecast([],[]);
+  }
+}
+
+async function briefMe(){
+  const btn=document.getElementById('briefbtn');
+  btn.disabled=true; btn.textContent='⟳ GENERATING...';
+  activateTab('news');
+  const bb=document.getElementById('briefbox');
+  bb.classList.add('show');
+  bb.innerHTML='<span style="color:var(--nb)">Generating live intelligence brief...</span>';
+
+  try{
+    if(!liveArticles.length) await loadNews();
+    const d=await apiPost('/analyze',{type:'brief',articles:liveArticles.slice(0,14)});
+    const text=typeof d.result==='string'?d.result:'Live brief unavailable.';
+    bb.innerHTML=`<b>// SENTINEL BRIEF — ${new Date().toUTCString()}</b><br><br>${text}`;
+
+    if('speechSynthesis' in window){
+      speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(text);
+      u.rate=.9;u.pitch=.78;u.volume=1;
+      speechSynthesis.speak(u);
     }
-    if(d.fallback) al.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--dim)">⚠ Set ANTHROPIC_API_KEY in Vercel env for AI analysis</div>`;
-  }catch(e){
-    const fallback=buildLocalCorrelations(articles);
-    renderCorrelations(al,fallback);
-    al.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--dim)">⚠ Correlation API unreachable: ${e.message}</div>`;
+  }catch(_e){
+    bb.innerHTML='<b>// SENTINEL BRIEF</b><br><br>Live briefing feed is not available at this exact moment.';
   }
+
+  btn.disabled=false; btn.textContent='🔊 BRIEF ME';
 }
 
-function renderCorrelations(container,corrs){
-  container.innerHTML='';
-  corrs.forEach(c=>{
-    const div=document.createElement('div'); div.className='cc';
-    const actors=c.actors?.map(a=>`<span class="etag org">${a}</span>`).join('')||'';
-    div.innerHTML=`<div class="ccti">${c.title}</div><div class="ccsc">${c.score}</div><div class="ccac">${actors}</div><div class="ccd">${c.desc}</div>`;
-    container.appendChild(div);
+function setupEvents(){
+  document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>activateTab(b.dataset.tab)));
+  document.querySelectorAll('.layer-btn').forEach(btn=>btn.addEventListener('click',()=>{
+    const key=btn.dataset.layer;
+    activeLayers[key]=!activeLayers[key];
+    btn.classList.toggle('active',activeLayers[key]);
+    if(key==='alliances') allianceGroup.visible=activeLayers.alliances;
+    if(key==='threats') markerGroup.visible=activeLayers.threats;
+    if(key==='conflicts') heatGroup.visible=activeLayers.conflicts;
+  }));
+
+  document.getElementById('briefbtn').addEventListener('click',briefMe);
+
+  let alertOn=false;
+  document.getElementById('alertbtn').addEventListener('click',()=>{
+    alertOn=!alertOn;
+    const b=document.getElementById('alertbtn');
+    b.textContent=alertOn?'✓ ALERT ON':'⚠ ALERT MODE';
+    b.style.color=alertOn?'var(--ng)':'var(--nr)';
   });
-  if(!corrs.length) container.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">No correlations available</div>`;
+
+  setInterval(()=>{
+    const n=new Date();
+    document.getElementById('tclock').textContent=`${n.toISOString().slice(11,19)} UTC`;
+    updateLastUpdated();
+  },1000);
 }
 
-function buildLocalCorrelations(articles){
-  const text=(articles||[]).map(a=>a.title||'').join(' ').toLowerCase();
-  const has=(re)=>(text.match(re)||[]).length;
-  const score=(n)=>Math.min(95,Math.max(50,55+n*7));
-  const rows=[];
-
-  const meCount=has(/israel|gaza|iran|hezbollah|hamas|houthi|yemen|lebanon/g);
-  if(meCount>0){
-    rows.push({
-      title:'Middle East proxy pressure pattern',
-      score:`CORRELATION: ${score(meCount)}%`,
-      desc:'Simultaneous mentions of state and proxy actors indicate shared escalation pressure across Gaza, Lebanon, and Red Sea lanes.',
-      actors:['Iran','Israel','Hamas','Hezbollah','Houthis']
-    });
-  }
-
-  const eurCount=has(/ukraine|russia|nato|sanction|europe/g);
-  if(eurCount>0){
-    rows.push({
-      title:'Euro-Atlantic attrition linkage',
-      score:`CORRELATION: ${score(eurCount)}%`,
-      desc:'Battlefield pressure in Ukraine and sanction narratives continue to track with NATO readiness and supply chain strain.',
-      actors:['Russia','Ukraine','NATO','EU']
-    });
-  }
-
-  const apacCount=has(/taiwan|south china sea|beijing|pla|korea|icbm/g);
-  if(apacCount>0){
-    rows.push({
-      title:'Indo-Pacific deterrence stress',
-      score:`CORRELATION: ${score(apacCount)}%`,
-      desc:'Military signaling around Taiwan and Korean missile narratives suggest a higher baseline for rapid regional escalation.',
-      actors:['China','Taiwan','North Korea','USA']
-    });
-  }
-
-  const cyberCount=has(/cyber|hack|breach|ransomware/g);
-  if(cyberCount>0){
-    rows.push({
-      title:'Hybrid conflict cyber overlay',
-      score:`CORRELATION: ${score(cyberCount)}%`,
-      desc:'Cyber reporting is co-occurring with kinetic conflict headlines, consistent with blended state pressure campaigns.',
-      actors:['Russia','China','EU','USA']
-    });
-  }
-
-  return rows.slice(0,4);
+function bootLoader(done){
+  const msgs=['INITIALIZING SATELLITE FEED...','AUTHENTICATING CIPHER KEYS...','CONNECTING SIGINT NETWORK...','LOADING GEOSPATIAL DATABASE...','CALIBRATING GLOBE INTERFACE...','FETCHING LIVE INTELLIGENCE...','ALL SYSTEMS OPERATIONAL.'];
+  let i=0;
+  const timer=setInterval(()=>{ if(i<msgs.length) document.getElementById('ls').textContent=msgs[i++]; },390);
+  setTimeout(()=>{
+    clearInterval(timer);
+    const loader=document.getElementById('loader');
+    loader.style.opacity='0'; loader.style.transition='opacity .45s';
+    setTimeout(()=>{ loader.style.display='none'; done(); },420);
+  },2800);
 }
 
-async function loadActors(articles){
+window.addEventListener('load',()=>{
+  bootLoader(async ()=>{
+    document.getElementById('app').style.display='grid';
+    setupEvents();
+    initGlobe();
+    renderLeaders();
+    await loadNews();
+    await loadThreats();
+    await loadConflicts();
+    await loadForecast();
+    onResize();
+  });
+});
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SENTINEL // Global Intelligence</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap');
+:root{
+  --bg:#030912;--panel:#05101e;--panel2:#060d1a;--border:#0d1e36;
+  --nb:#00d4ff;--nr:#ff2244;--no:#ff7700;--ny:#ffd24d;--ng:#00ff88;--np:#cc44ff;
+  --text:#b8d0ef;--muted:#2a4a6a;--dim:#1a3050;
+  --gb:0 0 16px #00d4ff55;--gr:0 0 16px #ff224455;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;overflow:hidden;}
+
+#loader{position:fixed;inset:0;z-index:9999;background:radial-gradient(circle at 50% 30%,#051328 0%,#030912 58%,#02060f 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+#loader h1{font-family:'Rajdhani',sans-serif;font-size:3rem;font-weight:700;letter-spacing:.42em;color:var(--nb);text-shadow:var(--gb);animation:softPulse 1.6s ease-in-out infinite;}
+.lbar{width:330px;height:3px;background:#08162a;border-radius:4px;overflow:hidden;border:1px solid #0f2b4f;}
+.lfill{height:100%;width:0;background:linear-gradient(90deg,#003cff,#00d4ff,#00ff88);animation:fill 2.6s ease-in-out forwards;}
+.lstatus{font-family:'Share Tech Mono',monospace;font-size:.7rem;letter-spacing:.12em;color:var(--nb);min-height:18px;}
+
+#app{display:none;width:100vw;height:100vh;grid-template-columns:1fr 390px;grid-template-rows:56px 1fr 164px;grid-template-areas:"tb tb" "gl sb" "st sb";}
+
+#tb{grid-area:tb;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:#030a1699;border-bottom:1px solid var(--border);backdrop-filter:blur(10px);z-index:100;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:1.25rem;font-weight:700;letter-spacing:.28em;color:var(--nb);text-shadow:var(--gb);}
+.logo em{color:var(--nr);font-style:normal;}
+.tmeta{display:flex;gap:16px;font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--muted);}
+.tmeta b{color:var(--nb);}
+#tclock{color:var(--ng);} 
+#tupdated{color:var(--ny);} 
+.tbns{display:flex;gap:8px;}
+.btn{font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:700;letter-spacing:.08em;padding:5px 12px;border:1px solid currentColor;background:transparent;cursor:pointer;transition:all .2s;color:var(--nb);}
+.btn:hover{background:#00d4ff12;box-shadow:var(--gb);} 
+.btn.red{color:var(--nr);} .btn.red:hover{background:#ff224412;box-shadow:var(--gr);} .btn:disabled{opacity:.55;cursor:not-allowed;}
+
+#gl{grid-area:gl;position:relative;overflow:hidden;background:radial-gradient(ellipse at center,#041224 0%,#030912 70%,#02070f 100%);} 
+#gc{width:100%;height:100%;display:block;}
+#ghud{position:absolute;top:10px;left:12px;font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--dim);line-height:1.8;pointer-events:none;}
+#rbadge{display:inline-block;font-family:'Rajdhani',sans-serif;font-size:.9rem;font-weight:700;letter-spacing:.1em;padding:1px 9px;border:1px solid var(--nr);color:var(--nr);margin-top:4px;}
+#rbadge.risk-high{animation:riskPulse 1.4s ease-in-out infinite;}
+
+#layers{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:5px;z-index:4;}
+.layer-btn{font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:4px 8px;border:1px solid var(--border);background:#030a16cc;color:var(--muted);cursor:pointer;transition:all .2s;text-align:left;}
+.layer-btn.active{border-color:var(--nb);color:var(--nb);background:#00d4ff10;box-shadow:inset 0 0 12px #00d4ff22;}
+
+#mtip,#ctip{position:absolute;background:#04091af0;border:1px solid var(--nb);box-shadow:var(--gb);padding:10px 12px;max-width:280px;pointer-events:none;display:none;z-index:200;backdrop-filter:blur(8px);}
+#mtip .mtt{font-family:'Rajdhani',sans-serif;font-size:.95rem;color:var(--nb);font-weight:700;margin-bottom:4px;}
+#mtip .md{font-size:.72rem;line-height:1.45;color:var(--text);} 
+#mtip .mt{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);margin-top:4px;} 
+
+#st{grid-area:st;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);border-right:1px solid var(--border);} 
+.sc{background:var(--panel);padding:12px 13px;display:flex;flex-direction:column;gap:3px;position:relative;overflow:hidden;}
+.sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;}
+.sc.cb::before{background:var(--nb);box-shadow:var(--gb);} .sc.cr::before{background:var(--nr);box-shadow:var(--gr);} .sc.co::before{background:var(--no);} .sc.cg::before{background:var(--ng);} 
+.slb{font-family:'Share Tech Mono',monospace;font-size:.55rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
+.sv{font-family:'Rajdhani',sans-serif;font-size:1.55rem;font-weight:700;line-height:1;}
+.sc.cb .sv{color:var(--nb);} .sc.cr .sv{color:var(--nr);} .sc.co .sv{color:var(--no);} .sc.cg .sv{color:var(--ng);} 
+#sri.risk-high{animation:riskPulse 1.2s ease-in-out infinite;}
+.ss{font-size:.6rem;color:var(--muted);} 
+
+#sb{grid-area:sb;background:var(--panel2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border);flex-shrink:0;}
+.tab{padding:8px 4px;font-family:'Rajdhani',sans-serif;font-size:.62rem;font-weight:700;background:transparent;border:none;border-bottom:2px solid transparent;color:#5a7a9a;cursor:pointer;transition:all .2s;text-align:center;white-space:nowrap;}
+.tab.active{color:#dff6ff;border-bottom-color:var(--nb);background:linear-gradient(180deg,#00d4ff24,#00d4ff07);text-shadow:0 0 10px #00d4ff66;}
+.tabp{display:none;flex:1;overflow:hidden;flex-direction:column;} .tabp.active{display:flex;}
+.ph{padding:8px 11px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);letter-spacing:.1em;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.ph .pfeed{color:var(--ng);} 
+.scroll{flex:1;overflow-y:auto;padding:6px;} .scroll::-webkit-scrollbar{width:4px;} .scroll::-webkit-scrollbar-thumb{background:var(--border);} 
+
+.ni{padding:8px 9px;border-bottom:1px solid #0d1e362f;cursor:pointer;transition:background .14s;display:grid;gap:4px;}
+.ni:hover{background:#00d4ff0c;}
+.nh{font-size:.78rem;line-height:1.44;color:var(--text);white-space:normal;word-break:break-word;}
+.nmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.nsrc{font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:1px 5px;border:1px solid var(--border);} 
+.nflag{font-size:.82rem;line-height:1;}
+.ncred{height:4px;border-radius:2px;background:#10263f;overflow:hidden;border:1px solid #143154;}
+.ncred span{display:block;height:100%;}
+.ntag{font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:.07em;}
+.ntag.CONFLICT{color:var(--nr);} .ntag.MILITARY{color:var(--no);} .ntag.NUCLEAR{color:var(--np);} .ntag.CYBER{color:var(--ng);} .ntag.DISASTER{color:var(--ny);} .ntag.GEOPOLITICS{color:#ffb03a;} .ntag.INTEL{color:var(--nb);} 
+
+.wi{padding:8px 9px;border:1px solid var(--border);margin-bottom:5px;cursor:pointer;position:relative;background:#040c18;}
+.wi:hover{border-color:var(--nb);} 
+.wi.left-HIGH{border-left:3px solid var(--no);} .wi.left-MEDIUM{border-left:3px solid var(--ny);} .wi.left-CRITICAL{border-left:3px solid var(--nr);} .wi.left-LOW{border-left:3px solid var(--nb);} 
+.witop{display:flex;justify-content:space-between;gap:8px;align-items:center;}
+.wititle{font-family:'Rajdhani',sans-serif;font-size:.87rem;font-weight:700;display:flex;align-items:center;gap:6px;}
+.wibadge{font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:1px 6px;border:1px solid var(--border);} 
+.wibadge.CRITICAL{border-color:var(--nr);color:var(--nr);} .wibadge.HIGH{border-color:var(--no);color:var(--no);} .wibadge.MEDIUM{border-color:var(--ny);color:var(--ny);} .wibadge.LOW{border-color:var(--nb);color:var(--nb);} 
+.widesc{font-size:.7rem;color:var(--muted);line-height:1.4;margin-top:3px;}
+.wifoot{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);margin-top:3px;display:flex;justify-content:space-between;}
+.wblink{width:6px;height:6px;border-radius:50%;background:var(--nr);box-shadow:0 0 8px var(--nr);animation:blink 1.2s linear infinite;display:inline-block;}
+
+.cc{border:1px solid var(--border);padding:9px;margin-bottom:6px;background:#040d19;}
+.ccti{font-family:'Rajdhani',sans-serif;font-size:.88rem;font-weight:700;color:var(--nb);} 
+.ccsc{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 7px;margin:3px 0;border:1px solid var(--nb);color:var(--nb);} 
+.ccd{font-size:.7rem;color:var(--muted);line-height:1.5;} 
+.ccac{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}
+.actorTag{font-family:'Share Tech Mono',monospace;font-size:.56rem;border:1px solid #254665;color:var(--np);padding:1px 5px;}
+
+#imwrap{flex:1;position:relative;overflow:hidden;min-height:240px;} #imsvg{width:100%;height:100%;}
+.ileg{padding:6px 10px;font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--muted);border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;}
+
+.pi{padding:8px 9px;border:1px solid var(--border);margin-bottom:5px;} .pinm{font-family:'Rajdhani',sans-serif;color:var(--nb);font-size:.9rem;font-weight:700;} .piti{font-size:.65rem;color:var(--no);font-family:'Share Tech Mono',monospace;} .piinf{font-size:.7rem;color:var(--muted);margin-top:3px;line-height:1.45;}
+
+.mec{border:1px solid var(--border);margin-bottom:5px;} .meh{padding:7px 9px;background:#040a16;display:flex;align-items:center;gap:7px;cursor:pointer;border-bottom:1px solid var(--border);} .mecn{font-family:'Rajdhani',sans-serif;font-size:.85rem;color:var(--nb);font-weight:700;} .meb{padding:8px 9px;display:none;font-size:.7rem;color:var(--muted);line-height:1.5;} .meb.open{display:block;}
+
+#briefbox{padding:9px 11px;border-top:1px solid var(--border);font-size:.7rem;line-height:1.6;color:var(--muted);font-family:'Share Tech Mono',monospace;max-height:120px;overflow-y:auto;display:none;}
+#briefbox.show{display:block;}
+
+body::after{content:'';position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,#0000000f 2px,#0000000f 4px);z-index:9990;}
+
+@keyframes fill{to{width:100%;}}
+@keyframes softPulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.12;}}
+@keyframes riskPulse{0%,100%{box-shadow:0 0 0 rgba(255,34,68,0);}50%{box-shadow:0 0 18px rgba(255,34,68,.55);}}
+
+@media (max-width: 980px){
+  #app{grid-template-columns:1fr;grid-template-rows:56px 1fr 174px 44vh;grid-template-areas:"tb" "gl" "st" "sb";}
+  #sb{border-left:none;border-top:1px solid var(--border);} 
+}
+</style>
+</head>
+<body>
+<div id="loader">
+  <h1>SENTINEL</h1>
+  <div class="lbar"><div class="lfill"></div></div>
+  <div class="lstatus" id="ls">INITIALIZING SATELLITE FEED...</div>
+</div>
+
+<div id="app">
+  <div id="tb">
+    <div class="logo">SENTINEL <em>//</em> GLOBAL INTELLIGENCE</div>
+    <div class="tmeta">
+      <span>STATUS: <b>ACTIVE</b></span>
+      <span>THREATS: <b id="tct">0</b></span>
+      <span>RISK: <b id="tri">0/100</b></span>
+      <span>SOURCES: <b id="tsrc">0 SOURCES</b></span>
+      <span id="tclock">00:00:00 UTC</span>
+      <span id="tupdated">UPDATED: JUST NOW</span>
+    </div>
+    <div class="tbns">
+      <button class="btn" id="briefbtn">🔊 BRIEF ME</button>
+      <button class="btn red" id="alertbtn">⚠ ALERT MODE</button>
+    </div>
+  </div>
+
+  <div id="gl">
+    <canvas id="gc"></canvas>
+    <div id="ghud">
+      <div>LAT/LON TRACKING ACTIVE</div>
+      <div>MARKERS: <span id="mct">0</span></div>
+      <div>FEED: MULTI-SOURCE LIVE</div>
+      <div id="rbadge">RISK: MODERATE</div>
+      <div style="margin-top:5px;font-size:.55rem;color:#0f2535">CLICK COUNTRY → INTEL CARD<br />CLICK CLUSTER → EXPAND EVENTS</div>
+    </div>
+    <div id="layers">
+      <button class="layer-btn active" data-layer="threats">⚠ THREATS</button>
+      <button class="layer-btn" data-layer="alliances">🔗 ALLIANCES</button>
+      <button class="layer-btn active" data-layer="conflicts">⚔ CONFLICTS</button>
+    </div>
+    <div id="ctip"></div>
+    <div id="mtip">
+      <div class="mtt" id="mt-title"></div>
+      <div class="md" id="mt-desc"></div>
+      <div class="mt" id="mt-time"></div>
+    </div>
+  </div>
+
+  <div id="st">
+    <div class="sc cr"><div class="slb">HIGH SEVERITY</div><div class="sv" id="sh">0</div><div class="ss">Active conflicts</div></div>
+    <div class="sc co"><div class="slb">MEDIUM SEVERITY</div><div class="sv" id="sm">0</div><div class="ss">Developing</div></div>
+    <div class="sc cb"><div class="slb">TOTAL MONITORED</div><div class="sv" id="st2">0</div><div class="ss">Events tracked</div></div>
+    <div class="sc cg"><div class="slb">GLOBAL RISK INDEX</div><div class="sv" id="sri">0</div><div class="ss">Updated live</div></div>
+  </div>
+
+  <div id="sb">
+    <div class="tabs">
+      <button class="tab active" data-tab="news">📡 BRIEFING</button>
+      <button class="tab" data-tab="warnings">⚠ WARNINGS</button>
+      <button class="tab" data-tab="analytics">🔗 ANALYTICS</button>
+      <button class="tab" data-tab="intel">👁 INTEL MAP</button>
+      <button class="tab" data-tab="conflicts">⚔ CONFLICTS</button>
+      <button class="tab" data-tab="forecast">🎯 FORECAST</button>
+      <button class="tab" data-tab="leaders">👤 LEADERS</button>
+      <button class="tab" data-tab="mideast">🌙 MIDEAST</button>
+    </div>
+
+    <div class="tabp active" id="tab-news">
+      <div class="ph">// LIVE INTELLIGENCE FEED <span class="pfeed" id="feedstatus">● CONNECTING</span></div>
+      <div class="scroll" id="newslist"></div>
+      <div id="briefbox"></div>
+    </div>
+
+    <div class="tabp" id="tab-warnings">
+      <div class="ph">// ACTIVE ALERTS PANEL</div>
+      <div class="scroll" id="warnlist"></div>
+    </div>
+
+    <div class="tabp" id="tab-analytics">
+      <div class="ph">// CORRELATION ENGINE — LIVE PATTERNS</div>
+      <div class="scroll" id="analytics"></div>
+    </div>
+
+    <div class="tabp" id="tab-intel">
+      <div class="ph">// GEOPOLITICAL ACTOR NETWORK</div>
+      <div id="imwrap"><svg id="imsvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="ileg">
+        <span><i style="background:#ff2244;width:10px;height:2px;display:inline-block"></i>Adversarial</span>
+        <span><i style="background:#00d4ff;width:10px;height:2px;display:inline-block"></i>Allied</span>
+        <span><i style="background:#00ff88;width:10px;height:2px;display:inline-block"></i>Economic</span>
+      </div>
+    </div>
+
+    <div class="tabp" id="tab-conflicts">
+      <div class="ph">// ACTIVE CONFLICT ZONES — ACLED</div>
+      <div class="scroll" id="conflictlist"></div>
+    </div>
+
+    <div class="tabp" id="tab-forecast">
+      <div class="ph">// FORECAST INTELLIGENCE</div>
+      <div class="scroll" id="forecastlist"></div>
+    </div>
+
+    <div class="tabp" id="tab-leaders">
+      <div class="ph">// WORLD LEADERS & INFLUENCE</div>
+      <div class="scroll" id="leaders"></div>
+    </div>
+
+    <div class="tabp" id="tab-mideast">
+      <div class="ph">// MIDDLE EAST INTELLIGENCE</div>
+      <div class="scroll" id="mideast"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const API='/api';
+const EARTH_RADIUS=1.62;
+
+let scene,camera,renderer,globeMesh,overlayMesh;
+let isDrag=false,prevMouse={x:0,y:0},rotX=0,rotY=0,targetRotX=0,targetRotY=0,autoRot=true;
+let raycaster,mouse;
+let borderObjects=[],gridFallback=[],countryPickSpheres=[];
+let markerObjects=[],heatZones=[];
+let expandedClusterId=null;
+let arcObjects=[];
+let lastUpdateAt=Date.now();
+let riskByCountry={};
+let conflictCountrySet=new Set();
+let liveArticles=[],liveThreats=[],liveConflicts=[];
+let layerState={threats:true,alliances:false,conflicts:true};
+
+const COUNTRY_POINTS=[
+  {code:'US',lat:38,lon:-97},{code:'RU',lat:61,lon:100},{code:'CN',lat:35,lon:105},{code:'UA',lat:49,lon:32},
+  {code:'IR',lat:32,lon:53},{code:'IL',lat:31.5,lon:34.8},{code:'SA',lat:24,lon:45},{code:'IN',lat:20,lon:77},
+  {code:'TR',lat:39,lon:35},{code:'DE',lat:51,lon:10},{code:'GB',lat:54,lon:-2},{code:'FR',lat:46,lon:2},
+  {code:'KP',lat:40,lon:127},{code:'JP',lat:36,lon:138},{code:'BR',lat:-10,lon:-53},{code:'PK',lat:30,lon:70},
+  {code:'SD',lat:15,lon:32},{code:'MM',lat:19,lon:96},{code:'YE',lat:15,lon:48},{code:'SY',lat:35,lon:38},
+  {code:'LB',lat:33.8,lon:35.9},{code:'VE',lat:8,lon:-66},{code:'ML',lat:17,lon:-4},{code:'SO',lat:6,lon:46},
+  {code:'ET',lat:9.1,lon:40.5},{code:'PS',lat:31.5,lon:34.4}
+];
+
+const ACTOR_TO_COUNTRY={
+  USA:'US',RUSSIA:'RU',UKRAINE:'UA',CHINA:'CN',IRAN:'IR',ISRAEL:'IL',NATO:'GB',EU:'DE',HAMAS:'PS',HEZBOLLAH:'LB',HOUTHIS:'YE',SAUDI:'SA',TAIWAN:'TW',"N.KOREA":'KP',NKOREA:'KP'
+};
+
+function llToV3(lat,lon,r=EARTH_RADIUS){
+  const phi=(90-lat)*Math.PI/180;
+  const theta=(lon+180)*Math.PI/180;
+  return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta));
+}
+
+function haversineKm(a,b){
+  const R=6371;
+  const dLat=(b.lat-a.lat)*Math.PI/180;
+  const dLon=(b.lon-a.lon)*Math.PI/180;
+  const lat1=a.lat*Math.PI/180;
+  const lat2=b.lat*Math.PI/180;
+  const x=Math.sin(dLat/2)**2+Math.sin(dLon/2)**2*Math.cos(lat1)*Math.cos(lat2);
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+
+function countryCenter(code){
+  return COUNTRY_POINTS.find(c=>c.code===code)||null;
+}
+
+function detectedCountryCodeFromText(text=''){
+  const t=text.toLowerCase();
+  const map=[
+    ['ukraine','UA'],['russia','RU'],['gaza','PS'],['palestine','PS'],['israel','IL'],['iran','IR'],['china','CN'],['taiwan','TW'],
+    ['north korea','KP'],['yemen','YE'],['lebanon','LB'],['sudan','SD'],['myanmar','MM'],['somalia','SO'],['mali','ML'],
+    ['pakistan','PK'],['syria','SY'],['venezuela','VE'],['guyana','VE'],['ethiopia','ET'],['usa','US'],['united states','US']
+  ];
+  for(const [k,v] of map){if(t.includes(k)) return v;}
+  return null;
+}
+
+function codeToFlag(code=''){return String.fromCodePoint(...code.toUpperCase().replace(/./g,c=>127397+c.charCodeAt()));}
+
+function severityWeight(s){if(s==='CRITICAL') return 100;if(s==='HIGH') return 80;if(s==='MEDIUM') return 55;return 35;}
+
+function normalizeThreatSeverity(w){
+  if(w.severity) return w.severity;
+  if(Number(w.riskScore)>=85) return 'CRITICAL';
+  if(Number(w.riskScore)>=70) return 'HIGH';
+  if(Number(w.riskScore)>=45) return 'MEDIUM';
+  return 'LOW';
+}
+
+function typeIcon(type=''){const k=String(type).toLowerCase();if(k.includes('nuclear'))return '☢';if(k.includes('cyber'))return '⌁';if(k.includes('military'))return '⚔';if(k.includes('disaster'))return '⟁';return '⚠';}
+
+function formatTimeAgo(dateLike){
+  const diff=Math.max(0,Math.floor((Date.now()-new Date(dateLike).getTime())/1000));
+  if(diff<60) return `${diff}s ago`;
+  if(diff<3600) return `${Math.floor(diff/60)}m ago`;
+  if(diff<86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+
+async function apiGet(path){
+  const r=await fetch(API+path);
+  if(!r.ok) throw new Error(`API ${r.status}`);
+  return r.json();
+}
+
+async function apiPost(path,body){
+  const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(`API ${r.status}`);
+  return r.json();
+}
+
+function setLastUpdatedNow(){lastUpdateAt=Date.now();}
+
+function updateTopClock(){
+  const n=new Date();
+  document.getElementById('tclock').textContent=n.toISOString().slice(11,19)+' UTC';
+  const sec=Math.floor((Date.now()-lastUpdateAt)/1000);
+  const mm=Math.floor(sec/60), ss=sec%60;
+  document.getElementById('tupdated').textContent=`UPDATED: ${mm}m ${ss}s AGO`;
+}
+
+function makeFallbackEarthTexture(){
+  const c=document.createElement('canvas'); c.width=2048; c.height=1024;
+  const g=c.getContext('2d');
+  g.fillStyle='#021325'; g.fillRect(0,0,c.width,c.height);
+  g.strokeStyle='#0b335d'; g.lineWidth=1;
+  for(let i=0;i<=18;i++){const y=i*c.height/18;g.beginPath();g.moveTo(0,y);g.lineTo(c.width,y);g.stroke();}
+  for(let i=0;i<=36;i++){const x=i*c.width/36;g.beginPath();g.moveTo(x,0);g.lineTo(x,c.height);g.stroke();}
+  return new THREE.CanvasTexture(c);
+}
+
+function initGlobe(){
+  const cv=document.getElementById('gc');
+  const W=cv.clientWidth,H=cv.clientHeight;
+  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(W,H);
+  renderer.setClearColor(0x000000,0);
+
+  scene=new THREE.Scene();
+  camera=new THREE.PerspectiveCamera(45,W/H,0.1,120);
+  camera.position.set(0,0,4.6);
+
+  scene.add(new THREE.AmbientLight(0x182840,2.2));
+  const sun=new THREE.DirectionalLight(0x6ca3d8,2.2); sun.position.set(4,2,6); scene.add(sun);
+  const rim=new THREE.DirectionalLight(0x001022,1.2); rim.position.set(-5,-3,-3); scene.add(rim);
+
+  const geo=new THREE.SphereGeometry(EARTH_RADIUS,80,80);
+  const fallbackTex=makeFallbackEarthTexture();
+  const texLoader=new THREE.TextureLoader();
+  const earthTex=texLoader.load(
+    'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/land_ocean_ice_cloud_2048.jpg',
+    ()=>{},
+    undefined,
+    ()=>{if(globeMesh){globeMesh.material.map=fallbackTex;globeMesh.material.needsUpdate=true;}}
+  );
+
+  globeMesh=new THREE.Mesh(geo,new THREE.MeshPhongMaterial({map:earthTex,emissive:0x00111d,emissiveIntensity:0.08,shininess:7,specular:0x082030}));
+  scene.add(globeMesh);
+
+  const fillCanvas=document.createElement('canvas'); fillCanvas.width=2048; fillCanvas.height=1024;
+  const fillTex=new THREE.CanvasTexture(fillCanvas);
+  overlayMesh=new THREE.Mesh(new THREE.SphereGeometry(EARTH_RADIUS+0.005,80,80),new THREE.MeshBasicMaterial({map:fillTex,transparent:true,opacity:0.95,depthWrite:false}));
+  overlayMesh.userData.fillCanvas=fillCanvas;
+  overlayMesh.userData.fillCtx=fillCanvas.getContext('2d');
+  overlayMesh.userData.fillTexture=fillTex;
+  scene.add(overlayMesh);
+
+  const wire=new THREE.Mesh(new THREE.SphereGeometry(EARTH_RADIUS+0.002,26,18),new THREE.MeshBasicMaterial({color:0x063050,wireframe:true,transparent:true,opacity:0.16}));
+  globeMesh.add(wire);
+
+  const atmo=new THREE.Mesh(new THREE.SphereGeometry(EARTH_RADIUS*1.06,42,42),new THREE.MeshBasicMaterial({color:0x0a3f9a,transparent:true,opacity:0.06,side:THREE.FrontSide}));
+  scene.add(atmo);
+
+  raycaster=new THREE.Raycaster(); mouse=new THREE.Vector2();
+  COUNTRY_POINTS.forEach(cc=>{
+    const m=new THREE.Mesh(new THREE.SphereGeometry(0.13,8,8),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
+    m.position.copy(llToV3(cc.lat,cc.lon,EARTH_RADIUS));
+    m.userData={countryCode:cc.code};
+    scene.add(m);
+    countryPickSpheres.push(m);
+  });
+
+  cv.addEventListener('mousedown',e=>{isDrag=true;autoRot=false;prevMouse={x:e.clientX,y:e.clientY};});
+  window.addEventListener('mouseup',()=>{isDrag=false;});
+  cv.addEventListener('mousemove',onMouseMove);
+  cv.addEventListener('click',onGlobeClick);
+  cv.addEventListener('wheel',e=>{camera.position.z=Math.max(2.35,Math.min(9,camera.position.z+e.deltaY*0.0048));},{passive:true});
+  cv.addEventListener('dblclick',()=>{autoRot=!autoRot;});
+  window.addEventListener('resize',onResize);
+}
+
+function onResize(){
+  const cv=document.getElementById('gc');
+  if(!camera||!renderer) return;
+  camera.aspect=cv.clientWidth/cv.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(cv.clientWidth,cv.clientHeight);
+}
+
+function onMouseMove(e){
+  const cv=document.getElementById('gc');
+  const rect=cv.getBoundingClientRect();
+  if(isDrag){
+    targetRotY+=(e.clientX-prevMouse.x)*0.005;
+    targetRotX+=(e.clientY-prevMouse.y)*0.005;
+    targetRotX=Math.max(-1.2,Math.min(1.2,targetRotX));
+    prevMouse={x:e.clientX,y:e.clientY};
+    hideTips();
+    return;
+  }
+
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const picks=raycaster.intersectObjects(markerObjects.map(m=>m.pickMesh),true);
+  if(picks.length){
+    const data=picks[0].object.userData.markerData;
+    if(data) showMarkerTip(data,e.clientX,e.clientY);
+    cv.style.cursor='pointer';
+  }else{
+    document.getElementById('mtip').style.display='none';
+    cv.style.cursor=isDrag?'grabbing':'grab';
+  }
+}
+
+function onGlobeClick(e){
+  if(isDrag) return;
+  const cv=document.getElementById('gc');
+  const rect=cv.getBoundingClientRect();
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+
+  const markerHits=raycaster.intersectObjects(markerObjects.map(m=>m.pickMesh),true);
+  if(markerHits.length){
+    const data=markerHits[0].object.userData.markerData;
+    if(data?.kind==='cluster'){toggleClusterExpansion(data.clusterId);} else if(data?.event){flyTo(data.event);} 
+    return;
+  }
+
+  const countryHits=raycaster.intersectObjects(countryPickSpheres,true);
+  if(countryHits.length){
+    showCountryTip(countryHits[0].object.userData.countryCode,e.clientX,e.clientY);
+    return;
+  }
+  hideTips();
+}
+
+function hideTips(){
+  document.getElementById('ctip').style.display='none';
+  document.getElementById('mtip').style.display='none';
+}
+
+function showMarkerTip(markerData,x,y){
+  const area=document.getElementById('gl').getBoundingClientRect();
+  const el=document.getElementById('mtip');
+  if(markerData.kind==='cluster'){
+    el.innerHTML=`<div class="mtt">Cluster (${markerData.count})</div><div class="md">${markerData.count} nearby events within 300km. Click to expand.</div><div class="mt">Center: ${markerData.center.country||'Unknown'}</div>`;
+  }else{
+    const e=markerData.event;
+    el.innerHTML=`<div class="mtt">${e.title}</div><div class="md">${e.desc||''}</div><div class="mt">${e.severity} · ${e.ts||''}</div>`;
+  }
+  let tx=x-area.left+10, ty=y-area.top-12;
+  if(tx+280>area.width) tx-=286;
+  if(ty+110>area.height) ty-=120;
+  el.style.left=tx+'px';
+  el.style.top=ty+'px';
+  el.style.display='block';
+}
+
+async function showCountryTip(code,x,y){
+  const area=document.getElementById('gl').getBoundingClientRect();
+  const el=document.getElementById('ctip');
+  el.innerHTML=`<div class="mtt">Loading ${code}...</div>`;
+  let tx=x-area.left+12, ty=y-area.top-10;
+  if(tx+300>area.width) tx-=305;
+  if(ty+260>area.height) ty-=265;
+  el.style.left=tx+'px';
+  el.style.top=ty+'px';
+  el.style.display='block';
+
   try{
-    const d=await apiPost('/analyze',{type:'actors',articles:articles.slice(0,12)});
-    const g=d.result;
-    if(g&&g.actors) renderIntelMap(g.actors,g.links||[]);
-    else renderIntelMap(...buildFallbackActorGraph(articles));
-  }catch(e){
-    console.error('Actors:',e);
-    renderIntelMap(...buildFallbackActorGraph(articles));
+    const d=await apiGet(`/country?code=${code}`);
+    const risk=riskByCountry[code]||0;
+    el.innerHTML=`<div class="mtt">${d.flag||codeToFlag(code)} ${code}</div><div class="md">Leader: ${d.leader||'N/A'}<br />Risk score: ${Math.round(risk)}<br />Military: ${d.military||'N/A'}</div><div class="mt">${d.alliance||''}</div>`;
+  }catch{
+    const risk=riskByCountry[code]||0;
+    el.innerHTML=`<div class="mtt">${codeToFlag(code)} ${code}</div><div class="md">Risk score: ${Math.round(risk)}</div>`;
   }
 }
 
-function buildFallbackActorGraph(articles){
-  const text=(articles||[]).map(a=>a.title||'').join(' ').toLowerCase();
-  const has=(k)=>text.includes(k);
-  const actors=[
-    {id:'USA',label:'USA',type:'state',x:0.14,y:0.28},
-    {id:'RUSSIA',label:'RUSSIA',type:'state',x:0.62,y:0.2},
-    {id:'CHINA',label:'CHINA',type:'state',x:0.8,y:0.36},
-    {id:'NATO',label:'NATO',type:'org',x:0.32,y:0.22},
-    {id:'IRAN',label:'IRAN',type:'state',x:0.62,y:0.5},
-    {id:'ISRAEL',label:'ISRAEL',type:'state',x:0.52,y:0.56}
-  ];
+function flyTo(loc){
+  if(typeof loc.lat!=='number'||typeof loc.lon!=='number') return;
+  autoRot=false;
+  targetRotY=-(loc.lon+180)*Math.PI/180+Math.PI;
+  targetRotX=-(90-loc.lat)*Math.PI/180+Math.PI/2;
+}
 
-  if(has('ukraine')) actors.push({id:'UKRAINE',label:'UKRAINE',type:'state',x:0.52,y:0.25});
-  if(has('gaza')||has('hamas')) actors.push({id:'HAMAS',label:'HAMAS',type:'proxy',x:0.48,y:0.64});
-  if(has('hezbollah')||has('lebanon')) actors.push({id:'HEZBOLLAH',label:'HEZBOLLAH',type:'proxy',x:0.46,y:0.48});
-  if(has('houthi')||has('yemen')) actors.push({id:'HOUTHIS',label:'HOUTHIS',type:'proxy',x:0.58,y:0.66});
-  if(has('taiwan')) actors.push({id:'TAIWAN',label:'TAIWAN',type:'state',x:0.9,y:0.42});
+async function loadCountryBorders(geoJson){
+  clearBorderObjects();
+  const defaultCol=0x0a3060;
+  const activeCol=0xff2244;
 
-  const links=[
-    {from:'USA',to:'NATO',type:'allied',label:'Lead'},
-    {from:'CHINA',to:'RUSSIA',type:'economic',label:'Trade'},
-    {from:'IRAN',to:'ISRAEL',type:'adversarial',label:'Hostile'}
-  ];
-  if(actors.find(a=>a.id==='UKRAINE')){
-    links.push({from:'RUSSIA',to:'UKRAINE',type:'adversarial',label:'War'});
-    links.push({from:'USA',to:'UKRAINE',type:'allied',label:'Aid'});
+  const features=(geoJson?.features||[]);
+  features.forEach((feature)=>{
+    const props=feature.properties||{};
+    const code=(props.ISO3166_1_Alpha_2||props.ISO_A2||props.ISO_A2_EH||props.WB_A2||'').toUpperCase();
+    const isConflict=conflictCountrySet.has(code);
+    const color=isConflict?activeCol:defaultCol;
+    const geom=feature.geometry;
+    if(!geom) return;
+
+    const drawRing=(ring)=>{
+      const points=[];
+      for(const p of ring){points.push(llToV3(p[1],p[0],EARTH_RADIUS+0.012));}
+      if(points.length<2) return;
+      const g=new THREE.BufferGeometry().setFromPoints(points);
+      const m=new THREE.LineBasicMaterial({color,transparent:true,opacity:isConflict?0.95:0.7});
+      const line=new THREE.Line(g,m);
+      line.userData={isBorder:true};
+      scene.add(line);
+      borderObjects.push(line);
+    };
+
+    if(geom.type==='Polygon'){
+      geom.coordinates.forEach(drawRing);
+    }else if(geom.type==='MultiPolygon'){
+      geom.coordinates.forEach(poly=>poly.forEach(drawRing));
+    }
+  });
+
+  redrawCountryRiskFill(features);
+  if(!borderObjects.length) addFallbackGridLines();
+}
+
+function clearBorderObjects(){
+  borderObjects.forEach(o=>scene.remove(o));
+  gridFallback.forEach(o=>scene.remove(o));
+  borderObjects=[];
+  gridFallback=[];
+}
+
+function addFallbackGridLines(){
+  const mk=(latStart,latEnd,lonStart,lonEnd,steps,color,opacity)=>{
+    const pts=[];
+    for(let i=0;i<=steps;i++){
+      const t=i/steps;
+      const lat=latStart+(latEnd-latStart)*t;
+      const lon=lonStart+(lonEnd-lonStart)*t;
+      pts.push(llToV3(lat,lon,EARTH_RADIUS+0.012));
+    }
+    const g=new THREE.BufferGeometry().setFromPoints(pts);
+    const m=new THREE.LineBasicMaterial({color,transparent:true,opacity});
+    const line=new THREE.Line(g,m);
+    scene.add(line);
+    gridFallback.push(line);
+  };
+
+  for(let lat=-75;lat<=75;lat+=15){mk(lat,lat,-180,180,120,0x0a3060,0.45);}
+  for(let lon=-180;lon<180;lon+=15){mk(-85,85,lon,lon,120,0x0a3060,0.42);}
+}
+
+function redrawCountryRiskFill(features){
+  if(!overlayMesh?.userData?.fillCtx) return;
+  const ctx=overlayMesh.userData.fillCtx;
+  const can=overlayMesh.userData.fillCanvas;
+  const tex=overlayMesh.userData.fillTexture;
+
+  ctx.clearRect(0,0,can.width,can.height);
+  const ll=(lon,lat)=>[(lon+180)/360*can.width,(90-lat)/180*can.height];
+
+  const fillColor=(score)=>{
+    if(score>70) return 'rgba(255,34,68,0.125)';
+    if(score>=45) return 'rgba(255,119,0,0.085)';
+    return null;
+  };
+
+  (features||[]).forEach((f)=>{
+    const p=f.properties||{};
+    const code=(p.ISO3166_1_Alpha_2||p.ISO_A2||p.ISO_A2_EH||p.WB_A2||'').toUpperCase();
+    const risk=riskByCountry[code]||0;
+    const col=fillColor(risk);
+    if(!col) return;
+
+    const geom=f.geometry;
+    if(!geom) return;
+
+    const fillRing=(ring)=>{
+      if(!ring?.length) return;
+      ctx.beginPath();
+      ring.forEach((pt,idx)=>{
+        const [x,y]=ll(pt[0],pt[1]);
+        if(idx===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.closePath();
+      ctx.fillStyle=col;
+      ctx.fill();
+    };
+
+    if(geom.type==='Polygon') geom.coordinates.forEach(fillRing);
+    if(geom.type==='MultiPolygon') geom.coordinates.forEach(poly=>poly.forEach(fillRing));
+  });
+
+  tex.needsUpdate=true;
+}
+
+function clearMarkers(){
+  markerObjects.forEach(m=>{if(m.group) globeMesh.remove(m.group);});
+  markerObjects=[];
+}
+
+function clearHeatZones(){
+  heatZones.forEach(h=>scene.remove(h.mesh));
+  heatZones=[];
+}
+
+function makeCircleSprite(color,size=80,label=''){
+  const c=document.createElement('canvas'); c.width=size; c.height=size;
+  const g=c.getContext('2d');
+  g.clearRect(0,0,size,size);
+  const r=size/2;
+  g.fillStyle=color; g.beginPath(); g.arc(r,r,r*0.45,0,Math.PI*2); g.fill();
+  if(label){g.fillStyle='#ffffff'; g.font=`700 ${Math.floor(size*0.34)}px Rajdhani`; g.textAlign='center'; g.textBaseline='middle'; g.fillText(label,r,r+1);} 
+  const t=new THREE.CanvasTexture(c);
+  return new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false}));
+}
+
+function addConflictHeatZone(e){
+  const p=llToV3(e.lat,e.lon,EARTH_RADIUS+0.04);
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(0.12,20,20),new THREE.MeshBasicMaterial({color:0xff2244,transparent:true,opacity:0.2,depthWrite:false}));
+  mesh.position.copy(p);
+  scene.add(mesh);
+  heatZones.push({mesh,phase:Math.random()*Math.PI*2});
+}
+
+function addThreatVisual(event,clusterMeta=null){
+  const sev=normalizeThreatSeverity(event);
+  const group=new THREE.Group();
+  const pos=llToV3(event.lat,event.lon,EARTH_RADIUS+0.02);
+  group.position.copy(pos);
+  group.lookAt(0,0,0);
+
+  let pickMesh;
+  if(clusterMeta){
+    const sprite=makeCircleSprite('rgba(255,119,0,0.95)',96,String(clusterMeta.count));
+    sprite.scale.set(0.16,0.16,0.16);
+    group.add(sprite);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(0.05,0.065,24),new THREE.MeshBasicMaterial({color:0xff7700,transparent:true,opacity:0.85,side:THREE.DoubleSide}));
+    ring.rotation.x=Math.PI/2;
+    group.add(ring);
+    pickMesh=sprite;
+    markerObjects.push({group,pickMesh:sprite,event,kind:'cluster',pulse:ring,clusterId:clusterMeta.id,count:clusterMeta.count});
+    sprite.userData.markerData={kind:'cluster',clusterId:clusterMeta.id,count:clusterMeta.count,center:event};
+  }else if(sev==='CRITICAL'){
+    const base=new THREE.Mesh(new THREE.CircleGeometry(0.032+Math.min(0.03,(event.riskScore||80)/220),24),new THREE.MeshBasicMaterial({color:0xff2244,transparent:true,opacity:0.95}));
+    base.rotation.x=Math.PI/2;
+    group.add(base);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(0.04,0.052,24),new THREE.MeshBasicMaterial({color:0xff2244,transparent:true,opacity:0.8,side:THREE.DoubleSide}));
+    ring.rotation.x=Math.PI/2;
+    group.add(ring);
+    pickMesh=base;
+    markerObjects.push({group,pickMesh:base,event,kind:'event',pulse:ring,severity:'CRITICAL'});
+    base.userData.markerData={kind:'event',event};
+  }else if(sev==='HIGH'){
+    const dot=new THREE.Mesh(new THREE.CircleGeometry(0.027,20),new THREE.MeshBasicMaterial({color:0xff7700,transparent:true,opacity:0.9}));
+    dot.rotation.x=Math.PI/2;
+    const glow=new THREE.Mesh(new THREE.RingGeometry(0.03,0.05,20),new THREE.MeshBasicMaterial({color:0xff7700,transparent:true,opacity:0.4,side:THREE.DoubleSide}));
+    glow.rotation.x=Math.PI/2;
+    group.add(dot); group.add(glow);
+    pickMesh=dot;
+    markerObjects.push({group,pickMesh:dot,event,kind:'event',pulse:glow,severity:'HIGH'});
+    dot.userData.markerData={kind:'event',event};
+  }else{
+    const dot=new THREE.Mesh(new THREE.CircleGeometry(0.019,16),new THREE.MeshBasicMaterial({color:0xffd24d,transparent:true,opacity:0.9}));
+    dot.rotation.x=Math.PI/2;
+    group.add(dot);
+    pickMesh=dot;
+    markerObjects.push({group,pickMesh:dot,event,kind:'event',severity:'MEDIUM'});
+    dot.userData.markerData={kind:'event',event};
   }
-  if(actors.find(a=>a.id==='HAMAS')) links.push({from:'ISRAEL',to:'HAMAS',type:'adversarial',label:'Conflict'});
-  if(actors.find(a=>a.id==='HEZBOLLAH')) links.push({from:'IRAN',to:'HEZBOLLAH',type:'allied',label:'Support'});
-  if(actors.find(a=>a.id==='HOUTHIS')) links.push({from:'IRAN',to:'HOUTHIS',type:'allied',label:'Support'});
-  if(actors.find(a=>a.id==='TAIWAN')) links.push({from:'CHINA',to:'TAIWAN',type:'adversarial',label:'Pressure'});
 
-  return [actors,links];
+  globeMesh.add(group);
+}
+
+function clusterEvents(events,distKm=300){
+  const remaining=[...events];
+  const out=[];
+  let idx=0;
+  while(remaining.length){
+    const seed=remaining.shift();
+    const group=[seed];
+    for(let i=remaining.length-1;i>=0;i--){
+      if(haversineKm(seed,remaining[i])<=distKm){group.push(remaining[i]);remaining.splice(i,1);} 
+    }
+    const center={
+      lat:group.reduce((s,e)=>s+e.lat,0)/group.length,
+      lon:group.reduce((s,e)=>s+e.lon,0)/group.length,
+      severity:group.some(e=>normalizeThreatSeverity(e)==='CRITICAL')?'CRITICAL':group.some(e=>normalizeThreatSeverity(e)==='HIGH')?'HIGH':'MEDIUM',
+      riskScore:Math.max(...group.map(e=>Number(e.riskScore||severityWeight(normalizeThreatSeverity(e))))),
+      country:group[0].country,
+      title:group.length>1?`${group.length} clustered events`:group[0].title,
+      desc:group.length>1?'Cluster of nearby live events':group[0].desc,
+      ts:group[0].ts
+    };
+    out.push({id:`cluster-${idx++}`,events:group,center});
+  }
+  return out;
+}
+
+function renderThreatsOnGlobe(events){
+  clearMarkers();
+  clearHeatZones();
+
+  const clusters=clusterEvents(events.filter(e=>Number.isFinite(e.lat)&&Number.isFinite(e.lon)),300);
+  clusters.forEach(c=>{
+    if(c.events.length>1 && expandedClusterId!==c.id){
+      addThreatVisual(c.center,{id:c.id,count:c.events.length});
+    }else if(c.events.length>1 && expandedClusterId===c.id){
+      c.events.forEach((ev,idx)=>{
+        const offset=(idx-c.events.length/2)*0.4;
+        const clone={...ev,lat:ev.lat+offset*0.1,lon:ev.lon+offset*0.1};
+        addThreatVisual(clone,null);
+      });
+    }else{
+      addThreatVisual(c.events[0],null);
+    }
+
+    c.events.forEach(ev=>{
+      if(layerState.conflicts && ['CRITICAL','HIGH'].includes(normalizeThreatSeverity(ev)) && (String(ev.type||'').includes('conflict')||String(ev.type||'').includes('military'))){
+        addConflictHeatZone(ev);
+      }
+    });
+  });
+
+  markerObjects.forEach(m=>{m.group.visible=layerState.threats;});
+  heatZones.forEach(h=>{h.mesh.visible=layerState.conflicts;});
+  document.getElementById('mct').textContent=String(markerObjects.length);
+}
+
+function toggleClusterExpansion(id){
+  expandedClusterId=expandedClusterId===id?null:id;
+  renderThreatsOnGlobe(liveThreats);
+}
+
+function clearArcs(){
+  arcObjects.forEach(a=>{scene.remove(a.line);scene.remove(a.dot);});
+  arcObjects=[];
+}
+
+function drawAllianceArcs(links){
+  clearArcs();
+  const colorMap={allied:0x00d4ff,adversarial:0xff2244,economic:0x00ff88,diplomatic:0x00d4ff};
+  links.forEach((lk)=>{
+    const fromCode=ACTOR_TO_COUNTRY[lk.from]||ACTOR_TO_COUNTRY[(lk.from||'').toUpperCase()];
+    const toCode=ACTOR_TO_COUNTRY[lk.to]||ACTOR_TO_COUNTRY[(lk.to||'').toUpperCase()];
+    const f=countryCenter(fromCode), t=countryCenter(toCode);
+    if(!f||!t) return;
+
+    const p1=llToV3(f.lat,f.lon,EARTH_RADIUS+0.03);
+    const p2=llToV3(t.lat,t.lon,EARTH_RADIUS+0.03);
+    const mid=new THREE.Vector3().addVectors(p1,p2).multiplyScalar(0.5).normalize().multiplyScalar(EARTH_RADIUS+0.62);
+    const curve=new THREE.QuadraticBezierCurve3(p1,mid,p2);
+    const pts=curve.getPoints(70);
+    const g=new THREE.BufferGeometry().setFromPoints(pts);
+    const col=colorMap[lk.type]||0x00d4ff;
+
+    const mat=lk.type==='adversarial'
+      ? new THREE.LineDashedMaterial({color:col,dashSize:0.06,gapSize:0.04,transparent:true,opacity:0.74})
+      : new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.72});
+
+    const line=new THREE.Line(g,mat);
+    if(lk.type==='adversarial') line.computeLineDistances();
+    line.visible=layerState.alliances;
+    scene.add(line);
+
+    const dot=new THREE.Mesh(new THREE.SphereGeometry(0.015,10,10),new THREE.MeshBasicMaterial({color:col}));
+    dot.visible=layerState.alliances;
+    scene.add(dot);
+
+    arcObjects.push({line,dot,curve,t:Math.random(),speed:0.0012+Math.random()*0.0014});
+  });
+}
+
+async function fetchGeoBordersWithFallback(){
+  try{
+    const r=await fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson');
+    if(!r.ok) throw new Error('geojson fetch failed');
+    const geo=await r.json();
+    await loadCountryBorders(geo);
+  }catch{
+    addFallbackGridLines();
+  }
+}
+
+async function loadNews(){
+  const feed=document.getElementById('feedstatus');
+  const list=document.getElementById('newslist');
+  feed.textContent='● FETCHING';
+  list.innerHTML='';
+
+  try{
+    const d=await apiGet('/news?type=world');
+    liveArticles=(d.articles||[]).slice(0,40);
+    const src=[...new Set(liveArticles.map(a=>a.source))];
+    feed.textContent=`● LIVE — ${src.join(', ')}`;
+    document.getElementById('tsrc').textContent=`${src.length} SOURCES`;
+    setLastUpdatedNow();
+
+    list.innerHTML='';
+    liveArticles.forEach(a=>{
+      const credibility=Math.max(10,Math.min(100,Number(a.sourceCredibility||70)));
+      const cc=detectedCountryCodeFromText(a.title||a.summary||'');
+      const flag=cc?codeToFlag(cc):'🌐';
+      const barColor=credibility>85?'#00ff88':credibility>70?'#00d4ff':credibility>50?'#ff7700':'#ff2244';
+      const row=document.createElement('div'); row.className='ni';
+      row.innerHTML=`
+        <div class="ntag ${a.tag||'INTEL'}">${a.tag||'INTEL'}</div>
+        <div class="nh">${a.title}</div>
+        <div class="ncred"><span style="width:${credibility}%;background:${barColor}"></span></div>
+        <div class="nmeta"><span class="nflag">${flag}</span><span class="nsrc">${a.source||'Unknown'}</span><span class="nsrc">Cred ${credibility}</span><span class="nsrc">${formatTimeAgo(a.publishedAt||Date.now())}</span></div>
+      `;
+      row.onclick=()=>window.open(a.url,'_blank');
+      list.appendChild(row);
+    });
+
+    await Promise.all([loadAnalytics(),loadIntelMap(),loadEntities()]);
+  }catch{
+    feed.textContent='● DEGRADED';
+    list.innerHTML='<div class="ni"><div class="nh">Live sources are temporarily unavailable. System will retry automatically.</div></div>';
+  }
+}
+
+async function loadThreats(){
+  const list=document.getElementById('warnlist');
+  list.innerHTML='';
+  try{
+    const d=await apiGet('/threats');
+    const threats=(d.threats||[]).map(t=>({...t,severity:normalizeThreatSeverity(t)}));
+    liveThreats=threats;
+
+    const high=threats.filter(t=>['CRITICAL','HIGH'].includes(t.severity)).length;
+    const med=threats.filter(t=>t.severity==='MEDIUM').length;
+    const total=threats.length;
+    const risk=Math.round((d.meta?.globalRiskIndex||threats.reduce((s,t)=>s+Number(t.riskScore||severityWeight(t.severity)),0)/Math.max(1,total)));
+
+    document.getElementById('sh').textContent=String(high);
+    document.getElementById('sm').textContent=String(med);
+    document.getElementById('st2').textContent=String(total);
+    document.getElementById('sri').textContent=String(risk);
+    document.getElementById('tct').textContent=String(total);
+    document.getElementById('tri').textContent=`${risk}/100`;
+
+    const riskBadge=document.getElementById('rbadge');
+    riskBadge.textContent=`RISK: ${risk>70?'CRITICAL':risk>=45?'ELEVATED':'MODERATE'}`;
+    riskBadge.classList.toggle('risk-high',risk>70);
+    document.getElementById('sri').classList.toggle('risk-high',risk>70);
+
+    threats.forEach(t=>{
+      const sev=t.severity;
+      const icon=typeIcon(t.type);
+      const row=document.createElement('div');
+      row.className=`wi left-${sev}`;
+      row.innerHTML=`
+        <div class="witop"><div class="wititle">${icon} ${t.title} ${sev==='CRITICAL'?'<span class="wblink"></span>':''}</div><span class="wibadge ${sev}">${sev}</span></div>
+        <div class="widesc">${t.desc||''}</div>
+        <div class="wifoot"><span>${t.ts||''}</span><span>Score ${Math.round(Number(t.riskScore||severityWeight(sev)))}</span></div>
+      `;
+      row.onclick=()=>flyTo(t);
+      list.appendChild(row);
+    });
+
+    buildCountryRiskMap(threats,liveConflicts);
+    renderThreatsOnGlobe(threats);
+    await fetchGeoBordersWithFallback();
+    setLastUpdatedNow();
+  }catch{
+    list.innerHTML='<div class="wi left-LOW"><div class="widesc">Threat feed unavailable. Retrying in background.</div></div>';
+    liveThreats=[];
+    renderThreatsOnGlobe([]);
+  }
+}
+
+function buildCountryRiskMap(threats,conflicts){
+  const out={};
+  conflictCountrySet=new Set();
+
+  threats.forEach(t=>{
+    const code=(t.country||detectedCountryCodeFromText(t.title)||'').toUpperCase();
+    if(!code) return;
+    out[code]=Math.max(out[code]||0,Number(t.riskScore||severityWeight(normalizeThreatSeverity(t))));
+    if(['CRITICAL','HIGH'].includes(normalizeThreatSeverity(t))) conflictCountrySet.add(code);
+  });
+
+  (conflicts||[]).forEach(c=>{
+    const code=detectedCountryCodeFromText(`${c.country||''} ${c.region||''}`)||'';
+    if(!code) return;
+    const score=Math.min(98,Math.max(52,Number(c.intensityScore||60)));
+    out[code]=Math.max(out[code]||0,score);
+    if(score>70) conflictCountrySet.add(code);
+  });
+
+  riskByCountry=out;
+}
+
+async function loadAnalytics(){
+  const box=document.getElementById('analytics');
+  box.innerHTML='';
+  try{
+    const d=await apiPost('/analyze',{type:'correlations',articles:liveArticles.slice(0,14)});
+    const corrs=Array.isArray(d.result)?d.result:[];
+    corrs.forEach(c=>{
+      const row=document.createElement('div'); row.className='cc';
+      row.innerHTML=`<div class="ccti">${c.title}</div><div class="ccsc">${c.score}</div><div class="ccd">${c.desc||''}</div><div class="ccac">${(c.actors||[]).map(a=>`<span class="actorTag">${a}</span>`).join('')}</div>`;
+      box.appendChild(row);
+    });
+    if(!corrs.length){box.innerHTML='<div class="cc"><div class="ccd">No significant multi-theater correlations detected in the current cycle.</div></div>';}
+  }catch{
+    box.innerHTML='<div class="cc"><div class="ccd">Correlation model temporarily unavailable.</div></div>';
+  }
+}
+
+async function loadIntelMap(){
+  try{
+    const d=await apiPost('/analyze',{type:'actors',articles:liveArticles.slice(0,14)});
+    const g=d.result||{};
+    renderIntelMap(g.actors||[],g.links||[]);
+    drawAllianceArcs(g.links||[]);
+  }catch{
+    renderIntelMap([],[]);
+    drawAllianceArcs([]);
+  }
+}
+
+function renderIntelMap(actors,links){
+  const svg=document.getElementById('imsvg');
+  const wrap=document.getElementById('imwrap');
+  const W=Math.max(350,wrap.clientWidth||350);
+  const H=Math.max(330,wrap.clientHeight||330);
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.innerHTML='';
+
+  const lc={adversarial:'#ff2244',allied:'#00d4ff',economic:'#00ff88',diplomatic:'#ffaa00'};
+
+  links.forEach(lk=>{
+    const f=actors.find(a=>a.id===lk.from), t=actors.find(a=>a.id===lk.to);
+    if(!f||!t) return;
+    const x1=f.x*W,y1=f.y*H,x2=t.x*W,y2=t.y*H;
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',x1);line.setAttribute('y1',y1);line.setAttribute('x2',x2);line.setAttribute('y2',y2);
+    line.setAttribute('stroke',lc[lk.type]||'#7fa2c7');
+    line.setAttribute('stroke-width','1.4');
+    line.setAttribute('stroke-opacity','0.6');
+    if(lk.type==='adversarial') line.setAttribute('stroke-dasharray','4,3');
+    svg.appendChild(line);
+  });
+
+  actors.forEach(a=>{
+    const cx=a.x*W,cy=a.y*H;
+    const color=a.type==='state'?'#00d4ff':a.type==='org'?'#00ff88':'#ff7700';
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    const r=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    r.setAttribute('x',cx-28);r.setAttribute('y',cy-10);r.setAttribute('width',56);r.setAttribute('height',20);r.setAttribute('rx',3);
+    r.setAttribute('fill','#031325');r.setAttribute('stroke',color);r.setAttribute('stroke-width','1');
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',cx);t.setAttribute('y',cy+3);t.setAttribute('fill',color);t.setAttribute('text-anchor','middle');t.setAttribute('font-size','8');t.setAttribute('font-family','Rajdhani,sans-serif');t.setAttribute('font-weight','700');
+    t.textContent=a.label||a.id;
+    g.appendChild(r);g.appendChild(t);svg.appendChild(g);
+  });
+
+  if(!actors.length){
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',W/2);t.setAttribute('y',H/2);t.setAttribute('fill','#50779a');t.setAttribute('text-anchor','middle');t.setAttribute('font-size','10');t.textContent='Actor network pending live data';
+    svg.appendChild(t);
+  }
+}
+
+async function loadEntities(){
+  try{await apiPost('/entities',{articles:liveArticles.slice(0,16)});}catch{}
+}
+
+async function loadConflicts(){
+  const list=document.getElementById('conflictlist');
+  list.innerHTML='';
+  try{
+    const d=await apiGet('/acled');
+    const conflicts=d.conflicts||[];
+    liveConflicts=conflicts;
+    conflicts.forEach(c=>{
+      const row=document.createElement('div'); row.className='wi left-'+(c.severity||'MEDIUM');
+      row.innerHTML=`<div class="wititle">⚔ ${c.country} — ${c.sub_event||c.event}</div><div class="widesc">${c.notes||''}</div><div class="wifoot"><span>${c.daysAgo===0?'today':c.daysAgo+'d ago'}</span><span>Intensity ${c.intensityScore||0}</span></div>`;
+      row.onclick=()=>flyTo({lat:c.lat,lon:c.lon});
+      list.appendChild(row);
+    });
+
+    buildCountryRiskMap(liveThreats,conflicts);
+    setLastUpdatedNow();
+  }catch{
+    list.innerHTML='<div class="wi left-LOW"><div class="widesc">Conflict feed unavailable currently.</div></div>';
+    liveConflicts=[];
+  }
+}
+
+async function loadForecast(){
+  const list=document.getElementById('forecastlist');
+  list.innerHTML='';
+  try{
+    const matrix=await apiGet('/forecast?type=risk_matrix');
+    (matrix.matrix||[]).slice(0,8).forEach(m=>{
+      const row=document.createElement('div'); row.className='wi left-'+(m.riskLevel==='CRITICAL'?'CRITICAL':'MEDIUM');
+      row.innerHTML=`<div class="wititle">${m.country}</div><div class="wifoot"><span>${m.riskLevel}</span><span>${m.escalationProbability}%</span></div>`;
+      list.appendChild(row);
+    });
+
+    const sc=await apiPost('/forecast',{type:'scenarios',articles:liveArticles.slice(0,10)});
+    (sc.scenarios||[]).slice(0,4).forEach(s=>{
+      const row=document.createElement('div'); row.className='cc';
+      row.innerHTML=`<div class="ccti">${s.title}</div><div class="ccsc">${s.probability||''} · ${s.timeline||''}</div><div class="ccd">Trigger: ${s.trigger||''}</div>`;
+      list.appendChild(row);
+    });
+  }catch{
+    list.innerHTML='<div class="cc"><div class="ccd">Forecast models are re-syncing to live feed.</div></div>';
+  }
 }
 
 async function loadMideast(){
-  const mel=document.getElementById('mideast');
-  const ME=[
-    {flag:'🇮🇱',name:'Israel',status:'war',st:'AT WAR',info:'Active IDF operations in Gaza and northern border with Hezbollah. ICC arrest warrant for Netanyahu. Normalization with Saudi Arabia stalled.',rels:'Allied: USA, UAE. At war: Hamas. Hostile: Iran, Hezbollah.'},
-    {flag:'🇵🇸',name:'Palestine',status:'war',st:'CONFLICT ZONE',info:'Gaza under intensive military campaign. 2M+ displaced. Humanitarian crisis. Hamas controls Gaza, PA controls West Bank under Israeli occupation.',rels:'Support: Qatar, Turkey, Iran. 146 UN states recognize state.'},
-    {flag:'🇮🇷',name:'Iran',status:'tension',st:'HIGH TENSION',info:'Nuclear enrichment at 60%+. Direct missile exchange with Israel April 2024. Proxy network spans Hezbollah, Hamas, Houthis, Iraqi PMF.',rels:'Allied: Russia, China, proxy forces. Hostile: USA, Israel, Saudi Arabia.'},
-    {flag:'🇸🇦',name:'Saudi Arabia',status:'tension',st:'PIVOT POINT',info:'Vision 2030 modernization. Normalization with Israel conditional on Palestinian state. OPEC+ production cuts. $750B US arms deal.',rels:'Allied: USA, UAE, Egypt. Rival: Iran. Pivoting: China (BRICS+).'},
-    {flag:'🇱🇧',name:'Lebanon',status:'war',st:'CONFLICT',info:'Hezbollah-Israel conflict ongoing. Economy collapsed. No president 2yr+. Hezbollah controls south.',rels:'Influenced by: Iran (Hezbollah), Saudi Arabia, France.'},
-    {flag:'🇸🇾',name:'Syria',status:'tension',st:'POST-COLLAPSE',info:'Assad regime fell Dec 2024. HTS (al-Sharaa) controls Aleppo, Damascus. ISIS remnants active. Turkish, Russian, US forces present.',rels:'New govt: unclear. Hostile: ISIS remnants. Turkey-Kurd tension active.'},
-    {flag:'🇾🇪',name:'Yemen',status:'war',st:'CIVIL WAR',info:'Houthis control north/Sanaa. Targeting Red Sea shipping disrupts 12% of global trade. Saudi ceasefire fragile.',rels:'Houthis backed by Iran. Govt backed by Saudi Arabia, UAE, USA.'},
-    {flag:'🇮🇶',name:'Iraq',status:'tension',st:'FRAGILE',info:'Pro-Iran PMF militias attacked US bases 170+ times. US forces pressure for withdrawal. ISIS resurgent in north.',rels:'Official ally: USA. Dominant influence: Iran (PMF).'},
-    {flag:'🇯🇴',name:'Jordan',status:'stable',st:'STABLE',info:'Intercepted Iranian drones April 2024. Key US ally. Hosts 1.3M Syrian refugees. Peace treaty with Israel strained.',rels:'Allied: USA, Israel, Saudi Arabia, Egypt.'},
-    {flag:'🇪🇬',name:'Egypt',status:'stable',st:'STABLE',info:'Key mediator Gaza ceasefire talks. Controls Suez Canal (10% global trade). Military government. $1.3B/yr US military aid.',rels:'Allied: USA, Saudi Arabia, UAE. Treaty: Israel (1979).'},
-  ];
-  mel.innerHTML='';
-  // Fetch live ME news first
+  const box=document.getElementById('mideast');
+  box.innerHTML='';
   try{
     const d=await apiGet('/news?type=mideast');
-    if(d.articles?.length){
-      const wrap=document.createElement('div');
-      const hdr=document.createElement('div'); hdr.className='ph'; hdr.style.cssText='color:var(--nr);margin-bottom:4px';
-      hdr.textContent='// LIVE MIDDLE EAST FEED';
-      wrap.appendChild(hdr);
-      d.articles.forEach(a=>{
-        const item=document.createElement('div'); item.className='ni';
-        item.innerHTML=`<div class="ntag CONFLICT">ME INTEL</div><div class="nh">${a.title}</div><div class="nm"><span class="nsrc">${a.source}</span>${timeAgo(a.publishedAt)}</div>`;
-        item.onclick=()=>window.open(a.url,'_blank');
-        wrap.appendChild(item);
-      });
-      mel.appendChild(wrap);
-    }
-  }catch(e){}
-  ME.forEach(mc=>{
-    const div=document.createElement('div'); div.className='mec';
-    div.innerHTML=`<div class="meh" onclick="this.nextElementSibling.classList.toggle('open')"><span class="mefg">${mc.flag}</span><span class="mecn">${mc.name}</span><span class="mest ${mc.status}">${mc.st}</span></div><div class="meb"><div style="margin-bottom:5px">${mc.info}</div><div style="font-size:.65rem;color:var(--dim);border-top:1px solid var(--border);padding-top:4px;margin-top:4px">${mc.rels}</div></div>`;
-    mel.appendChild(div);
+    const hdr=document.createElement('div'); hdr.className='ph'; hdr.style.color='var(--nr)'; hdr.textContent='// LIVE GUARDIAN MIDDLE EAST FEED';
+    box.appendChild(hdr);
+    (d.articles||[]).slice(0,10).forEach(a=>{
+      const row=document.createElement('div'); row.className='ni';
+      row.innerHTML=`<div class="ntag CONFLICT">ME INTEL</div><div class="nh">${a.title}</div><div class="nmeta"><span class="nsrc">${a.source||'The Guardian'}</span><span class="nsrc">${formatTimeAgo(a.publishedAt||Date.now())}</span></div>`;
+      row.onclick=()=>window.open(a.url,'_blank');
+      box.appendChild(row);
+    });
+  }catch{
+    const row=document.createElement('div'); row.className='ni'; row.innerHTML='<div class="nh">Middle East live feed currently unavailable.</div>'; box.appendChild(row);
+  }
+
+  const cards=[
+    {flag:'🇮🇱',name:'Israel',status:'AT WAR',body:'Military operations and northern border tensions remain active.'},
+    {flag:'🇵🇸',name:'Palestine',status:'CONFLICT ZONE',body:'Gaza remains high-risk with repeated humanitarian and security developments.'},
+    {flag:'🇮🇷',name:'Iran',status:'HIGH TENSION',body:'Proxy and strategic signaling continue to shape regional escalation patterns.'},
+    {flag:'🇸🇦',name:'Saudi Arabia',status:'PIVOT',body:'Balancing regional security posture with diplomatic and economic alignment.'},
+    {flag:'🇱🇧',name:'Lebanon',status:'CONFLICT',body:'Cross-border risk remains elevated along southern corridors.'},
+    {flag:'🇾🇪',name:'Yemen',status:'MARITIME THREAT',body:'Red Sea shipping risks remain active around Houthi-linked activity.'}
+  ];
+
+  cards.forEach(c=>{
+    const item=document.createElement('div'); item.className='mec';
+    item.innerHTML=`<div class="meh"><span>${c.flag}</span><span class="mecn">${c.name}</span><span style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--no)">${c.status}</span></div><div class="meb open">${c.body}</div>`;
+    item.querySelector('.meh').onclick=()=>item.querySelector('.meb').classList.toggle('open');
+    box.appendChild(item);
   });
 }
 
 function loadLeaders(){
-  const POLS=[
-    {flag:'🇺🇸',name:'Donald Trump',title:'President — United States',inf:'CRITICAL',desc:'America First doctrine. Trade tariffs, NATO burden-sharing disputes. Key Israel supporter. Isolationist-adjacent foreign policy.',tags:['right','populist']},
-    {flag:'🇷🇺',name:'Vladimir Putin',title:'President — Russia',inf:'CRITICAL',desc:'Architect of Ukraine invasion. Centralized power. Key sponsor of Iran, N.Korea arms pipeline. Anti-Western multipolar strategy.',tags:['auth','nationalist']},
-    {flag:'🇨🇳',name:'Xi Jinping',title:'General Secretary — China',inf:'CRITICAL',desc:'Taiwan reunification pursuit. Belt & Road expansion. Technology supremacy drive. BRICS expansion architect.',tags:['auth','communist']},
-    {flag:'🇮🇱',name:'Benjamin Netanyahu',title:'Prime Minister — Israel',inf:'CRITICAL',desc:'Overseeing Gaza war. ICC arrest warrant issued. Iran nuclear containment focus. Normalization diplomacy.',tags:['right','nationalist']},
-    {flag:'🇮🇷',name:'Ali Khamenei',title:'Supreme Leader — Iran',inf:'CRITICAL',desc:'Controls nuclear program and proxy network (Hezbollah, Hamas, Houthis). Anti-US/Israel axis leader.',tags:['auth','theocrat']},
-    {flag:'🇺🇦',name:'Volodymyr Zelensky',title:'President — Ukraine',inf:'HIGH',desc:'Wartime leader seeking NATO membership and Western weapons. Symbol of resistance against Russian invasion.',tags:['center','liberal']},
-    {flag:'🇸🇦',name:'Mohammed bin Salman',title:'Crown Prince — Saudi Arabia',inf:'HIGH',desc:'De facto Saudi ruler. Vision 2030 modernization. Pivot between US and China. OPEC+ production decisions.',tags:['auth','conservative']},
-    {flag:'🇩🇪',name:'Friedrich Merz',title:'Chancellor — Germany',inf:'HIGH',desc:'Leading European rearmament push. 2% NATO spending target. Key EU-US bridge on Ukraine policy.',tags:['right','center']},
-    {flag:'🇫🇷',name:'Emmanuel Macron',title:'President — France',inf:'HIGH',desc:'European strategic autonomy advocate. Active Ukraine diplomacy. Africa withdrawal tensions. AI regulation.',tags:['center','liberal']},
-    {flag:'🇬🇧',name:'Keir Starmer',title:'Prime Minister — UK',inf:'HIGH',desc:'Centre-left PM. Strong Ukraine supporter. UK-EU reset after Brexit. AUKUS pact member.',tags:['center','left']},
-    {flag:'🇹🇷',name:'Recep Erdoğan',title:'President — Turkey',inf:'HIGH',desc:'NATO member buying Russian S-400. Ukraine-Russia mediator. Neo-Ottoman foreign policy.',tags:['auth','nationalist']},
-    {flag:'🇮🇳',name:'Narendra Modi',title:'Prime Minister — India',inf:'HIGH',desc:'Strategic autonomy: talks to USA and Russia simultaneously. World\'s most populous nation. Hindu nationalism.',tags:['right','nationalist']},
-  ];
-  const el=document.getElementById('leaders'); el.innerHTML='';
-  POLS.forEach(p=>{
-    const div=document.createElement('div'); div.className='pi';
-    const ic=p.inf==='CRITICAL'?'var(--nr)':p.inf==='HIGH'?'var(--no)':'var(--nb)';
-    div.innerHTML=`<div class="pitp"><span class="pifg">${p.flag}</span><div><div class="pinm">${p.name}</div><div class="piti">${p.title}</div></div><span style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:2px 6px;border:1px solid ${ic};color:${ic}">${p.inf}</span></div><div class="piinf">${p.desc}</div><div>${p.tags.map(t=>`<span class="pitg ${t}">${t.toUpperCase()}</span>`).join('')}</div>`;
-    el.appendChild(div);
+  const list=document.getElementById('leaders');
+  list.innerHTML='';
+  [
+    ['🇺🇸','Donald Trump','President — United States','US strategic signaling across multiple theaters.'],
+    ['🇷🇺','Vladimir Putin','President — Russia','Sustained pressure against Ukraine and Western alliances.'],
+    ['🇨🇳','Xi Jinping','General Secretary — China','Taiwan deterrence posture and economic influence operations.'],
+    ['🇮🇷','Ali Khamenei','Supreme Leader — Iran','Proxy axis posture shaping Middle East escalation risk.'],
+    ['🇮🇱','Benjamin Netanyahu','Prime Minister — Israel','Operational decisions directly affect regional conflict curve.']
+  ].forEach(p=>{
+    const row=document.createElement('div'); row.className='pi';
+    row.innerHTML=`<div style="display:flex;align-items:center;gap:8px"><span>${p[0]}</span><div><div class="pinm">${p[1]}</div><div class="piti">${p[2]}</div></div></div><div class="piinf">${p[3]}</div>`;
+    list.appendChild(row);
   });
 }
 
-// ═══════════════════════════════════
-// INTEL MAP SVG
-// ═══════════════════════════════════
-function renderIntelMap(actors,links){
-  const svg=document.getElementById('imsvg');
-  const wrap=document.getElementById('imwrap');
-  const W=Math.max(wrap.clientWidth||350,350);
-  const H=Math.max(wrap.clientHeight||380,380);
-  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
-  svg.innerHTML='';
-  const LC={adversarial:'#ff2244',allied:'#ff7700',diplomatic:'#00d4ff',economic:'#00ff88'};
-  links.forEach(lk=>{
-    const f=actors.find(a=>a.id===lk.from), t=actors.find(a=>a.id===lk.to);
-    if(!f||!t) return;
-    const col=LC[lk.type]||'#888';
-    const x1=f.x*W,y1=f.y*H,x2=t.x*W,y2=t.y*H;
-    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1',x1);line.setAttribute('y1',y1);line.setAttribute('x2',x2);line.setAttribute('y2',y2);
-    line.setAttribute('stroke',col);line.setAttribute('stroke-width','1.5');line.setAttribute('stroke-opacity','0.5');
-    if(lk.type==='adversarial') line.setAttribute('stroke-dasharray','4,3');
-    svg.appendChild(line);
-    if(lk.label){
-      const lt=document.createElementNS('http://www.w3.org/2000/svg','text');
-      lt.setAttribute('x',(x1+x2)/2);lt.setAttribute('y',(y1+y2)/2-3);
-      lt.setAttribute('text-anchor','middle');lt.setAttribute('font-size','6');
-      lt.setAttribute('fill',col);lt.setAttribute('opacity','0.7');
-      lt.setAttribute('font-family','Share Tech Mono,monospace');
-      lt.textContent=lk.label; svg.appendChild(lt);
-    }
-  });
-  actors.forEach(actor=>{
-    const cx=actor.x*W,cy=actor.y*H;
-    const bc=actor.type==='state'?'#00d4ff':actor.type==='org'?'#00ff88':actor.type==='leader'?'#ff7700':'#ff2244';
-    const bg=actor.type==='state'?'#030e20':actor.type==='org'?'#031510':'#1a0505';
-    const lbl=actor.label||actor.id;
-    const bw=Math.max(40,lbl.length*7+16);
-    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','anode');g.setAttribute('transform',`translate(${cx},${cy})`);
-    const glow=document.createElementNS('http://www.w3.org/2000/svg','ellipse');
-    glow.setAttribute('rx','18');glow.setAttribute('ry','12');glow.setAttribute('fill',bc);glow.setAttribute('opacity','0.06');
-    g.appendChild(glow);
-    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
-    rect.setAttribute('x',-bw/2);rect.setAttribute('y','-11');rect.setAttribute('width',bw);rect.setAttribute('height','22');
-    rect.setAttribute('rx','3');rect.setAttribute('fill',bg);rect.setAttribute('stroke',bc);rect.setAttribute('stroke-width','1');
-    g.appendChild(rect);
-    const pin=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    pin.setAttribute('cx',-bw/2+5);pin.setAttribute('cy','-8');pin.setAttribute('r','2');pin.setAttribute('fill','#ff2244');
-    g.appendChild(pin);
-    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
-    txt.setAttribute('x','2');txt.setAttribute('y','4');txt.setAttribute('text-anchor','middle');
-    txt.setAttribute('font-size','8');txt.setAttribute('font-weight','700');txt.setAttribute('fill',bc);
-    txt.setAttribute('font-family','Rajdhani,sans-serif');txt.textContent=lbl;
-    g.appendChild(txt);
-    svg.appendChild(g);
-  });
-}
-
-// ═══════════════════════════════════
-// BRIEF ME
-// ═══════════════════════════════════
 async function briefMe(){
   const btn=document.getElementById('briefbtn');
-  btn.textContent='⟳ GENERATING...'; btn.disabled=true;
+  const box=document.getElementById('briefbox');
+  btn.disabled=true; btn.textContent='⟳ GENERATING...';
   activateTab('news');
-  const bb=document.getElementById('briefbox');
-  bb.innerHTML='<span style="color:var(--nb)">⟳ GENERATING AI BRIEF...</span>';
-  bb.classList.add('show');
+  box.classList.add('show');
+  box.innerHTML='Generating live brief from current headlines...';
+
   try{
-    if(!liveArticles.length){
-      await loadNews();
-    }
-    const d=await apiPost('/analyze',{type:'brief',articles:liveArticles.slice(0,10)});
-    const text=typeof d.result==='string'?d.result:'Brief unavailable';
-    const ri=document.getElementById('sri').textContent;
-    bb.innerHTML=`<b>// SENTINEL BRIEF — ${new Date().toUTCString()}</b><br><br>${text}<br><br><b style="color:var(--nr)">RISK: ${ri}/100</b>`;
-    if(d.fallback) bb.innerHTML+=`<br><span style="color:var(--dim);font-size:.6rem">⚠ Fallback mode — add ANTHROPIC_API_KEY in Vercel settings for AI briefs</span>`;
+    if(!liveArticles.length) await loadNews();
+    const d=await apiPost('/analyze',{type:'brief',articles:liveArticles.slice(0,12)});
+    box.innerHTML=`<b>// SENTINEL BRIEF — ${new Date().toUTCString()}</b><br /><br />${typeof d.result==='string'?d.result:'Brief unavailable'}`;
+
     if('speechSynthesis' in window){
       speechSynthesis.cancel();
-      const doSpeak=()=>{
-        const sp=new SpeechSynthesisUtterance(text);
-        const v=speechSynthesis.getVoices();
-        const pref=v.find(x=>/david|daniel|alex|mark|en-us/i.test(x.name));
-        if(pref) sp.voice=pref;
-        sp.rate=0.88;sp.pitch=0.78;sp.volume=1;
-        speechSynthesis.speak(sp);
-      };
-      if(speechSynthesis.getVoices().length>0) doSpeak();
-      else {speechSynthesis.onvoiceschanged=()=>{doSpeak();speechSynthesis.onvoiceschanged=null;}; setTimeout(doSpeak,600);}
+      const sp=new SpeechSynthesisUtterance(typeof d.result==='string'?d.result:'');
+      sp.rate=0.9; sp.pitch=0.82; sp.volume=1;
+      speechSynthesis.speak(sp);
     }
-  }catch(e){bb.innerHTML=`<b>// BRIEF ERROR</b><br><br>${e.message}`;}
-  btn.textContent='🔊 BRIEF ME'; btn.disabled=false;
+  }catch{
+    box.innerHTML='Live briefing engine currently unavailable.';
+  }
+
+  btn.disabled=false; btn.textContent='🔊 BRIEF ME';
 }
 
-// ═══════════════════════════════════
-// LAYER CONTROLS
-// ═══════════════════════════════════
-document.querySelectorAll('.layer-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    const layer=btn.dataset.layer;
-    activeLayers[layer]=!activeLayers[layer];
-    btn.classList.toggle('active',activeLayers[layer]);
-    if(layer==='alliances'){
-      allianceArcs.forEach(a=>a.visible=activeLayers.alliances);
-    }
-    if(layer==='threats'){
-      markers.forEach(m=>{m.sp.visible=activeLayers.threats;m.ring.visible=activeLayers.threats;});
+function activateTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tabp').forEach(t=>t.classList.remove('active'));
+  const tb=document.querySelector(`.tab[data-tab="${name}"]`);
+  const panel=document.getElementById(`tab-${name}`);
+  if(tb) tb.classList.add('active');
+  if(panel) panel.classList.add('active');
+}
+
+function initLayerControls(){
+  document.querySelectorAll('.layer-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const k=btn.dataset.layer;
+      layerState[k]=!layerState[k];
+      btn.classList.toggle('active',layerState[k]);
+      markerObjects.forEach(m=>{m.group.visible=layerState.threats;});
+      heatZones.forEach(h=>{h.mesh.visible=layerState.conflicts;});
+      arcObjects.forEach(a=>{a.line.visible=layerState.alliances;a.dot.visible=layerState.alliances;});
+    });
+  });
+}
+
+let animClock=0;
+function animate(){
+  requestAnimationFrame(animate);
+  animClock+=0.016;
+  if(autoRot) targetRotY+=0.00115;
+  rotX+=(targetRotX-rotX)*0.08;
+  rotY+=(targetRotY-rotY)*0.08;
+
+  [globeMesh,overlayMesh,...borderObjects,...gridFallback,...countryPickSpheres].forEach(o=>{if(o){o.rotation.x=rotX;o.rotation.y=rotY;}});
+
+  markerObjects.forEach((m,idx)=>{
+    if(m.pulse){
+      const s=1+Math.sin(animClock*2.5+idx)*0.42;
+      m.pulse.scale.set(s,s,s);
+      if(m.pulse.material) m.pulse.material.opacity=Math.max(0.15,0.86-(s-1)*1.3);
     }
   });
-});
 
-// ═══════════════════════════════════
-// PHASE 2: CONFLICT DATA (ACLED)
-// ═══════════════════════════════════
-async function loadConflicts(){
-  const el=document.getElementById('conflictlist');
-  el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ LOADING CONFLICT DATA...</div>`;
-  try{
-    const d=await apiGet('/acled');
-    const {conflicts,stats}=d;
+  heatZones.forEach((h,idx)=>{
+    const o=0.15+Math.sin(animClock*1.8+h.phase+idx)*0.08;
+    h.mesh.material.opacity=Math.max(0.06,o);
+    const s=1+Math.sin(animClock*1.8+h.phase)*0.08;
+    h.mesh.scale.set(s,s,s);
+  });
 
-    // Update stats bar
-    if(stats){
-      document.getElementById('sh').textContent=stats.highSeverity;
-      document.getElementById('sm').textContent=conflicts.filter(c=>c.severity==='MEDIUM').length;
-      document.getElementById('st2').textContent=stats.totalEvents;
-    }
+  arcObjects.forEach(a=>{
+    a.t=(a.t+a.speed)%1;
+    const p=a.curve.getPointAt(a.t);
+    a.dot.position.copy(p);
+  });
 
-    el.innerHTML='';
-
-    // Stats header
-    if(stats){
-      const sh=document.createElement('div');
-      sh.style.cssText=`padding:8px 10px;background:#040a16;border-bottom:1px solid var(--border);display:flex;gap:14px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:.6rem;`;
-      sh.innerHTML=`<span style="color:var(--nr)">☠ ${stats.totalFatalities} FATALITIES</span><span style="color:var(--no)">${stats.totalEvents} EVENTS</span><span style="color:var(--nb)">${stats.countriesAffected} COUNTRIES</span><span style="color:var(--np)">AVG INTENSITY: ${stats.avgIntensity}/100</span>`;
-      el.appendChild(sh);
-    }
-
-    // Conflict items
-    conflicts.forEach(cf=>{
-      const div=document.createElement('div'); div.className='cfi';
-      const tc=cf.severity==='HIGH'?'sH':'sM';
-      const barColor=cf.intensityScore>70?'var(--nr)':cf.intensityScore>40?'var(--no)':'var(--nb)';
-      div.innerHTML=`
-        <div class="cfi-top">
-          <div class="cfi-country">${cf.country}</div>
-          <span class="wi-sev ${tc}">${cf.severity}</span>
-        </div>
-        <div class="cfi-region">📍 ${cf.region} · ${cf.sub_event||cf.event}</div>
-        <div class="cfi-notes">${cf.notes}</div>
-        <div class="cfi-stats">
-          <span class="cfi-fatal">☠ ${cf.fatalities} killed</span>
-          <span class="cfi-score">⚡ ${cf.intensityScore}/100</span>
-          <span class="cfi-date">📅 ${cf.daysAgo===0?'Today':cf.daysAgo+'d ago'}</span>
-        </div>
-        <div style="margin-top:5px;height:3px;background:var(--border);border-radius:2px"><div style="width:${cf.intensityScore}%;height:100%;background:${barColor};border-radius:2px;transition:width .4s"></div></div>
-      `;
-      div.onclick=()=>flyTo({lat:cf.lat,lon:cf.lon});
-      el.appendChild(div);
-
-      // Add to globe
-      addMarker({title:cf.country+' — '+cf.sub_event,severity:cf.severity,lat:cf.lat,lon:cf.lon,desc:cf.notes,ts:cf.daysAgo===0?'Today':cf.daysAgo+'d ago',riskScore:cf.intensityScore});
-    });
-  }catch(e){
-    el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Conflict data unavailable: ${e.message}</div>`;
-  }
+  renderer.render(scene,camera);
 }
 
-// ═══════════════════════════════════
-// PHASE 2: FORECAST + SCENARIOS
-// ═══════════════════════════════════
-async function loadForecast(){
-  const el=document.getElementById('forecastlist');
-  el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ RUNNING FORECAST ENGINE...</div>`;
-  try{
-    // Risk matrix
-    const rm=await apiGet('/forecast?type=risk_matrix');
-    const matrix=rm.matrix||[];
-
-    const riskSection=document.createElement('div');
-    riskSection.innerHTML='<div class="ph" style="margin-bottom:2px;color:var(--no)">// COUNTRY RISK MATRIX — ESCALATION PROBABILITY</div>';
-
-    const FLAG_MAP={UA:'🇺🇦',SD:'🇸🇩',MM:'🇲🇲',PS:'🇵🇸',YE:'🇾🇪',SO:'🇸🇴',ML:'🇲🇱',HT:'🇭🇹',LB:'🇱🇧',SY:'🇸🇾',IQ:'🇮🇶',IR:'🇮🇷',KP:'🇰🇵',CN:'🇨🇳',PK:'🇵🇰',ET:'🇪🇹'};
-    const TREND_ICON={worsening:'↑','improving':'↓',stable:'→'};
-
-    matrix.forEach(c=>{
-      const barColor=c.escalationProbability>80?'var(--nr)':c.escalationProbability>60?'var(--no)':c.escalationProbability>40?'#ffaa00':'var(--nb)';
-      const row=document.createElement('div'); row.className='rmi';
-      row.innerHTML=`<span class="rmi-flag">${FLAG_MAP[c.code]||'🏳'}</span><span class="rmi-name">${c.country}</span><div class="rmi-bar-wrap"><div class="rmi-bar" style="width:${c.escalationProbability}%;background:${barColor}"></div></div><span class="rmi-score" style="color:${barColor}">${c.escalationProbability}%</span><span class="rmi-trend" style="color:${c.trend==='worsening'?'var(--nr)':c.trend==='improving'?'var(--ng)':'var(--muted)'}">${TREND_ICON[c.trend]||'→'}</span>`;
-      riskSection.appendChild(row);
-    });
-    el.innerHTML='';
-    el.appendChild(riskSection);
-
-    // Scenarios
-    const sd=await apiPost('/forecast',{type:'scenarios',articles:liveArticles.slice(0,8)});
-    const scenarios=sd.scenarios||[];
-
-    const scenHeader=document.createElement('div');
-    scenHeader.className='ph';
-    scenHeader.style.cssText='margin-top:8px;color:var(--np)';
-    scenHeader.textContent='// AI SCENARIO ENGINE — NEXT 30-90 DAYS';
-    el.appendChild(scenHeader);
-
-    scenarios.forEach(s=>{
-      const div=document.createElement('div'); div.className='fci';
-      const sevColor=s.severity==='HIGH'?'sH':'sM';
-      div.innerHTML=`
-        <div class="fci-title">⚠ ${s.title}</div>
-        <div class="fci-meta">
-          <span class="fci-prob">${s.probability}</span>
-          <span class="fci-time">⏱ ${s.timeline}</span>
-          <span class="fci-sev ${sevColor}">${s.severity}</span>
-        </div>
-        <div class="fci-trigger"><b>TRIGGER:</b> ${s.trigger}</div>
-        <div class="fci-cascade">${(s.cascade||[]).map(e=>`<div class="fci-cascade-item">${e}</div>`).join('')}</div>
-      `;
-      el.appendChild(div);
-    });
-
-    if(sd.fallback){
-      const note=document.createElement('div');
-      note.style.cssText=`padding:6px 10px;font-family:\'Share Tech Mono\',monospace;font-size:.58rem;color:var(--dim)`;
-      note.textContent='⚠ AI scenarios require ANTHROPIC_API_KEY — showing baseline model';
-      el.appendChild(note);
-    }
-  }catch(e){
-    el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Forecast unavailable: ${e.message}</div>`;
-  }
+function setupTopbarControls(){
+  document.getElementById('briefbtn').addEventListener('click',briefMe);
+  let alertMode=false;
+  document.getElementById('alertbtn').addEventListener('click',()=>{
+    alertMode=!alertMode;
+    document.getElementById('alertbtn').textContent=alertMode?'✓ ALERT ON':'⚠ ALERT MODE';
+    document.getElementById('alertbtn').style.color=alertMode?'var(--ng)':'var(--nr)';
+  });
 }
 
-// ═══════════════════════════════════
-// PHASE 2: ENTITY EXTRACTION
-// ═══════════════════════════════════
-async function loadEntities(articles){
-  if(!articles?.length) return;
-  try{
-    const d=await apiPost('/entities',{articles:articles.slice(0,15)});
-    const {entities,summary}=d;
-    if(!entities) return;
-
-    // Show entity tags in briefing panel header
-    const nl=document.getElementById('newslist');
-    const existing=document.getElementById('entity-bar');
-    if(existing) existing.remove();
-
-    const bar=document.createElement('div');
-    bar.id='entity-bar';
-    bar.className='etags';
-
-    const people=entities.people||[];
-    const orgs=entities.organizations||entities.orgs||[];
-    const locs=entities.locations||[];
-
-    people.slice(0,6).forEach(p=>{
-      const tag=document.createElement('span');
-      const threat=p.threatLevel||p.threat||'LOW';
-      tag.className=`etag person${threat==='HIGH'?' HIGH':''}`;
-      tag.textContent='👤 '+p.name;
-      tag.title=`${p.role||''} — ${p.country||''}`;
-      bar.appendChild(tag);
-    });
-    orgs.slice(0,5).forEach(o=>{
-      const tag=document.createElement('span');
-      const threat=o.threatLevel||o.threat||'LOW';
-      tag.className=`etag org${threat==='HIGH'?' HIGH':''}`;
-      tag.textContent='🏛 '+(o.name||o);
-      bar.appendChild(tag);
-    });
-    locs.slice(0,4).forEach(l=>{
-      const tag=document.createElement('span');
-      tag.className='etag loc';
-      tag.textContent='📍 '+(l.name||l);
-      if((l.lat||l.lon)&&l.lat) tag.onclick=()=>flyTo({lat:l.lat,lon:l.lon});
-      bar.appendChild(tag);
-    });
-
-    if(bar.children.length>0){
-      nl.parentNode.insertBefore(bar,nl);
-    }
-  }catch(e){ console.log('Entities:', e.message); }
+async function bootstrap(){
+  initGlobe();
+  initLayerControls();
+  setupTopbarControls();
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>activateTab(t.dataset.tab)));
+  await fetchGeoBordersWithFallback();
+  await loadNews();
+  await loadThreats();
+  await Promise.all([loadConflicts(),loadForecast(),loadMideast()]);
+  loadLeaders();
+  updateTopClock();
+  setInterval(updateTopClock,1000);
+  onResize();
+  animate();
 }
 
-// ═══════════════════════════════════
-// BOOT
-// ═══════════════════════════════════
-const MSGS=['INITIALIZING SATELLITE FEED...','AUTHENTICATING CIPHER KEYS...','CONNECTING SIGINT NETWORK...','LOADING GEOSPATIAL DATABASE...','CALIBRATING GLOBE PROJECTION...','FETCHING THREAT INTELLIGENCE...','ALL SYSTEMS OPERATIONAL.'];
-let mi=0;
-const lsi=setInterval(()=>{
-  if(mi<MSGS.length) document.getElementById('ls').textContent=MSGS[mi++];
-},390);
-
-document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>activateTab(b.dataset.tab)));
-document.getElementById('briefbtn').addEventListener('click',briefMe);
-let alertOn=false;
-document.getElementById('alertbtn').addEventListener('click',()=>{
-  alertOn=!alertOn;
-  document.getElementById('alertbtn').textContent=alertOn?'✓ ALERT ON':'⚠ ALERT MODE';
-  document.getElementById('alertbtn').style.color=alertOn?'var(--ng)':'var(--nr)';
-});
-setInterval(()=>{
-  const n=new Date();
-  document.getElementById('tclock').textContent=n.toISOString().slice(11,19)+' UTC';
-},1000);
+const loaderMsgs=['INITIALIZING SATELLITE FEED...','AUTHENTICATING CIPHER KEYS...','CONNECTING SIGINT NETWORK...','LOADING GEOSPATIAL DATABASE...','CALIBRATING BORDER ENGINE...','SYNCING LIVE THREAT FEED...','ALL SYSTEMS OPERATIONAL.'];
+let loaderIdx=0;
+const loaderInt=setInterval(()=>{if(loaderIdx<loaderMsgs.length) document.getElementById('ls').textContent=loaderMsgs[loaderIdx++];},360);
 
 window.addEventListener('load',()=>{
-  setTimeout(()=>{
-    clearInterval(lsi);
+  setTimeout(async()=>{
+    clearInterval(loaderInt);
     const loader=document.getElementById('loader');
-    loader.style.opacity='0'; loader.style.transition='opacity .5s';
-    setTimeout(()=>{
-      loader.style.display='none';
-      const app=document.getElementById('app');
-      app.style.display='grid';
-      initGlobe();
-      addAllianceArcs();
-      loadThreats();
-      loadNews();
-      loadLeaders();
-      loadMideast();
-      loadConflicts();
-      loadForecast();
-      onResize();
-    },500);
-  },2800);
+    loader.style.transition='opacity .45s';
+    loader.style.opacity='0';
+    setTimeout(()=>{loader.style.display='none';document.getElementById('app').style.display='grid';},460);
+    await bootstrap();
+  },2400);
 });
 </script>
 </body>
