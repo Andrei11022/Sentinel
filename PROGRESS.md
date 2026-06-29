@@ -177,6 +177,45 @@ GeoJSON borders render on top (already working)
 - Deployment health gate that fails release when any tab shows parse/network errors.
 - Structured logging for per-endpoint response shape (JSON vs HTML) checks.
 
+### June 30, 2026 — Interaction and visibility hardening pass
+
+**Completed full [index.html](index.html) rewrite (single script/import, clean file) for 7 requested fixes:**
+
+- Globe click vs drag behavior fixed:
+  - Added `mouseDownPos` tracking and drag threshold logic.
+  - Click actions now run only when pointer movement is `<= 5px`.
+  - Dragging no longer triggers marker/country click actions.
+
+- Marker click fly-to smoothing:
+  - Added `beginFlyTo(lat, lon)` with smooth lerp progression through `flyState`.
+  - `autoRot = false` while flying.
+  - Marker clicks and warning-row clicks both use smooth fly-to.
+
+- Country borders made clearly visible:
+  - Border color changed to `#2a6aaa` (`0x2a6aaa`), opacity `1.0`.
+  - Border rendering changed from `THREE.Line` to `THREE.LineSegments`.
+
+- Conflict heat zones made obvious:
+  - `CRITICAL`: radius `0.22`, opacity `0.25`, color `#ff0022`.
+  - `HIGH`: radius `0.16`, opacity `0.18`, color `#ff6600`.
+  - Additive blending and animated pulse retained for visibility.
+
+- Marker size increased:
+  - `CRITICAL`: `0.05`
+  - `HIGH`: `0.04`
+  - `MEDIUM`: `0.03`
+  - Pulse rings scaled to roughly 2x marker size.
+
+- Briefing tab content upgraded:
+  - Uses live `/api/news?type=world` data.
+  - Each article row now shows severity tag, headline, source, and time ago.
+  - `CRITICAL`/`HIGH` rows get red left border and bolder headline styling.
+  - `BREAKING` badge added when `threatScore > 85`.
+
+- Warnings tab now renders all live threats from `/api/threats`:
+  - Each row shows flag, country, severity badge, title, and risk bar.
+  - Clicking warning row smoothly flies globe to threat coordinates.
+
 ### Next session priorities
 - Priority 1
 - Deploy latest commit and re-run full live tab audit on production; verify no tab shows `Unexpected token '<'` or request failures.
