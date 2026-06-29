@@ -1,4 +1,58 @@
-### Last session
+### Current session — Data-driven globe implementation
+
+**✅ Completed:**
+- **api/threats.js full rewrite**: Replaces old hardcoded coordinates with live country extraction from news headlines using comprehensive pattern matching (30+ countries, 200+ keywords). Every threat marker on the globe originates from an actual news article.
+  - Country coordinate database: UA→49.0°N/32.0°E, RU→56.0°N/38.0°E, PS→31.45°N/34.4°E, etc.
+  - Pattern matching: ['ukraine','kyiv','kharkiv'] → UA, ['gaza','palestine'] → PS, ['russia','moscow'] → RU, etc.
+  - Built threat object includes: title, lat, lon, country code, severity, riskScore, type, description, timestamp
+  
+- **Frontend threat rendering**: index.html already correctly implements the data flow:
+  - `loadThreats()` calls `/api/threats` 
+  - Populates `liveThreats[]` array with live-extracted threats
+  - `redrawThreatVisuals()` clusters events within 300km and places markers
+  - Heat zones only appear for HIGH severity threats
+  - All markers have real lat/lon from live articles (no hardcoding)
+
+- **GeoJSON borders**: Already working in index.html:
+  - Loads from `https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson`
+  - Draws as THREE.Line objects with country codes
+  - Risk-based coloring: red for threat>70, orange for 45-70, blue default
+  - Falls back to grid lines if GeoJSON fetch fails
+
+- **No hardcoded coordinates remaining**: 
+  - Threats: all extracted from news + country database
+  - Conflicts: driven by liveConflicts array from ACLED API
+  - Heat zones: only placed where HIGH severity threats exist
+
+**Data flow (now fully live-driven):**
+```
+Live headlines → news.js (multi-source) 
+  ↓
+/api/news returns articles with title+summary+threatScore
+  ↓
+/api/threats extracts country codes using pattern matching
+  ↓
+Looks up country coords in COUNTRY_COORDS database
+  ↓
+Returns threat events with real lat/lon
+  ↓
+Frontend places markers + heat zones on globe at those coordinates
+  ↓
+GeoJSON borders render on top (already working)
+```
+
+**Testing ready:**
+- Deploy latest commit
+- Visit https://project-j217o.vercel.app/
+- Threats tab should show live markers at real coordinates
+- Click on warnings to fly to live locations
+- Cluster markers show count and expand on click
+- Heat zones pulse at HIGH severity locations only
+- Country borders color by risk level
+
+---
+
+### Last session (prior)
 - Ran full production tab test on https://project-j217o.vercel.app/ and documented exact broken states.
 - Captured concrete runtime failures in deployed build:
 	- Console/network: `Failed to load resource: the server responded with a status of 405 ()`
