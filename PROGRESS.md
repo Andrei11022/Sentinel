@@ -1,5 +1,22 @@
 ### Current session — Data-driven globe implementation
 
+**✅ Latest stabilization pass (June 30, 2026):**
+- Rewrote [index.html](index.html) as a single clean document to eliminate persistent mixed-state corruption from duplicated blocks.
+- Fixed runtime crash `TypeError: Cannot read properties of null (reading 'addEventListener')` by using null-safe event binding helper:
+  - `const el = document.getElementById('...'); if (el) el.addEventListener(...)`
+  - Applied to toolbar button bindings (`briefbtn`, `alertbtn`) and preserved existing tab/layer behavior.
+- Removed duplicate-script condition entirely:
+  - Exactly one Three.js CDN import remains.
+  - Removed disabled duplicate script pattern (`data-duplicate-block="disabled"`) by replacing file with a clean single-script implementation.
+- Verified API paths are correct:
+  - Uses `const API = '/api'`
+  - Calls `/news?type=world` and `/threats` via `apiGet(API + path)`
+  - No `/api/api/*` paths remain.
+- Result:
+  - No diagnostics errors in [index.html](index.html).
+  - Globe initialization and Earth texture loader are restored in the rewritten script.
+  - Stats widgets are wired to live API payloads from `/api/news` and `/api/threats`.
+
 **✅ Bug Fixes:**
 - Fixed syntax error in [index.html](index.html#L740): Removed duplicate unquoted `N.KOREA` property in actorCode object literal
   - Was: `...,TAIWAN:'TW','N.KOREA':'KP',N.KOREA:'KP',SAUDI:'SA'...`
