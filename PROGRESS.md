@@ -1,5 +1,11 @@
 ### Current session — Data-driven globe implementation
 
+**✅ Bug Fixes:**
+- Fixed syntax error in [index.html](index.html#L740): Removed duplicate unquoted `N.KOREA` property in actorCode object literal
+  - Was: `...,TAIWAN:'TW','N.KOREA':'KP',N.KOREA:'KP',SAUDI:'SA'...`
+  - Fixed: `...,TAIWAN:'TW','N.KOREA':'KP',SAUDI:'SA'...`
+  - Issue: Unquoted property name with dot separator caused "missing : after property id" error
+
 **✅ Completed:**
 - **api/threats.js full rewrite**: Replaces old hardcoded coordinates with live country extraction from news headlines using comprehensive pattern matching (30+ countries, 200+ keywords). Every threat marker on the globe originates from an actual news article.
   - Country coordinate database: UA→49.0°N/32.0°E, RU→56.0°N/38.0°E, PS→31.45°N/34.4°E, etc.

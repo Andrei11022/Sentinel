@@ -738,7 +738,7 @@ function buildAllianceArcs(){
 }
 
 function extractArcDataFromIntel(links){
-  const actorCode={USA:'US',RUSSIA:'RU',UKRAINE:'UA',CHINA:'CN',IRAN:'IR',ISRAEL:'IL',NATO:'DE',HAMAS:'PS',HEZBOLLAH:'LB',HOUTHIS:'YE',EU:'FR',UN:'GB',TAIWAN:'TW','N.KOREA':'KP',N.KOREA:'KP',SAUDI:'SA'};
+  const actorCode={USA:'US',RUSSIA:'RU',UKRAINE:'UA',CHINA:'CN',IRAN:'IR',ISRAEL:'IL',NATO:'DE',HAMAS:'PS',HEZBOLLAH:'LB',HOUTHIS:'YE',EU:'FR',UN:'GB',TAIWAN:'TW','N.KOREA':'KP',SAUDI:'SA'};
   arcData=(links||[])
     .map(l=>({
       fromCode:actorCode[l.from],
