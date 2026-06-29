@@ -5,6 +5,18 @@
   - Was: `...,TAIWAN:'TW','N.KOREA':'KP',N.KOREA:'KP',SAUDI:'SA'...`
   - Fixed: `...,TAIWAN:'TW','N.KOREA':'KP',SAUDI:'SA'...`
   - Issue: Unquoted property name with dot separator caused "missing : after property id" error
+- **Fixed "Cannot redeclare block-scoped variable" errors** (38 errors total):
+  - Root cause: Complete HTML/CSS/JavaScript block duplication in index.html (entire file was present twice)
+  - First complete version: lines 1-1342 (correct, functional code)
+  - Duplicate copy: lines 1343+ (identical duplicate causing variable redeclaration)
+  - Solution: Removed entire duplicate block, truncated file to 1342 lines
+  - **Verification after fix:**
+    - `const API`: 1 match ✓
+    - `let scene,camera,renderer`: 1 match ✓
+    - `function initGlobe()`: 1 match ✓
+    - `function animate()`: 1 match ✓
+    - `</html>`: 1 match ✓
+  - All 38 redeclaration errors resolved
 
 **✅ Completed:**
 - **api/threats.js full rewrite**: Replaces old hardcoded coordinates with live country extraction from news headlines using comprehensive pattern matching (30+ countries, 200+ keywords). Every threat marker on the globe originates from an actual news article.
