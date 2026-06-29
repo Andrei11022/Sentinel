@@ -399,34 +399,42 @@ function initGlobe(){
   const rim=new THREE.DirectionalLight(0x001133,1.2); rim.position.set(-5,-2,-3); scene.add(rim);
 
   const geo=new THREE.SphereGeometry(GR,64,64);
+
+  // Build fallback texture first so the globe never renders as a plain blue sphere.
+  const tc=document.createElement('canvas'); tc.width=2048; tc.height=1024;
+  const cx=tc.getContext('2d');
+  cx.fillStyle='#031525'; cx.fillRect(0,0,2048,1024);
+  cx.strokeStyle='#0a2540'; cx.lineWidth=1;
+  for(let i=0;i<=18;i++){cx.beginPath();cx.moveTo(0,i*1024/18);cx.lineTo(2048,i*1024/18);cx.stroke();}
+  for(let i=0;i<=36;i++){cx.beginPath();cx.moveTo(i*2048/36,0);cx.lineTo(i*2048/36,1024);cx.stroke();}
+  function ll(lo,la){return[(lo+180)/360*2048,(90-la)/180*1024];}
+  function poly(pts){cx.fillStyle='#0d3a5c';cx.strokeStyle='#1a5a8a';cx.lineWidth=1.5;cx.beginPath();pts.forEach(([lo,la],i)=>{const[x,y]=ll(lo,la);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});cx.closePath();cx.fill();cx.stroke();}
+  poly([[-168,72],[-140,72],[-125,60],[-105,50],[-80,45],[-75,55],[-65,47],[-60,47],[-80,42],[-90,30],[-100,22],[-120,20],[-130,25],[-140,35],[-155,58],[-165,62]]);
+  poly([[-70,76],[-20,76],[-18,70],[-30,60],[-50,60],[-65,68]]);
+  poly([[-75,12],[-60,10],[-50,0],[-35,-5],[-35,-20],[-55,-35],[-65,-55],[-70,-55],[-75,-40],[-80,-10],[-80,0]]);
+  poly([[-10,36],[5,36],[20,38],[30,45],[30,55],[25,60],[15,58],[10,55],[5,52],[-5,48],[-10,44]]);
+  poly([[5,58],[15,58],[28,71],[20,70],[15,65],[10,60]]);
+  poly([[-5,50],[2,51],[2,56],[-5,58],[-6,54]]);
+  poly([[-18,15],[40,15],[50,12],[45,2],[40,-5],[35,-25],[25,-35],[15,-30],[10,-15],[-5,5],[-18,15]]);
+  poly([[30,70],[60,75],[80,73],[100,70],[120,68],[140,70],[160,65],[170,55],[150,45],[130,42],[110,40],[90,38],[70,40],[55,45],[40,50],[30,55],[30,70]]);
+  poly([[35,38],[60,38],[65,25],[55,22],[45,22],[38,28]]);
+  poly([[65,24],[90,24],[88,8],[80,8],[72,20]]);
+  poly([[95,28],[110,20],[110,5],[100,2],[95,5],[90,20]]);
+  poly([[110,20],[130,28],[135,38],[125,42],[115,38],[108,30]]);
+  poly([[130,31],[132,34],[135,38],[136,36],[132,33]]);
+  poly([[114,-22],[122,-18],[136,-12],[142,-10],[148,-18],[152,-28],[150,-38],[142,-38],[130,-32],[116,-32],[114,-22]]);
+  const fallbackTex=new THREE.CanvasTexture(tc);
+
   const tl=new THREE.TextureLoader();
   const tex=tl.load(
     'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/land_ocean_ice_cloud_2048.jpg',
-    ()=>{},undefined,()=>{
-      // Fallback canvas texture
-      const tc=document.createElement('canvas'); tc.width=2048; tc.height=1024;
-      const cx=tc.getContext('2d');
-      cx.fillStyle='#031525'; cx.fillRect(0,0,2048,1024);
-      cx.strokeStyle='#0a2540'; cx.lineWidth=1;
-      for(let i=0;i<=18;i++){cx.beginPath();cx.moveTo(0,i*1024/18);cx.lineTo(2048,i*1024/18);cx.stroke();}
-      for(let i=0;i<=36;i++){cx.beginPath();cx.moveTo(i*2048/36,0);cx.lineTo(i*2048/36,1024);cx.stroke();}
-      function ll(lo,la){return[(lo+180)/360*2048,(90-la)/180*1024];}
-      function poly(pts){cx.fillStyle='#0d3a5c';cx.strokeStyle='#1a5a8a';cx.lineWidth=1.5;cx.beginPath();pts.forEach(([lo,la],i)=>{const[x,y]=ll(lo,la);i===0?cx.moveTo(x,y):cx.lineTo(x,y);});cx.closePath();cx.fill();cx.stroke();}
-      poly([[-168,72],[-140,72],[-125,60],[-105,50],[-80,45],[-75,55],[-65,47],[-60,47],[-80,42],[-90,30],[-100,22],[-120,20],[-130,25],[-140,35],[-155,58],[-165,62]]);
-      poly([[-70,76],[-20,76],[-18,70],[-30,60],[-50,60],[-65,68]]);
-      poly([[-75,12],[-60,10],[-50,0],[-35,-5],[-35,-20],[-55,-35],[-65,-55],[-70,-55],[-75,-40],[-80,-10],[-80,0]]);
-      poly([[-10,36],[5,36],[20,38],[30,45],[30,55],[25,60],[15,58],[10,55],[5,52],[-5,48],[-10,44]]);
-      poly([[5,58],[15,58],[28,71],[20,70],[15,65],[10,60]]);
-      poly([[-5,50],[2,51],[2,56],[-5,58],[-6,54]]);
-      poly([[-18,15],[40,15],[50,12],[45,2],[40,-5],[35,-25],[25,-35],[15,-30],[10,-15],[-5,5],[-18,15]]);
-      poly([[30,70],[60,75],[80,73],[100,70],[120,68],[140,70],[160,65],[170,55],[150,45],[130,42],[110,40],[90,38],[70,40],[55,45],[40,50],[30,55],[30,70]]);
-      poly([[35,38],[60,38],[65,25],[55,22],[45,22],[38,28]]);
-      poly([[65,24],[90,24],[88,8],[80,8],[72,20]]);
-      poly([[95,28],[110,20],[110,5],[100,2],[95,5],[90,20]]);
-      poly([[110,20],[130,28],[135,38],[125,42],[115,38],[108,30]]);
-      poly([[130,31],[132,34],[135,38],[136,36],[132,33]]);
-      poly([[114,-22],[122,-18],[136,-12],[142,-10],[148,-18],[152,-28],[150,-38],[142,-38],[130,-32],[116,-32],[114,-22]]);
-      globeMesh.material.map=new THREE.CanvasTexture(tc); globeMesh.material.needsUpdate=true;
+    ()=>{},
+    undefined,
+    ()=>{
+      if(globeMesh){
+        globeMesh.material.map=fallbackTex;
+        globeMesh.material.needsUpdate=true;
+      }
     }
   );
   const mat=new THREE.MeshPhongMaterial({map:tex,emissive:new THREE.Color(0x000d1a),emissiveIntensity:0.08,shininess:10,specular:new THREE.Color(0x082030)});
@@ -715,9 +723,77 @@ async function loadAnalytics(articles){
       div.innerHTML=`<div class="ccti">${c.title}</div><div class="ccsc">${c.score}</div><div class="ccac">${actors}</div><div class="ccd">${c.desc}</div>`;
       al.appendChild(div);
     });
-    if(!corrs.length) al.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">No correlations found</div>`;
+    if(!corrs.length){
+      const fallback=buildLocalCorrelations(articles);
+      renderCorrelations(al,fallback);
+      al.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--dim)">Local fallback correlation model active</div>`;
+    }
     if(d.fallback) al.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--dim)">⚠ Set ANTHROPIC_API_KEY in Vercel env for AI analysis</div>`;
-  }catch(e){al.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Analysis failed: ${e.message}</div>`;}
+  }catch(e){
+    const fallback=buildLocalCorrelations(articles);
+    renderCorrelations(al,fallback);
+    al.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--dim)">⚠ Correlation API unreachable: ${e.message}</div>`;
+  }
+}
+
+function renderCorrelations(container,corrs){
+  container.innerHTML='';
+  corrs.forEach(c=>{
+    const div=document.createElement('div'); div.className='cc';
+    const actors=c.actors?.map(a=>`<span class="etag org">${a}</span>`).join('')||'';
+    div.innerHTML=`<div class="ccti">${c.title}</div><div class="ccsc">${c.score}</div><div class="ccac">${actors}</div><div class="ccd">${c.desc}</div>`;
+    container.appendChild(div);
+  });
+  if(!corrs.length) container.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">No correlations available</div>`;
+}
+
+function buildLocalCorrelations(articles){
+  const text=(articles||[]).map(a=>a.title||'').join(' ').toLowerCase();
+  const has=(re)=>(text.match(re)||[]).length;
+  const score=(n)=>Math.min(95,Math.max(50,55+n*7));
+  const rows=[];
+
+  const meCount=has(/israel|gaza|iran|hezbollah|hamas|houthi|yemen|lebanon/g);
+  if(meCount>0){
+    rows.push({
+      title:'Middle East proxy pressure pattern',
+      score:`CORRELATION: ${score(meCount)}%`,
+      desc:'Simultaneous mentions of state and proxy actors indicate shared escalation pressure across Gaza, Lebanon, and Red Sea lanes.',
+      actors:['Iran','Israel','Hamas','Hezbollah','Houthis']
+    });
+  }
+
+  const eurCount=has(/ukraine|russia|nato|sanction|europe/g);
+  if(eurCount>0){
+    rows.push({
+      title:'Euro-Atlantic attrition linkage',
+      score:`CORRELATION: ${score(eurCount)}%`,
+      desc:'Battlefield pressure in Ukraine and sanction narratives continue to track with NATO readiness and supply chain strain.',
+      actors:['Russia','Ukraine','NATO','EU']
+    });
+  }
+
+  const apacCount=has(/taiwan|south china sea|beijing|pla|korea|icbm/g);
+  if(apacCount>0){
+    rows.push({
+      title:'Indo-Pacific deterrence stress',
+      score:`CORRELATION: ${score(apacCount)}%`,
+      desc:'Military signaling around Taiwan and Korean missile narratives suggest a higher baseline for rapid regional escalation.',
+      actors:['China','Taiwan','North Korea','USA']
+    });
+  }
+
+  const cyberCount=has(/cyber|hack|breach|ransomware/g);
+  if(cyberCount>0){
+    rows.push({
+      title:'Hybrid conflict cyber overlay',
+      score:`CORRELATION: ${score(cyberCount)}%`,
+      desc:'Cyber reporting is co-occurring with kinetic conflict headlines, consistent with blended state pressure campaigns.',
+      actors:['Russia','China','EU','USA']
+    });
+  }
+
+  return rows.slice(0,4);
 }
 
 async function loadActors(articles){
@@ -725,7 +801,46 @@ async function loadActors(articles){
     const d=await apiPost('/analyze',{type:'actors',articles:articles.slice(0,12)});
     const g=d.result;
     if(g&&g.actors) renderIntelMap(g.actors,g.links||[]);
-  }catch(e){console.error('Actors:',e);}
+    else renderIntelMap(...buildFallbackActorGraph(articles));
+  }catch(e){
+    console.error('Actors:',e);
+    renderIntelMap(...buildFallbackActorGraph(articles));
+  }
+}
+
+function buildFallbackActorGraph(articles){
+  const text=(articles||[]).map(a=>a.title||'').join(' ').toLowerCase();
+  const has=(k)=>text.includes(k);
+  const actors=[
+    {id:'USA',label:'USA',type:'state',x:0.14,y:0.28},
+    {id:'RUSSIA',label:'RUSSIA',type:'state',x:0.62,y:0.2},
+    {id:'CHINA',label:'CHINA',type:'state',x:0.8,y:0.36},
+    {id:'NATO',label:'NATO',type:'org',x:0.32,y:0.22},
+    {id:'IRAN',label:'IRAN',type:'state',x:0.62,y:0.5},
+    {id:'ISRAEL',label:'ISRAEL',type:'state',x:0.52,y:0.56}
+  ];
+
+  if(has('ukraine')) actors.push({id:'UKRAINE',label:'UKRAINE',type:'state',x:0.52,y:0.25});
+  if(has('gaza')||has('hamas')) actors.push({id:'HAMAS',label:'HAMAS',type:'proxy',x:0.48,y:0.64});
+  if(has('hezbollah')||has('lebanon')) actors.push({id:'HEZBOLLAH',label:'HEZBOLLAH',type:'proxy',x:0.46,y:0.48});
+  if(has('houthi')||has('yemen')) actors.push({id:'HOUTHIS',label:'HOUTHIS',type:'proxy',x:0.58,y:0.66});
+  if(has('taiwan')) actors.push({id:'TAIWAN',label:'TAIWAN',type:'state',x:0.9,y:0.42});
+
+  const links=[
+    {from:'USA',to:'NATO',type:'allied',label:'Lead'},
+    {from:'CHINA',to:'RUSSIA',type:'economic',label:'Trade'},
+    {from:'IRAN',to:'ISRAEL',type:'adversarial',label:'Hostile'}
+  ];
+  if(actors.find(a=>a.id==='UKRAINE')){
+    links.push({from:'RUSSIA',to:'UKRAINE',type:'adversarial',label:'War'});
+    links.push({from:'USA',to:'UKRAINE',type:'allied',label:'Aid'});
+  }
+  if(actors.find(a=>a.id==='HAMAS')) links.push({from:'ISRAEL',to:'HAMAS',type:'adversarial',label:'Conflict'});
+  if(actors.find(a=>a.id==='HEZBOLLAH')) links.push({from:'IRAN',to:'HEZBOLLAH',type:'allied',label:'Support'});
+  if(actors.find(a=>a.id==='HOUTHIS')) links.push({from:'IRAN',to:'HOUTHIS',type:'allied',label:'Support'});
+  if(actors.find(a=>a.id==='TAIWAN')) links.push({from:'CHINA',to:'TAIWAN',type:'adversarial',label:'Pressure'});
+
+  return [actors,links];
 }
 
 async function loadMideast(){
@@ -859,6 +974,9 @@ async function briefMe(){
   bb.innerHTML='<span style="color:var(--nb)">⟳ GENERATING AI BRIEF...</span>';
   bb.classList.add('show');
   try{
+    if(!liveArticles.length){
+      await loadNews();
+    }
     const d=await apiPost('/analyze',{type:'brief',articles:liveArticles.slice(0,10)});
     const text=typeof d.result==='string'?d.result:'Brief unavailable';
     const ri=document.getElementById('sri').textContent;
@@ -905,7 +1023,7 @@ async function loadConflicts(){
   const el=document.getElementById('conflictlist');
   el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ LOADING CONFLICT DATA...</div>`;
   try{
-    const d=await apiGet('/api/acled');
+    const d=await apiGet('/acled');
     const {conflicts,stats}=d;
 
     // Update stats bar
@@ -963,7 +1081,7 @@ async function loadForecast(){
   el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ RUNNING FORECAST ENGINE...</div>`;
   try{
     // Risk matrix
-    const rm=await apiGet('/api/forecast?type=risk_matrix');
+    const rm=await apiGet('/forecast?type=risk_matrix');
     const matrix=rm.matrix||[];
 
     const riskSection=document.createElement('div');
@@ -975,14 +1093,14 @@ async function loadForecast(){
     matrix.forEach(c=>{
       const barColor=c.escalationProbability>80?'var(--nr)':c.escalationProbability>60?'var(--no)':c.escalationProbability>40?'#ffaa00':'var(--nb)';
       const row=document.createElement('div'); row.className='rmi';
-      row.innerHTML=`<span class="rmi-flag">${FLAG_MAP[c.code]||'🏳'}</span><span class="rmi-name">${c.name}</span><div class="rmi-bar-wrap"><div class="rmi-bar" style="width:${c.escalationProbability}%;background:${barColor}"></div></div><span class="rmi-score" style="color:${barColor}">${c.escalationProbability}%</span><span class="rmi-trend" style="color:${c.trend==='worsening'?'var(--nr)':c.trend==='improving'?'var(--ng)':'var(--muted)'}">${TREND_ICON[c.trend]||'→'}</span>`;
+      row.innerHTML=`<span class="rmi-flag">${FLAG_MAP[c.code]||'🏳'}</span><span class="rmi-name">${c.country}</span><div class="rmi-bar-wrap"><div class="rmi-bar" style="width:${c.escalationProbability}%;background:${barColor}"></div></div><span class="rmi-score" style="color:${barColor}">${c.escalationProbability}%</span><span class="rmi-trend" style="color:${c.trend==='worsening'?'var(--nr)':c.trend==='improving'?'var(--ng)':'var(--muted)'}">${TREND_ICON[c.trend]||'→'}</span>`;
       riskSection.appendChild(row);
     });
     el.innerHTML='';
     el.appendChild(riskSection);
 
     // Scenarios
-    const sd=await apiPost('/api/forecast',{type:'scenarios',articles:liveArticles.slice(0,8)});
+    const sd=await apiPost('/forecast',{type:'scenarios',articles:liveArticles.slice(0,8)});
     const scenarios=sd.scenarios||[];
 
     const scenHeader=document.createElement('div');
@@ -1024,7 +1142,7 @@ async function loadForecast(){
 async function loadEntities(articles){
   if(!articles?.length) return;
   try{
-    const d=await apiPost('/api/entities',{articles:articles.slice(0,15)});
+    const d=await apiPost('/entities',{articles:articles.slice(0,15)});
     const {entities,summary}=d;
     if(!entities) return;
 
