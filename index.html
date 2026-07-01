@@ -52,18 +52,8 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .layer-btn.active{border-color:var(--nb);color:var(--nb);background:#00d4ff0a;}
 
 /* TOOLTIPS */
-#ctip{position:absolute;background:#04091aee;border:1px solid var(--nb);box-shadow:var(--gb);padding:13px 15px;max-width:290px;pointer-events:none;display:none;z-index:200;backdrop-filter:blur(12px);font-size:.75rem;line-height:1.65;}
-#ctip h3{font-family:'Rajdhani',sans-serif;font-size:1.05rem;font-weight:700;color:var(--nb);margin-bottom:5px;display:flex;align-items:center;gap:6px;}
-#ctip .cr{display:inline-block;font-size:.58rem;padding:1px 6px;border-radius:2px;font-family:'Share Tech Mono',monospace;}
-.rCRITICAL{background:#ff224422;color:var(--nr);border:1px solid var(--nr);}
-.rHIGH{background:#ff770022;color:var(--no);border:1px solid var(--no);}
-.rMEDIUM{background:#ffaa0022;color:#ffaa00;border:1px solid #ffaa00;}
-.rLOW{background:#00d4ff15;color:var(--nb);border:1px solid var(--nb);}
-.rUNKNOWN{background:#1a2a3a;color:var(--muted);border:1px solid var(--border);}
-#ctip .row{display:flex;justify-content:space-between;border-bottom:1px solid #0d1e3644;padding:3px 0;gap:10px;}
-#ctip .row span:first-child{color:var(--muted);font-size:.66rem;white-space:nowrap;}
-#ctip .row span:last-child{color:var(--text);text-align:right;font-size:.7rem;}
-#ctip .rel{margin-top:6px;font-size:.67rem;color:#1a4a6a;line-height:1.5;border-top:1px solid var(--border);padding-top:5px;}
+#globe-labels{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:50;}
+#country-panel{position:absolute;right:12px;top:60px;width:270px;background:#040c18;border:1px solid var(--nb);padding:14px;display:none;z-index:200;backdrop-filter:blur(8px);font-size:.75rem;line-height:1.6;}
 
 #mtip{position:absolute;background:#04091aee;border:1px solid var(--nb);box-shadow:var(--gb);padding:11px 13px;max-width:240px;pointer-events:none;display:none;z-index:201;backdrop-filter:blur(10px);}
 #mtip .mtt{font-family:'Rajdhani',sans-serif;font-size:.95rem;font-weight:700;color:var(--nb);margin-bottom:3px;}
@@ -275,7 +265,8 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <button class="layer-btn" data-layer="alliances">🔗 ALLIANCES</button>
       <button class="layer-btn" data-layer="conflicts">⚔ CONFLICTS</button>
     </div>
-    <div id="ctip"></div>
+    <div id="globe-labels"></div>
+    <div id="country-panel"></div>
     <div id="mtip">
       <div class="mtt" id="mt-title"></div>
       <div id="mt-sev"></div>
@@ -359,14 +350,31 @@ const API = '/api';
 // ═══════════════════════════════════
 // GLOBE SETUP
 // ═══════════════════════════════════
-let scene, camera, renderer, globeMesh, markers=[], countrySpheres=[];
-let isDrag=false, prevMouse={x:0,y:0};
+let scene, camera, renderer, globeMesh, markers=[], countryZones=[];
 let rotX=0, rotY=0, targetRotX=0, targetRotY=0;
+let targetZoom=4.5;
 let autoRot=true;
 let raycaster, mouse;
 const GR=1.6;
 let activeLayers={threats:true,alliances:false,conflicts:false};
 let allianceArcs=[], conflictArcs=[];
+
+const LABEL_COUNTRIES=[
+  {n:'USA',lat:38,lon:-97},{n:'RUSSIA',lat:61,lon:105},
+  {n:'CHINA',lat:35,lon:105},{n:'BRAZIL',lat:-10,lon:-53},
+  {n:'AUSTRALIA',lat:-25,lon:133},{n:'INDIA',lat:22,lon:78},
+  {n:'CANADA',lat:60,lon:-96},{n:'ARGENTINA',lat:-34,lon:-64},
+  {n:'ALGERIA',lat:28,lon:2},{n:'DR CONGO',lat:-4,lon:22},
+  {n:'SAUDI',lat:24,lon:45},{n:'INDONESIA',lat:-5,lon:120},
+  {n:'MEXICO',lat:24,lon:-102},{n:'SUDAN',lat:15,lon:30},
+  {n:'UKRAINE',lat:49,lon:32},{n:'FRANCE',lat:46,lon:2},
+  {n:'GERMANY',lat:51,lon:10},{n:'IRAN',lat:32,lon:53},
+  {n:'PAKISTAN',lat:30,lon:70},{n:'NIGERIA',lat:10,lon:8},
+  {n:'TURKEY',lat:39,lon:35},{n:'EGYPT',lat:26,lon:30},
+  {n:'ETHIOPIA',lat:9,lon:40},{n:'SOUTH AFRICA',lat:-29,lon:25},
+  {n:'COLOMBIA',lat:4,lon:-74},{n:'KAZAKH',lat:48,lon:68}
+];
+const labelEls={};
 
 const COUNTRY_CENTERS=[
   {code:'US',lat:38,lon:-97},{code:'RU',lat:61,lon:100},{code:'CN',lat:35,lon:105},
@@ -449,17 +457,78 @@ function initGlobe(){
     const cm=new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false});
     const cs=new THREE.Mesh(cg,cm);
     cs.position.copy(ll2v3(cc.lat,cc.lon,GR)); cs.userData={code:cc.code};
-    scene.add(cs); countrySpheres.push(cs);
+    globeMesh.add(cs); countryZones.push(cs);
   });
 
-  cv.addEventListener('mousedown',e=>{isDrag=true;autoRot=false;prevMouse={x:e.clientX,y:e.clientY};});
-  window.addEventListener('mouseup',()=>{isDrag=false;});
-  cv.addEventListener('mousemove',onMove);
-  cv.addEventListener('click',onClick);
-  cv.addEventListener('wheel',e=>{camera.position.z=Math.max(2.4,Math.min(9,camera.position.z+e.deltaY*.005));},{passive:true});
+  let _mdx=0, _mdy=0, _dragged=false;
+
+  cv.addEventListener('mousedown', e => {
+    _mdx = e.clientX; _mdy = e.clientY; _dragged = false;
+    autoRot = false;
+  }, { passive: true });
+
+  cv.addEventListener('mousemove', e => {
+    if (!(e.buttons & 1)) return;
+    const dist = Math.hypot(e.clientX - _mdx, e.clientY - _mdy);
+    if (dist > 3) _dragged = true;
+    if (_dragged) {
+      targetRotY += (e.clientX - _mdx) * 0.004;
+      targetRotX += (e.clientY - _mdy) * 0.004;
+      targetRotX = Math.max(-1.2, Math.min(1.2, targetRotX));
+    }
+    _mdx = e.clientX; _mdy = e.clientY;
+  }, { passive: true });
+
+  cv.addEventListener('click', e => {
+    if (_dragged) { _dragged = false; return; }
+    handleGlobeClick(e);
+  });
+
+  cv.addEventListener('wheel', e => {
+    targetZoom = Math.max(2.4, Math.min(8, targetZoom + e.deltaY * 0.005));
+  }, { passive: true });
+
   cv.addEventListener('dblclick',()=>{autoRot=!autoRot;});
   window.addEventListener('resize',onResize);
   animate();
+}
+
+function handleGlobeClick(e){
+  const cv=document.getElementById('gc');
+  const rect=cv.getBoundingClientRect();
+  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+
+  const markerMeshes=markers.map(m=>m.dot);
+  const mhits=raycaster.intersectObjects(markerMeshes);
+  if(mhits.length>0 && mhits[0].object.userData.threat){
+    const t=mhits[0].object.userData.threat;
+    showMtip(t,e.clientX,e.clientY);
+    flyTo(t.lat,t.lon);
+    return;
+  }
+
+  const chits=raycaster.intersectObjects(countryZones);
+  if(chits.length>0 && chits[0].object.userData.code){
+    hideMtip();
+    showCountryIntel(chits[0].object.userData.code,e.clientX,e.clientY);
+    return;
+  }
+
+  hideMtip();
+  hideCountryPanel();
+}
+
+function initLabels(){
+  const container=document.getElementById('globe-labels');
+  LABEL_COUNTRIES.forEach(c=>{
+    const div=document.createElement('div');
+    div.textContent=c.n;
+    div.style.cssText='position:absolute;font-family:Share Tech Mono,monospace;font-size:9px;color:#3a7aaa;pointer-events:none;white-space:nowrap;transform:translate(-50%,-50%);';
+    container.appendChild(div);
+    labelEls[c.n]=div;
+  });
 }
 
 function addMarker(w){
@@ -467,15 +536,15 @@ function addMarker(w){
   const col=w.severity==='HIGH'?0xff2244:w.severity==='MEDIUM'?0xff7700:0x00d4ff;
   const cg=new THREE.ConeGeometry(0.012,0.06,8);
   const cm=new THREE.MeshBasicMaterial({color:col});
-  const sp=new THREE.Mesh(cg,cm);
-  sp.position.copy(pos); sp.lookAt(0,0,0); sp.rotateX(Math.PI/2);
-  sp.userData={warning:w}; globeMesh.add(sp);
+  const dot=new THREE.Mesh(cg,cm);
+  dot.position.copy(pos); dot.lookAt(0,0,0); dot.rotateX(Math.PI/2);
+  dot.userData={threat:w}; globeMesh.add(dot);
   const rg=new THREE.RingGeometry(0.022,0.032,16);
   const rm=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.8,side:THREE.DoubleSide});
   const ring=new THREE.Mesh(rg,rm);
   ring.position.copy(pos); ring.lookAt(0,0,0);
   ring.userData={phase:Math.random()*Math.PI*2}; globeMesh.add(ring);
-  markers.push({sp,ring,warning:w});
+  markers.push({dot,ring,threat:w});
   document.getElementById('mct').textContent=markers.length;
 }
 
@@ -505,63 +574,6 @@ function addAllianceArcs(){
   });
 }
 
-function onMove(e){
-  const cv=document.getElementById('gc');
-  const rect=cv.getBoundingClientRect();
-  if(isDrag){
-    targetRotY+=(e.clientX-prevMouse.x)*.005;
-    targetRotX+=(e.clientY-prevMouse.y)*.005;
-    targetRotX=Math.max(-1.2,Math.min(1.2,targetRotX));
-    prevMouse={x:e.clientX,y:e.clientY};
-    hideTips(); return;
-  }
-  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
-  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
-  raycaster.setFromCamera(mouse,camera);
-  const mhits=raycaster.intersectObjects(markers.map(m=>m.sp));
-  if(mhits.length&&mhits[0].object.userData.warning){
-    showMtip(mhits[0].object.userData.warning,e.clientX,e.clientY);
-    cv.style.cursor='pointer';
-  } else {
-    document.getElementById('mtip').style.display='none';
-    cv.style.cursor=isDrag?'grabbing':'grab';
-  }
-}
-
-function onClick(e){
-  if(isDrag) return;
-  const cv=document.getElementById('gc');
-  const rect=cv.getBoundingClientRect();
-  mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
-  mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
-  raycaster.setFromCamera(mouse,camera);
-  const chits=raycaster.intersectObjects(countrySpheres);
-  if(chits.length) showCtip(chits[0].object.userData.code,e.clientX,e.clientY);
-  else hideTips();
-}
-
-async function showCtip(code,x,y){
-  const area=document.getElementById('gl');
-  const rect=area.getBoundingClientRect();
-  const el=document.getElementById('ctip');
-  el.innerHTML=`<h3>🔄 Loading ${code}...</h3>`;
-  let tx=x-rect.left+14, ty=y-rect.top-10;
-  if(tx+300>rect.width) tx-=310;
-  if(ty+300>rect.height) ty-=310;
-  el.style.left=tx+'px'; el.style.top=ty+'px'; el.style.display='block';
-  try{
-    const d=await apiGet(`/country?code=${code}`);
-    const rc=d.riskLevel||'UNKNOWN';
-    let html=`<h3>${d.flag||'🏳'} ${code} <span class="cr r${rc}">${rc}</span></h3>`;
-    const rows=[['Leader',d.leader],['Ideology',d.ideology],['Religion',d.religion],['Currency',d.currency],['Elections',d.elections],['GDP',d.gdp],['Military',d.military]];
-    rows.forEach(([k,v])=>{if(v)html+=`<div class="row"><span>${k}</span><span>${v}</span></div>`;});
-    if(d.alliance) html+=`<div class="rel"><b style="color:var(--nb)">Allied:</b> ${d.alliance}</div>`;
-    if(d.rivals) html+=`<div class="rel"><b style="color:var(--nr)">Rivals:</b> ${d.rivals}</div>`;
-    el.innerHTML=html;
-    el.style.left=tx+'px'; el.style.top=ty+'px';
-  }catch(e){el.innerHTML=`<h3>🏳 ${code}</h3><div style="color:var(--muted);font-size:.7rem">Intel not available</div>`;}
-}
-
 function showMtip(w,x,y){
   const area=document.getElementById('gl');
   const rect=area.getBoundingClientRect();
@@ -577,15 +589,119 @@ function showMtip(w,x,y){
   el.style.left=tx+'px'; el.style.top=ty+'px'; el.style.display='block';
 }
 
-function hideTips(){
-  document.getElementById('ctip').style.display='none';
+function hideMtip(){
   document.getElementById('mtip').style.display='none';
 }
 
-function flyTo(w){
-  autoRot=false;
-  targetRotY=-(w.lon+180)*Math.PI/180+Math.PI;
-  targetRotX=-(90-w.lat)*Math.PI/180+Math.PI/2;
+function hideCountryPanel(){
+  document.getElementById('country-panel').style.display='none';
+}
+
+function flyTo(lat, lon) {
+  autoRot = false;
+  targetRotX = -(((90 - lat) * Math.PI / 180) - Math.PI / 2);
+  targetRotY = -((lon + 180) * Math.PI / 180) + Math.PI;
+  targetZoom = 3.0;
+  setTimeout(() => { targetZoom = 4.5; }, 2000);
+}
+
+const COUNTRY_QIDS = {
+  US:'Q30',RU:'Q159',CN:'Q148',UA:'Q212',IR:'Q794',
+  IL:'Q801',SA:'Q851',IN:'Q668',TR:'Q43',DE:'Q183',
+  GB:'Q145',FR:'Q142',KP:'Q423',JP:'Q17',BR:'Q155',
+  PK:'Q843',SD:'Q1049',MM:'Q836',YE:'Q805',SY:'Q858',
+  LB:'Q822',VE:'Q717',ML:'Q912',LY:'Q1016',SO:'Q1045',
+  HT:'Q790',AF:'Q889',ET:'Q115',NG:'Q1033',CD:'Q974',
+  EG:'Q79',ZA:'Q258',TZ:'Q924',MA:'Q1028',
+  DZ:'Q262',KE:'Q114',TH:'Q869',VN:'Q881',PH:'Q928',
+  MX:'Q96',AR:'Q414',CO:'Q739',KZ:'Q232',AZ:'Q227'
+};
+const COUNTRY_ELECTIONS = {
+  US:'Nov 2028',RU:'2030 (controlled)',CN:'No free elections',
+  UA:'Suspended (war)',IR:'2029',IL:'By 2026',SA:'None',
+  IN:'2029',TR:'2028',DE:'2029',GB:'2029',FR:'2027',
+  KP:'None',JP:'2025',BR:'2026',PK:'2029',SD:'None (war)',
+  MM:'None (junta)',YE:'None (war)',SY:'Transitional'
+};
+
+async function fetchLiveLeader(code){
+  const qid = COUNTRY_QIDS[code];
+  if(!qid) return '—';
+  try{
+    const sparql = encodeURIComponent(
+      `SELECT ?leaderLabel WHERE { wd:${qid} wdt:P35 ?leader . SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul" } } LIMIT 1`
+    );
+    const wr = await fetch('https://query.wikidata.org/sparql?query='+sparql+'&format=json',
+      {headers:{Accept:'application/sparql-results+json'}});
+    const wj = await wr.json();
+    return wj.results?.bindings?.[0]?.leaderLabel?.value || '—';
+  }catch(e){ return '—'; }
+}
+
+async function showCountryIntel(code, x, y) {
+  const panel = document.getElementById('country-panel');
+  panel.innerHTML = '<div style="color:var(--nb)">⟳ Loading...</div>';
+  panel.style.display = 'block';
+
+  const leader = await fetchLiveLeader(code);
+
+  try{
+    const r = await fetch('https://restcountries.com/v3.1/alpha/' + code);
+    const data = await r.json();
+    const d = Array.isArray(data) ? data[0] : data;
+    if(!d || !d.name) throw new Error('REST Countries unavailable');
+
+    const name = d.name.common;
+    const pop = d.population ? (d.population/1e6).toFixed(1)+'M' : '—';
+    const capital = d.capital?.[0] || '—';
+    const currency = Object.values(d.currencies||{})[0]?.name || '—';
+    const lang = Object.values(d.languages||{}).slice(0,2).join(', ') || '—';
+    const flag = d.flag || d.flags?.emoji || '';
+    const region = d.region || '—';
+
+    panel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-family:Rajdhani,sans-serif;font-size:1.1rem;font-weight:700;color:var(--nb)">${flag} ${name}</div>
+        <button onclick="hideCountryPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:.7rem;">
+        ${row('Head of State', leader)}
+        ${row('Capital', capital)}
+        ${row('Population', pop)}
+        ${row('Currency', currency)}
+        ${row('Language', lang)}
+        ${row('Region', region)}
+        ${row('Next Elections', COUNTRY_ELECTIONS[code]||'—')}
+      </div>`;
+  }catch(e){
+    // REST Countries' free API is deprecated (needs a keyed v5 account) — fall back to local intel
+    try{
+      const d = await apiGet('/country?code='+code);
+      panel.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-family:Rajdhani,sans-serif;font-size:1.1rem;font-weight:700;color:var(--nb)">${d.flag||'🏳'} ${d.name||code}</div>
+          <button onclick="hideCountryPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:.7rem;">
+          ${row('Head of State', leader!=='—' ? leader : d.leader)}
+          ${row('Ideology', d.ideology)}
+          ${row('Religion', d.religion)}
+          ${row('Currency', d.currency)}
+          ${row('GDP', d.gdp)}
+          ${row('Military', d.military)}
+          ${row('Next Elections', COUNTRY_ELECTIONS[code]||d.elections)}
+        </div>
+        ${d.alliance?`<div style="margin-top:6px;font-size:.67rem;color:#1a4a6a"><b style="color:var(--nb)">Allied:</b> ${d.alliance}</div>`:''}
+        ${d.rivals?`<div style="font-size:.67rem;color:#1a4a6a"><b style="color:var(--nr)">Rivals:</b> ${d.rivals}</div>`:''}
+      `;
+    }catch(e2){
+      panel.innerHTML = '<div style="color:var(--muted);font-size:.7rem">No data available</div>';
+    }
+  }
+}
+
+function row(k, v) {
+  return `<div style="color:var(--muted)">${k}</div><div style="color:var(--text)">${v||'—'}</div>`;
 }
 
 function onResize(){
@@ -600,14 +716,31 @@ function animate(){
   requestAnimationFrame(animate); t+=0.016;
   if(autoRot) targetRotY+=0.0014;
   rotX+=(targetRotX-rotX)*.08; rotY+=(targetRotY-rotY)*.08;
+  camera.position.z += (targetZoom - camera.position.z) * 0.06;
   globeMesh.rotation.x=rotX; globeMesh.rotation.y=rotY;
-  countrySpheres.forEach(cs=>{cs.rotation.x=rotX;cs.rotation.y=rotY;});
   allianceArcs.forEach(a=>{a.rotation.x=rotX;a.rotation.y=rotY;});
   markers.forEach(m=>{
     const ph=m.ring.userData.phase+t*1.9;
     const s=1+Math.sin(ph)*.65;
     m.ring.scale.set(s,s,s); m.ring.material.opacity=0.8-(s-1)*0.8;
   });
+
+  const gcv=document.getElementById('gc');
+  const grect=gcv.getBoundingClientRect();
+  LABEL_COUNTRIES.forEach(c=>{
+    const v=ll2v3(c.lat,c.lon,GR+0.02).clone();
+    v.applyEuler(new THREE.Euler(rotX,rotY,0,'XYZ'));
+    const proj=v.clone().project(camera);
+    const el=labelEls[c.n];
+    if(v.dot(new THREE.Vector3(0,0,1).applyEuler(new THREE.Euler(rotX,rotY,0)))>0 || proj.z>1){
+      el.style.display='none';
+    } else {
+      el.style.display='block';
+      el.style.left=((proj.x+1)/2*grect.width)+'px';
+      el.style.top=((-proj.y+1)/2*grect.height)+'px';
+    }
+  });
+
   renderer.render(scene,camera);
 }
 
@@ -665,7 +798,7 @@ async function loadThreats(){
       const div=document.createElement('div'); div.className='wi';
       const dc=w.severity==='HIGH'?'dH':w.severity==='MEDIUM'?'dM':'dL';
       div.innerHTML=`<div class="witp"><div class="witn">${w.title}</div><span class="wisv s${w.severity[0]}">${w.severity}</span></div><div class="wd">${w.desc}</div><div class="wsc">RISK: ${w.riskScore}/100</div><div class="wdot ${dc}"></div>`;
-      div.onclick=()=>flyTo(w);
+      div.onclick=()=>flyTo(w.lat,w.lon);
       wl.appendChild(div);
     });
   }catch(e){console.error('Threats:',e);}
@@ -893,7 +1026,7 @@ document.querySelectorAll('.layer-btn').forEach(btn=>{
       allianceArcs.forEach(a=>a.visible=activeLayers.alliances);
     }
     if(layer==='threats'){
-      markers.forEach(m=>{m.sp.visible=activeLayers.threats;m.ring.visible=activeLayers.threats;});
+      markers.forEach(m=>{m.dot.visible=activeLayers.threats;m.ring.visible=activeLayers.threats;});
     }
   });
 });
@@ -944,11 +1077,8 @@ async function loadConflicts(){
         </div>
         <div style="margin-top:5px;height:3px;background:var(--border);border-radius:2px"><div style="width:${cf.intensityScore}%;height:100%;background:${barColor};border-radius:2px;transition:width .4s"></div></div>
       `;
-      div.onclick=()=>flyTo({lat:cf.lat,lon:cf.lon});
+      div.onclick=()=>flyTo(cf.lat,cf.lon);
       el.appendChild(div);
-
-      // Add to globe
-      addMarker({title:cf.country+' — '+cf.sub_event,severity:cf.severity,lat:cf.lat,lon:cf.lon,desc:cf.notes,ts:cf.daysAgo===0?'Today':cf.daysAgo+'d ago',riskScore:cf.intensityScore});
     });
   }catch(e){
     el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Conflict data unavailable: ${e.message}</div>`;
@@ -1060,7 +1190,7 @@ async function loadEntities(articles){
       const tag=document.createElement('span');
       tag.className='etag loc';
       tag.textContent='📍 '+(l.name||l);
-      if((l.lat||l.lon)&&l.lat) tag.onclick=()=>flyTo({lat:l.lat,lon:l.lon});
+      if((l.lat||l.lon)&&l.lat) tag.onclick=()=>flyTo(l.lat,l.lon);
       bar.appendChild(tag);
     });
 
@@ -1101,6 +1231,7 @@ window.addEventListener('load',()=>{
       loader.style.display='none';
       const app=document.getElementById('app');
       app.style.display='grid';
+      initLabels();
       initGlobe();
       addAllianceArcs();
       loadThreats();
