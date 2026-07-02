@@ -1,5 +1,59 @@
 # SENTINEL — Progress Log
 
+## Session: 2026-07-02 (4) — Fix: Intel Search returning HTML instead of JSON
+
+### Bug
+Intel Search threw `Unexpected token '<'` — the frontend tries to
+`JSON.parse` the response from `/api/search`, and got HTML back instead.
+
+### Root cause
+`vercel.json` uses an **explicit routes array**, not Vercel's default
+filesystem-based routing — every other endpoint (`/api/news`, `/api/country`,
+etc.) has its own `{ "src": ..., "dest": ... }` entry, and the last entry is
+a catch-all (`{ "src": "/(.*)", "dest": "/index.html" }`). `api/search.js`
+was added in the previous session but its route was never added to this
+list. Any request to `/api/search` therefore matched the catch-all instead
+and got served `index.html` — hence the leading `<` that broke `JSON.parse`.
+
+Checked the other two things the task suspected and both were already
+correct, so this was the only fix needed:
+- `api/search.js` already uses `module.exports = async function handler(req, res)`,
+  same as every working endpoint — not an `export default` mismatch.
+- The frontend already calls `apiGet('/search?q='+encodeURIComponent(q))`,
+  a GET request with a query string, which matches `search.js` reading
+  `req.query.q` — not a GET/POST mismatch, and no `/api/api/` double-prefix.
+
+### Fix
+One line added to `vercel.json`:
+```json
+{ "src": "/api/search", "dest": "/api/search.js" }
+```
+
+### Testing performed
+Reproduced the exact bug before fixing it, rather than assuming the
+diagnosis: built a small local server that parses `vercel.json`'s `routes`
+array and dispatches exactly like Vercel does (first matching `src` wins,
+`.js` dests under `/api/` invoke that module's handler, everything else
+serves the static file). Ran it against the **pre-fix** `vercel.json`
+(via `git show HEAD:vercel.json`) — confirmed `/api/search?q=ukraine`
+returned raw `<!DOCTYPE html>...`, reproducing the reported bug exactly.
+Ran the same request against the **post-fix** config — got real JSON back,
+including 15 live Guardian articles about Ukraine (Guardian's API, which was
+unreachable from this sandbox for most of the previous session, is reachable
+again this session — confirms last session's read that it was a transient
+sandbox network condition, not anything wrong with the endpoint or key).
+Then ran a full Playwright pass through a real browser hitting this same
+routing-accurate server: opened the Intel Search tab, searched "Ukraine",
+confirmed no `Unexpected token` text anywhere in the rendered output, and
+confirmed the Wikipedia context card (1) and all 15 article items rendered
+correctly, with zero console/page errors. (One test-only wrinkle: the first
+couple of Playwright attempts appeared to hang because the wait budget was
+too short — clicking through to the request firing took ~15s and GDELT's own
+9s internal timeout added more on top, so the full round trip needs a
+generous wait in this environment; confirmed via request/response timing
+logs that this was purely a test-timeout issue, not an app bug, before
+re-running with a longer wait.)
+
 ## Session: 2026-07-02 (3) — Population/currency/language, Forecast names, live OSINT search
 
 Three tasks this session.
