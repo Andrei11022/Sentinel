@@ -1,5 +1,115 @@
 # SENTINEL — Progress Log
 
+## Session: 2026-07-02 (5) — Re-verified search fix, added live aircraft tracking
+
+### Search bug re-check
+The task re-reported the exact "Unexpected token '<'" bug from last session
+and asked to re-diagnose it (export style, `vercel.json` routing, request
+format). All three were already correct/fixed as of the previous session's
+commit (`c457876`) — re-verified live: `vercel.json` has the `/api/search`
+route, `api/search.js` uses `module.exports`, the frontend sends a GET with
+`?q=`, and `/api/search?q=ukraine` returns real JSON, not HTML. No code
+changes needed here; noting it in case the live Vercel deployment simply
+hadn't picked up last session's fix yet when this was reported.
+
+### Live aircraft tracking
+
+New `api/aircraft.js`. Researched both candidate APIs live before writing
+any code (this session's `AE`-block/OpenSky-quota findings below came out of
+that, not out of the task description):
+
+- **Primary: OpenSky Network `states/all`** — confirmed live it still works
+  fully anonymously, no key, no auth wall. But its `x-rate-limit-remaining`
+  response header (checked on two consecutive real calls: 392 → 388, i.e.
+  -4 per call) confirms anonymous accounts get a **400-credit/day budget and
+  an unfiltered global `states/all` call costs 4 credits** — about 100
+  calls/day. At a 30s poll interval that budget is gone in under an hour of
+  continuous use, so this isn't a theoretical edge case; the fallback path
+  will get exercised in real sustained usage, not just on rare outages.
+- **Fallback: `api.adsb.lol/v2/mil`** — pre-filtered to military aircraft
+  only, so nothing to guess there; every aircraft it returns is marked
+  `isMilitary: true`. It has no `country` field, unlike OpenSky, so that
+  field is `null` on the fallback path. Confirmed its `alt_baro` field can
+  be the *string* `"ground"` instead of a number (23 of ~330 live aircraft
+  had this) — handled explicitly rather than assuming it's always numeric.
+- Server-side cache, 30s TTL (module-scope `Map`, same pattern as
+  `api/country.js`/`api/search.js`), decoupled from how often any individual
+  browser polls — repeat requests within the window return the same cached
+  payload regardless of source, so N concurrent viewers of the map cost at
+  most one upstream call per 30s per warm serverless instance, not one each.
+- Airborne aircraft only (`on_ground` filtered out both paths) — cuts
+  parked-at-airport clutter that isn't meaningful on a world-scale tactical
+  map; not explicitly requested but a small, obviously-correct filter.
+- Military-first sort before the 200-item cap, so a legitimately-military
+  aircraft is never silently dropped in favor of ordinary civilian traffic
+  when a region is busy.
+- Military detection (OpenSky path only — the fallback path is already
+  100% verified-military) is an explicit best-effort heuristic, not a
+  classification: known callsign prefixes (the task's own examples RCH/
+  RRR/CFC, plus other well-documented ones — NATO, ASCOT, GAF, FAF, CTM,
+  SPAR, CNV, IAM, KNIFE, REACH, VIVI, DUKE, TREND, HKY) and the
+  well-documented US-DoD ICAO24 hex block (`AE0000`–`AFFFFF`). Verified
+  live in a real browser: clicking a real aircraft over the Atlantic
+  surfaced `CFC3174` — an actual live Canadian Forces callsign, correctly
+  flagged — not a synthetic test fixture.
+- Graceful triple-degradation confirmed via mocked-fetch tests: OpenSky
+  failure (mocked 429) correctly falls through to the adsb.lol path (real
+  live data, all `isMilitary: true`); both sources failing (mocked network
+  error) returns a well-formed empty response (`{aircraft:[], source:
+  'unavailable', count:0}`) rather than throwing.
+
+### Frontend
+- New `✈ Aircraft (live)` layer-panel checkbox, **off by default** per the
+  task. Toggling on calls `loadAircraft()` immediately and starts a 30s
+  `setInterval`; toggling off clears every marker and `clearInterval`s the
+  timer — confirmed live (Playwright) that no polling happens at all until
+  the box is checked, and that unchecking it actually stops the timer
+  (`aircraftPollTimer` back to `null`), not just hiding markers.
+- Each aircraft renders as a `▲` maplibregl.Marker, colored by
+  `isMilitary` (red vs. dim blue), rotated to match `heading`.
+  **Found and fixed a real bug here during testing**: `maplibregl.Marker`
+  takes ownership of the `transform` CSS property on whatever element you
+  hand it (that's how it repositions the marker on every render/pan/zoom),
+  so setting `el.style.transform = 'rotate(...)'` directly on that element
+  gets silently overwritten — the marker rendered fine but never actually
+  rotated. Confirmed via the DOM in a real browser: the outer element's
+  transform was MapLibre's own `translate(...) rotateX(0deg) rotateZ(0deg)`
+  positioning string with no trace of the requested rotation. Fixed by
+  rotating an inner `<span>` icon instead of the outer marker element,
+  which MapLibre never touches. Re-verified: inner span correctly showed
+  e.g. `rotate(122.67deg)` matching the aircraft's real heading.
+- Click → popup with callsign, origin country, altitude, speed (`velocity`
+  from both sources is in m/s, converted to km/h for display), and a
+  "⚠ LIKELY MILITARY" flag when applicable.
+- Military Assets checkbox relabeled to **"Military Assets (known
+  positions)"** and a small note added under the layer panel: *"Military
+  Assets are known/publicly-documented positions, not live tracking.
+  Aircraft layer is live (OpenSky, 30s refresh). Live naval AIS tracking is
+  a future upgrade."* — per the task's explicit instruction not to imply
+  the naval layer is live tracking now that a genuinely-live layer
+  (aircraft) exists alongside it.
+
+### Testing performed
+- `node --check` on `api/aircraft.js` and the extracted `<script>` block;
+  `vercel.json` JSON-validated.
+- Verified both upstream APIs' real response shapes via direct `curl`/Node
+  `fetch` before writing code against assumed shapes (same practice as
+  every prior session) — including confirming Node's fetch isn't
+  UA-blocked by either host (unlike Wikidata in an earlier session).
+- Local Node shim mounting `api/aircraft.js` directly: confirmed live
+  OpenSky response (200 aircraft, 135 flagged military in one real sample),
+  confirmed cache hit timing (~400ms cold vs ~30ms cached), confirmed the
+  OpenSky-failure→adsb.lol-fallback path and the both-sources-fail path via
+  mocked `fetch`.
+- Full Playwright run against a router that mimics Vercel's actual
+  `vercel.json` `src`/`dest` matching (not a hand-rolled shim) serving the
+  real `index.html` and every real `api/*.js` handler: confirmed
+  aircraft-layer default-off, toggle-on triggers a real live OpenSky call
+  and renders 200 markers with a running poll timer, toggle-off clears
+  every marker and stops the timer, a real on-screen marker's popup shows
+  correct live data, and the Military Assets relabel + note text are both
+  present. Zero console/page errors throughout.
+
 ## Session: 2026-07-02 (4) — Fix: Intel Search returning HTML instead of JSON
 
 ### Bug

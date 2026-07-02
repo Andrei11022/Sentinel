@@ -106,6 +106,15 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .mil-tip{font-family:'Share Tech Mono',monospace;font-size:.68rem;line-height:1.5;}
 .mil-tip b{color:var(--nb);display:block;font-family:'Rajdhani',sans-serif;font-size:.85rem;}
 
+/* AIRCRAFT MARKERS */
+.aircraft-marker{width:14px;height:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;line-height:1;}
+.aircraft-marker.civ{color:#3a7aaa;text-shadow:0 0 4px #3a7aaaaa;}
+.aircraft-marker.mil{color:#ff2244;text-shadow:0 0 6px #ff2244cc;}
+.ac-tip{font-family:'Share Tech Mono',monospace;font-size:.68rem;line-height:1.6;}
+.ac-tip b{color:var(--nb);display:block;font-family:'Rajdhani',sans-serif;font-size:.85rem;margin-bottom:2px;}
+.ac-tip .ac-mil-flag{color:var(--nr);}
+.lp-note{font-size:.52rem;color:var(--dim);line-height:1.5;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);}
+
 /* POPUP CONTENT (threats + generic) */
 .pop-wrap{padding:11px 13px;max-width:230px;}
 .pop-title{font-family:'Rajdhani',sans-serif;font-size:.95rem;font-weight:700;color:var(--nb);margin-bottom:5px;}
@@ -329,8 +338,10 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <div class="lp-title">// MAP LAYERS</div>
       <label class="lp-row"><input type="checkbox" id="lp-threats" checked> ⚠ Threats</label>
       <label class="lp-row"><input type="checkbox" id="lp-conflict" checked> ⚔ Conflict Zones</label>
-      <label class="lp-row"><input type="checkbox" id="lp-military"> 🎖 Military Assets</label>
+      <label class="lp-row"><input type="checkbox" id="lp-military"> 🎖 Military Assets (known positions)</label>
       <label class="lp-row"><input type="checkbox" id="lp-risk" checked> 🗺 Country Risk</label>
+      <label class="lp-row"><input type="checkbox" id="lp-aircraft"> ✈ Aircraft (live)</label>
+      <div class="lp-note">Military Assets are known/publicly-documented positions, not live tracking. Aircraft layer is live (OpenSky, 30s refresh). Live naval AIS tracking is a future upgrade.</div>
     </div>
     <div id="ghud">
       <div>MARKERS: <span id="mct">0</span></div>
@@ -432,7 +443,7 @@ let hoveredCountryFid = null;
 let liveThreats = [];
 let threatMarkerObjs = [];
 let militaryMarkerObjs = [];
-let activeLayers = { threats:true, conflict:true, military:false, risk:true };
+let activeLayers = { threats:true, conflict:true, military:false, risk:true, aircraft:false };
 
 const GEOJSON_URL = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
 // This free dataset leaves ISO3166-1-Alpha-2 as "-99" for a handful of real
@@ -738,6 +749,72 @@ function setMilitaryVisible(visible){
 }
 
 // ═══════════════════════════════════
+// AIRCRAFT (live — OpenSky, falls back to adsb.lol military-only server-side)
+// ═══════════════════════════════════
+let aircraftMarkerObjs = [];
+let aircraftPollTimer = null;
+
+function createAircraftMarkerEl(a){
+  // maplibregl.Marker takes ownership of the outer element's own `transform`
+  // (it uses that property to position the marker on every render), so the
+  // heading rotation has to go on an inner child instead — setting it on the
+  // outer element gets silently clobbered by MapLibre's own positioning.
+  const el = document.createElement('div');
+  el.className = 'aircraft-marker ' + (a.isMilitary ? 'mil' : 'civ');
+  const icon = document.createElement('span');
+  icon.textContent = '▲';
+  icon.style.display = 'inline-block';
+  icon.style.transform = `rotate(${a.heading||0}deg)`;
+  el.appendChild(icon);
+  el.addEventListener('click', ev=>{
+    ev.stopPropagation();
+    new maplibregl.Popup({ offset:10 })
+      .setLngLat([a.lon, a.lat])
+      .setHTML(aircraftPopupHtml(a))
+      .addTo(map);
+  });
+  return el;
+}
+
+function aircraftPopupHtml(a){
+  const alt = a.altitude!=null ? Math.round(a.altitude)+' m' : '—';
+  const spd = a.velocity!=null ? Math.round(a.velocity*3.6)+' km/h' : '—'; // OpenSky/adsb.lol give m/s
+  return `<div class="pop-wrap ac-tip">
+    <b>${a.isMilitary?'🎖 ':'✈ '}${a.callsign||'Unknown callsign'}</b>
+    <div>ORIGIN: ${a.country||'—'}</div>
+    <div>ALTITUDE: ${alt}</div>
+    <div>SPEED: ${spd}</div>
+    ${a.isMilitary?'<div class="ac-mil-flag">⚠ LIKELY MILITARY</div>':''}
+  </div>`;
+}
+
+async function loadAircraft(){
+  try{
+    const d = await apiGet('/aircraft');
+    aircraftMarkerObjs.forEach(m=>m.remove());
+    aircraftMarkerObjs = [];
+    (d.aircraft||[]).forEach(a=>{
+      const marker = new maplibregl.Marker({ element:createAircraftMarkerEl(a) })
+        .setLngLat([a.lon, a.lat])
+        .addTo(map);
+      aircraftMarkerObjs.push(marker);
+    });
+  }catch(e){ console.error('Aircraft:', e); }
+}
+
+function startAircraftPolling(){
+  loadAircraft();
+  if(aircraftPollTimer) return;
+  aircraftPollTimer = setInterval(loadAircraft, 30000);
+}
+
+function stopAircraftPolling(){
+  if(aircraftPollTimer){ clearInterval(aircraftPollTimer); aircraftPollTimer=null; }
+  aircraftMarkerObjs.forEach(m=>m.remove());
+  aircraftMarkerObjs = [];
+}
+
+// ═══════════════════════════════════
 // CONFLICT FRONTLINES + TENSION ZONES (approximated — no free exact-line API exists)
 // ═══════════════════════════════════
 const CONFLICT_ZONES_GEOJSON = {
@@ -808,6 +885,11 @@ function wireLayerPanel(){
   document.getElementById('lp-risk').addEventListener('change', e=>{
     activeLayers.risk = e.target.checked;
     if(map.getLayer('country-fill')) map.setLayoutProperty('country-fill','visibility', activeLayers.risk?'visible':'none');
+  });
+  document.getElementById('lp-aircraft').addEventListener('change', e=>{
+    activeLayers.aircraft = e.target.checked;
+    if(activeLayers.aircraft) startAircraftPolling();
+    else stopAircraftPolling();
   });
 }
 
