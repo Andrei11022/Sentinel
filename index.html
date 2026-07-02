@@ -190,12 +190,31 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .sM{background:#ff770022;color:var(--no);border:1px solid var(--no);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;}
 .sL{background:#00d4ff15;color:var(--nb);border:1px solid var(--nb);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;}
 
-/* CORRELATION */
-.cc{border:1px solid var(--border);padding:9px;margin-bottom:6px;}
-.ccti{font-family:'Rajdhani',sans-serif;font-size:.88rem;font-weight:700;color:var(--nb);margin-bottom:3px;}
-.ccsc{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:1px 7px;background:#00d4ff10;border:1px solid var(--nb);color:var(--nb);margin-bottom:4px;}
-.ccac{font-size:.65rem;color:var(--np);margin-bottom:3px;font-family:'Share Tech Mono',monospace;}
-.ccd{font-size:.71rem;color:var(--muted);line-height:1.5;}
+/* AI ANALYST CHAT */
+#analyst-quick{display:flex;gap:5px;padding:6px 10px;flex-wrap:wrap;border-bottom:1px solid var(--border);flex-shrink:0;}
+.aq-btn{font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:4px 8px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;}
+.aq-btn:hover{border-color:var(--nb);color:var(--nb);}
+.aq-btn:disabled{opacity:.4;cursor:not-allowed;}
+.am-welcome{padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--dim);line-height:1.6;}
+.am-msg{padding:8px 10px;margin:6px 8px;max-width:88%;font-size:.75rem;line-height:1.55;}
+.am-msg.user{margin-left:auto;background:#00d4ff10;border:1px solid #00d4ff33;color:var(--text);}
+.am-msg.ai{margin-right:auto;background:#05101ecc;border:1px solid var(--border);color:var(--text);}
+.am-msg.ai.unconfigured{border-color:var(--no);}
+.am-role{font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--muted);letter-spacing:.08em;margin-bottom:4px;}
+.am-sources{margin-top:8px;padding-top:6px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:3px;}
+.am-source{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--nb);cursor:pointer;text-decoration:none;display:block;}
+.am-source:hover{text-decoration:underline;}
+.am-typing{padding:8px 10px;margin:6px 8px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--muted);}
+.am-typing span{animation:am-blink 1.2s infinite;}
+.am-typing span:nth-child(2){animation-delay:.2s;}
+.am-typing span:nth-child(3){animation-delay:.4s;}
+@keyframes am-blink{0%,100%{opacity:.2;}50%{opacity:1;}}
+#analyst-input-row{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--border);flex-shrink:0;}
+#analyst-input-row input{flex:1;background:var(--panel);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-family:'Share Tech Mono',monospace;font-size:.7rem;}
+#analyst-input-row input:focus{outline:none;border-color:var(--nb);}
+#analyst-input-row button{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.7rem;padding:6px 12px;background:transparent;border:1px solid var(--nb);color:var(--nb);cursor:pointer;}
+#analyst-input-row button:hover{background:#00d4ff15;}
+#analyst-input-row button:disabled{opacity:.4;cursor:not-allowed;}
 
 /* INTEL SEARCH */
 .wiki-card{display:flex;gap:10px;padding:12px;border-bottom:1px solid var(--border);}
@@ -364,7 +383,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     <div class="tabs">
       <button class="tab active" data-tab="news">📡 BRIEFING</button>
       <button class="tab" data-tab="warnings">⚠ WARNINGS</button>
-      <button class="tab" data-tab="analytics">🔗 ANALYTICS</button>
+      <button class="tab" data-tab="analyst">🤖 AI ANALYST</button>
       <button class="tab" data-tab="search">🔍 INTEL SEARCH</button>
       <button class="tab" data-tab="conflicts">⚔ CONFLICTS</button>
       <button class="tab" data-tab="forecast">🎯 FORECAST</button>
@@ -382,9 +401,20 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <div class="ph">// ACTIVE WARNINGS — GLOBAL</div>
       <div class="scroll" id="warnlist"></div>
     </div>
-    <div class="tabp" id="tab-analytics">
-      <div class="ph">// CORRELATION ENGINE — AI ANALYSIS</div>
-      <div class="scroll" id="analytics"><div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--dim)">Awaiting feed...</div></div>
+    <div class="tabp" id="tab-analyst">
+      <div class="ph">// AI ANALYST — LIVE INTELLIGENCE CHAT</div>
+      <div class="scroll" id="analyst-messages">
+        <div class="am-welcome">Ask about any current situation. Every answer is grounded in live news + threat data — no invented intelligence — with sources cited below each response.</div>
+      </div>
+      <div id="analyst-quick">
+        <button class="aq-btn" data-q="Summarize last 24h">Summarize last 24h</button>
+        <button class="aq-btn" data-q="Biggest escalation risk">Biggest escalation risk</button>
+        <button class="aq-btn" data-q="What's happening in Ukraine">What's happening in Ukraine</button>
+      </div>
+      <div id="analyst-input-row">
+        <input type="text" id="analyst-input" placeholder="Ask the analyst..." />
+        <button id="analyst-send">SEND</button>
+      </div>
     </div>
     <div class="tabp" id="tab-search">
       <div class="ph">// LIVE OSINT SEARCH</div>
@@ -1032,7 +1062,6 @@ async function loadNews(){
     });
     renderTicker(liveArticles);
     // Trigger AI analysis panels
-    loadAnalytics(liveArticles);
     loadEntities(liveArticles);
   }catch(e){
     document.getElementById('feedstatus').textContent='● ERROR';
@@ -1041,22 +1070,74 @@ async function loadNews(){
   }
 }
 
-async function loadAnalytics(articles){
-  const al=document.getElementById('analytics');
-  al.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ RUNNING CORRELATION ENGINE...</div>`;
+// ═══════════════════════════════════
+// AI ANALYST CHAT — grounded ONLY in live /api/news + /api/threats data
+// (enforced server-side in api/analyst.js; this file just renders it)
+// ═══════════════════════════════════
+let analystHistory = []; // [{role:'user'|'assistant', content:'...'}]
+let analystBusy = false;
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderAnalystMessage(role, content, sources, unconfigured){
+  const container = document.getElementById('analyst-messages');
+  const div = document.createElement('div');
+  div.className = 'am-msg ' + (role==='user' ? 'user' : ('ai'+(unconfigured?' unconfigured':'')));
+  const roleLabel = role==='user' ? 'YOU' : 'SENTINEL';
+  let sourcesHtml = '';
+  if(sources && sources.length){
+    sourcesHtml = '<div class="am-sources">' + sources.map(s=>
+      `<a class="am-source" href="${s.url}" target="_blank" rel="noopener">↗ ${escapeHtml(s.title)} — ${escapeHtml(s.source||'')}</a>`
+    ).join('') + '</div>';
+  }
+  div.innerHTML = `<div class="am-role">${roleLabel}</div><div>${escapeHtml(content).replace(/\n/g,'<br>')}</div>${sourcesHtml}`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showAnalystTyping(){
+  const container = document.getElementById('analyst-messages');
+  const div = document.createElement('div');
+  div.className = 'am-typing'; div.id = 'analyst-typing';
+  div.innerHTML = 'SENTINEL is analyzing live intel<span>.</span><span>.</span><span>.</span>';
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+function hideAnalystTyping(){
+  document.getElementById('analyst-typing')?.remove();
+}
+
+function setAnalystBusy(busy){
+  analystBusy = busy;
+  document.getElementById('analyst-send').disabled = busy;
+  document.getElementById('analyst-input').disabled = busy;
+  document.querySelectorAll('.aq-btn').forEach(b=>b.disabled = busy);
+}
+
+async function sendAnalystMessage(question){
+  question = (question||'').trim();
+  if(!question || analystBusy) return;
+  document.getElementById('analyst-input').value = '';
+  renderAnalystMessage('user', question);
+  showAnalystTyping();
+  setAnalystBusy(true);
   try{
-    const d=await apiPost('/analyze',{type:'correlations',articles:articles.slice(0,12)});
-    const corrs=Array.isArray(d.result)?d.result:[];
-    al.innerHTML='';
-    corrs.forEach(c=>{
-      const div=document.createElement('div'); div.className='cc';
-      const actors=c.actors?.map(a=>`<span class="etag org">${a}</span>`).join('')||'';
-      div.innerHTML=`<div class="ccti">${c.title}</div><div class="ccsc">${c.score}</div><div class="ccac">${actors}</div><div class="ccd">${c.desc}</div>`;
-      al.appendChild(div);
-    });
-    if(!corrs.length) al.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">No correlations found</div>`;
-    if(d.fallback) al.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--dim)">⚠ Set ANTHROPIC_API_KEY in Vercel env for AI analysis</div>`;
-  }catch(e){al.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Analysis failed: ${e.message}</div>`;}
+    const d = await apiPost('/analyst', { question, history: analystHistory.slice(-8) });
+    hideAnalystTyping();
+    renderAnalystMessage('assistant', d.answer, d.sources, d.configured===false);
+    if(d.configured!==false){
+      analystHistory.push({role:'user', content:question});
+      analystHistory.push({role:'assistant', content:d.answer});
+    }
+  }catch(e){
+    hideAnalystTyping();
+    renderAnalystMessage('assistant', 'Analyst error: '+e.message, [], true);
+  }finally{
+    setAnalystBusy(false);
+    document.getElementById('analyst-input').focus();
+  }
 }
 
 async function loadMideast(){
@@ -1479,6 +1560,11 @@ document.getElementById('wx-btn').addEventListener('click', ()=>searchWeather(do
 document.getElementById('wx-input').addEventListener('keydown', e=>{ if(e.key==='Enter') searchWeather(e.target.value); });
 document.getElementById('search-btn').addEventListener('click', ()=>runIntelSearch(document.getElementById('search-input').value));
 document.getElementById('search-input').addEventListener('keydown', e=>{ if(e.key==='Enter') runIntelSearch(e.target.value); });
+document.getElementById('analyst-send').addEventListener('click', ()=>sendAnalystMessage(document.getElementById('analyst-input').value));
+document.getElementById('analyst-input').addEventListener('keydown', e=>{ if(e.key==='Enter') sendAnalystMessage(e.target.value); });
+document.querySelectorAll('.aq-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>sendAnalystMessage(btn.dataset.q));
+});
 let alertOn=false;
 document.getElementById('alertbtn').addEventListener('click',()=>{
   alertOn=!alertOn;

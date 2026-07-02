@@ -1,5 +1,120 @@
 # SENTINEL — Progress Log
 
+## Session: 2026-07-02 (6) — AI Analyst chat, grounded in live data only
+
+New `api/analyst.js` + a real chat UI, replacing the old static "Analytics"
+tab (which just showed AI-generated correlation cards from `/api/analyze`,
+regenerated automatically on every news refresh, no user interaction).
+
+### Backend — `api/analyst.js`
+- Accepts `POST { question, history }`. `module.exports` handler, same
+  export style as every other endpoint (checked directly, not assumed).
+- Pulls live context by calling this app's own `/api/news?type=world` and
+  `/api/threats` internally via HTTP self-fetch (`Promise.allSettled`, same
+  `baseUrl` pattern `api/threats.js` already uses to call `/api/news`) —
+  not by importing their handler functions, since news.js/threats.js aren't
+  designed to be called as plain functions (they write directly to a
+  `res` object) and duplicating their logic into a third file would be
+  worse for maintenance than one extra HTTP hop.
+- Keyword-filters both down to what's relevant to the question before they
+  ever reach Claude, so the model can't accidentally answer from an
+  unrelated article that happens to be in the feed. Broad questions with no
+  identifiable keyword (the quick-prompts "Summarize last 24h" and "Biggest
+  escalation risk" are exactly this — neither names a topic) fall back to
+  the highest-signal items instead of returning nothing, since a strict
+  keyword miss on a deliberately-broad question isn't "no relevant data."
+  Verified live end-to-end with real Guardian/NPR/France24/Al Jazeera
+  articles: asking about Ukraine correctly surfaced only Ukraine-tagged
+  articles out of the full mixed live feed.
+- System prompt is the task's exact wording, unmodified. The live articles
+  and threats are embedded in the user turn as `[A#]`/`[T#]`-labeled blocks,
+  with an explicit instruction to cite `[A#]` when used — this is what
+  makes "list of source articles used" possible to build *for real*
+  afterward: the response text is regex-scanned for `[A#]` references and
+  mapped back to the actual filtered article objects, rather than asking
+  the model to separately assert which sources it used (which it could get
+  wrong or invent). Verified live (mocked-Claude-response, real live news
+  data feeding the prompt): a synthetic answer citing `[A1]`, `[A2]`, and a
+  deliberately out-of-order `[A5]` correctly resolved to exactly those
+  three real articles, in any order, none fabricated.
+- `history` (the frontend's last-8-messages array) is passed straight
+  through as prior `messages` turns in the Anthropic Messages API call —
+  the idiomatic way to give Claude multi-turn context, rather than
+  re-stuffing old Q&A text into the prompt string. Trimmed to the last 4
+  pairs both client-side (before sending) and again server-side
+  (defensively, in case a client ever sends more).
+- No `ANTHROPIC_API_KEY` → returns a clear, explicit "needs configuration"
+  message as a normal `200` chat response (`configured:false`), not a
+  thrown error — this sandbox has no key configured, so this exact path
+  was verified live rather than just reasoned about.
+- Model is `claude-sonnet-4-20250514`, matching the string already
+  standardized on elsewhere in this codebase (`analyze.js`, `forecast.js`).
+- Added `vercel.json`'s `/api/analyst` route **immediately** after writing
+  the file (the second session running to have shipped exactly this
+  omission for a different endpoint — see the (4) and (5) entries below).
+  Also added a `functions.api/analyst.js.maxDuration: 30` override, since
+  this endpoint chains two internal HTTP fetches plus a Claude call
+  sequentially and could plausibly run past a default serverless timeout;
+  unverified against an actual Vercel deployment (no account access in this
+  environment, consistent with every prior session).
+
+### Frontend — real chat, not a form
+- Old Analytics tab (`data-tab="analytics"`, correlation cards, auto-run on
+  every news refresh) fully replaced by `data-tab="analyst"` /
+  `🤖 AI ANALYST`: a persistent message thread (`#analyst-messages`), three
+  quick-prompt buttons with the task's exact wording, an input row, and a
+  typing indicator while waiting. User bubbles right-aligned/cyan, AI
+  bubbles left-aligned/dark, matching the terminal aesthetic already used
+  throughout the app.
+- Sources render as real clickable links under each AI message
+  (title + source name), built entirely from the backend's parsed
+  `[A#]`-citation list — verified live that clicking one opens the actual
+  article URL in a new tab.
+- Conversation history (`analystHistory`) accumulates only on genuinely
+  `configured:true` responses, so a string of "needs configuration"
+  fallback messages (e.g. before a key is set) never pollutes the
+  server-side context window once a key is added later in the same
+  session.
+- **Added input escaping that wasn't in any prior feature in this file**:
+  this is the first place in the app where raw, free-form *user-typed*
+  keyboard input gets reflected back into `innerHTML` (every other feature
+  only renders API-fetched text, e.g. article titles). Added a small
+  `escapeHtml()` and applied it to both the user's own message and the AI's
+  response before rendering. Verified live: sent a question containing
+  `<script>window.__xssFired=true</script><img src=x onerror="...">` as the
+  literal message text — confirmed it rendered as inert escaped text
+  (`&lt;script&gt;...`) and the injected handler never fired, rather than
+  trusting that Claude's response (which echoes the question back into its
+  answer in some cases) would never contain something exploitable.
+- Send button, input, and all three quick-prompt buttons disable for the
+  duration of each request (re-enabled in a `finally`, so a network error
+  can't strand the UI in a permanently-disabled state) — verified the
+  disabled state is true *immediately* on click, before any response
+  arrives, not just after.
+
+### Testing performed
+- `node --check` on `api/analyst.js` and the extracted `<script>` block;
+  `vercel.json` JSON-validated.
+- Local Node shim mounting the real `api/news.js` + `api/threats.js` +
+  `api/analyst.js` together (only the `api.anthropic.com` call itself
+  mocked, since this sandbox has no real key): confirmed the "no key"
+  `200`/`configured:false` path against a real (keyless) environment;
+  confirmed the full live-data pipeline end-to-end — real current Guardian/
+  NPR/France24/Al Jazeera articles fetched, correctly keyword-filtered to
+  the asked-about topic, correctly formatted into the `[A#]` prompt block,
+  and citations in a mocked response correctly resolved back to the exact
+  real article objects.
+- Full Playwright run against a router that mimics Vercel's actual
+  `vercel.json` `src`/`dest` matching, serving the real `index.html` and
+  every real `api/*.js` handler: confirmed the old Analytics tab is gone
+  and the new AI Analyst tab is present and functional (welcome message,
+  quick-prompt labels, busy-state disabling, typing indicator, Enter-to-
+  send, message count after multiple turns) against the real unconfigured
+  backend; confirmed the full happy-path rendering (history accumulation,
+  clickable source links, correct CSS classes) against a mocked realistic
+  `/api/analyst` response; confirmed the XSS-escaping fix live in a real
+  browser. Zero console/page errors throughout every run.
+
 ## Session: 2026-07-02 (5) — Re-verified search fix, added live aircraft tracking
 
 ### Search bug re-check

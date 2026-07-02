@@ -10,8 +10,12 @@
     { "src": "/api/forecast", "dest": "/api/forecast.js" },
     { "src": "/api/search", "dest": "/api/search.js" },
     { "src": "/api/aircraft", "dest": "/api/aircraft.js" },
+    { "src": "/api/analyst", "dest": "/api/analyst.js" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
+  "functions": {
+    "api/analyst.js": { "maxDuration": 30 }
+  },
   "headers": [
     {
       "source": "/api/(.*)",
