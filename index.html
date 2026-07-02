@@ -68,10 +68,14 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 @keyframes ticker-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
 /* LAYER PANEL */
-#layer-panel{position:absolute;top:38px;left:12px;z-index:60;background:#040a16dd;border:1px solid var(--border);padding:8px 10px;backdrop-filter:blur(6px);font-family:'Share Tech Mono',monospace;}
-.lp-title{font-size:.58rem;letter-spacing:.14em;color:var(--muted);margin-bottom:6px;}
-.lp-row{display:flex;align-items:center;gap:6px;font-size:.65rem;color:var(--text);padding:2px 0;cursor:pointer;user-select:none;}
-.lp-row input{accent-color:var(--nb);cursor:pointer;}
+#layer-panel{position:absolute;top:38px;left:12px;z-index:60;width:max-content;max-width:180px;background:#040a1688;border:1px solid var(--border);padding:6px 8px;backdrop-filter:blur(6px);font-family:'Share Tech Mono',monospace;}
+.lp-title{font-size:.54rem;letter-spacing:.1em;color:var(--muted);cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.lp-chevron{font-size:.55rem;transition:transform .18s;flex-shrink:0;}
+#layer-panel.collapsed .lp-chevron{transform:rotate(-90deg);}
+.lp-body{display:flex;flex-direction:column;overflow:hidden;max-height:220px;margin-top:5px;opacity:1;transition:max-height .18s ease,opacity .12s ease,margin-top .18s ease;}
+#layer-panel.collapsed .lp-body{max-height:0;opacity:0;margin-top:0;}
+.lp-row{display:flex;align-items:center;gap:5px;font-size:.58rem;line-height:1.3;color:var(--text);padding:2px 0;cursor:pointer;user-select:none;}
+.lp-row input{accent-color:var(--nb);cursor:pointer;flex-shrink:0;}
 
 /* COUNTRY TOOLTIP + PANEL */
 #country-tooltip{position:absolute;background:#04091aee;border:1px solid var(--nb);box-shadow:var(--gb);padding:5px 10px;font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:700;color:var(--nb);pointer-events:none;display:none;z-index:90;backdrop-filter:blur(8px);}
@@ -113,7 +117,7 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .ac-tip{font-family:'Share Tech Mono',monospace;font-size:.68rem;line-height:1.6;}
 .ac-tip b{color:var(--nb);display:block;font-family:'Rajdhani',sans-serif;font-size:.85rem;margin-bottom:2px;}
 .ac-tip .ac-mil-flag{color:var(--nr);}
-.lp-note{font-size:.52rem;color:var(--dim);line-height:1.5;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);}
+.lp-note{font-size:.48rem;color:var(--dim);line-height:1.4;margin-top:5px;padding-top:5px;border-top:1px solid var(--border);}
 
 /* POPUP CONTENT (threats + generic) */
 .pop-wrap{padding:11px 13px;max-width:230px;}
@@ -354,13 +358,15 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     <div id="map"></div>
     <div id="ticker"><div id="ticker-track"></div></div>
     <div id="layer-panel">
-      <div class="lp-title">// MAP LAYERS</div>
-      <label class="lp-row"><input type="checkbox" id="lp-threats" checked> ⚠ Threats</label>
-      <label class="lp-row"><input type="checkbox" id="lp-conflict" checked> ⚔ Conflict Zones</label>
-      <label class="lp-row"><input type="checkbox" id="lp-military"> 🎖 Military Assets (known positions)</label>
-      <label class="lp-row"><input type="checkbox" id="lp-risk" checked> 🗺 Country Risk</label>
-      <label class="lp-row"><input type="checkbox" id="lp-aircraft"> ✈ Aircraft (live)</label>
-      <div class="lp-note">Military Assets are known/publicly-documented positions, not live tracking. Aircraft layer is live (OpenSky, 30s refresh). Live naval AIS tracking is a future upgrade.</div>
+      <div class="lp-title" id="lp-header">// MAP LAYERS <span class="lp-chevron">▾</span></div>
+      <div class="lp-body" id="lp-body">
+        <label class="lp-row"><input type="checkbox" id="lp-threats" checked> ⚠ Threats</label>
+        <label class="lp-row"><input type="checkbox" id="lp-conflict" checked> ⚔ Conflict Zones</label>
+        <label class="lp-row"><input type="checkbox" id="lp-military"> 🎖 Military Assets (known positions)</label>
+        <label class="lp-row"><input type="checkbox" id="lp-risk" checked> 🗺 Country Risk</label>
+        <label class="lp-row"><input type="checkbox" id="lp-aircraft"> ✈ Aircraft (live)</label>
+        <div class="lp-note">Military Assets are known/publicly-documented positions, not live tracking. Aircraft layer is live (OpenSky, 30s refresh). Live naval AIS tracking is a future upgrade.</div>
+      </div>
     </div>
     <div id="ghud">
       <div>MARKERS: <span id="mct">0</span></div>
@@ -920,6 +926,12 @@ function wireLayerPanel(){
     activeLayers.aircraft = e.target.checked;
     if(activeLayers.aircraft) startAircraftPolling();
     else stopAircraftPolling();
+  });
+
+  const panel = document.getElementById('layer-panel');
+  if(window.matchMedia('(max-width: 768px)').matches) panel.classList.add('collapsed');
+  document.getElementById('lp-header').addEventListener('click', ()=>{
+    panel.classList.toggle('collapsed');
   });
 }
 
