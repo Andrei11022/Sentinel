@@ -39,7 +39,7 @@ function calculateEscalationProbability(countryCode, recentEvents) {
   }
 
   return {
-    country: base.name,
+    name: base.name,
     code: countryCode,
     escalationProbability: prob,
     riskLevel: prob > 80 ? 'CRITICAL' : prob > 60 ? 'HIGH' : prob > 40 ? 'MEDIUM' : 'LOW',

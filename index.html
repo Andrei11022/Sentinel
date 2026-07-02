@@ -188,14 +188,20 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .ccac{font-size:.65rem;color:var(--np);margin-bottom:3px;font-family:'Share Tech Mono',monospace;}
 .ccd{font-size:.71rem;color:var(--muted);line-height:1.5;}
 
-/* INTEL MAP */
-#imwrap{flex:1;position:relative;overflow:hidden;min-height:200px;}
-#imsvg{width:100%;height:100%;}
-.anode{cursor:pointer;}
-.anode:hover rect{filter:brightness(1.6);}
-.ileg{padding:5px 10px;font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--muted);border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0;}
-.ileg span{display:flex;align-items:center;gap:4px;}
-.ileg i{display:inline-block;width:10px;height:2px;border-radius:1px;}
+/* INTEL SEARCH */
+.wiki-card{display:flex;gap:10px;padding:12px;border-bottom:1px solid var(--border);}
+.wiki-card img{width:60px;height:60px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;}
+.wiki-card-body{flex:1;min-width:0;}
+.wiki-title{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:var(--nb);margin-bottom:4px;}
+.wiki-extract{font-size:.72rem;color:var(--text);line-height:1.5;}
+.wiki-link{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:4px;display:inline-block;}
+.ai-synth{margin:10px;padding:10px 12px;border:1px solid var(--np);background:#cc44ff0c;}
+.ai-synth-title{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--np);letter-spacing:.08em;margin-bottom:5px;}
+.ai-synth-text{font-size:.75rem;color:var(--text);line-height:1.5;}
+.si{padding:8px 10px;border-bottom:1px solid #0d1e3630;cursor:pointer;transition:background .12s;}
+.si:hover{background:#00d4ff07;}
+.si-title{font-size:.79rem;line-height:1.4;color:var(--text);}
+.si-meta{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);margin-top:3px;display:flex;gap:8px;}
 
 /* POLITICIANS */
 .pi{padding:8px 10px;border:1px solid var(--border);margin-bottom:4px;}
@@ -348,7 +354,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <button class="tab active" data-tab="news">📡 BRIEFING</button>
       <button class="tab" data-tab="warnings">⚠ WARNINGS</button>
       <button class="tab" data-tab="analytics">🔗 ANALYTICS</button>
-      <button class="tab" data-tab="intel">👁 INTEL MAP</button>
+      <button class="tab" data-tab="search">🔍 INTEL SEARCH</button>
       <button class="tab" data-tab="conflicts">⚔ CONFLICTS</button>
       <button class="tab" data-tab="forecast">🎯 FORECAST</button>
       <button class="tab" data-tab="leaders">👤 LEADERS</button>
@@ -369,14 +375,14 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <div class="ph">// CORRELATION ENGINE — AI ANALYSIS</div>
       <div class="scroll" id="analytics"><div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--dim)">Awaiting feed...</div></div>
     </div>
-    <div class="tabp" id="tab-intel">
-      <div class="ph">// GEOPOLITICAL ACTOR NETWORK</div>
-      <div id="imwrap"><svg id="imsvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
-      <div class="ileg">
-        <span><i style="background:#ff2244"></i>Adversarial</span>
-        <span><i style="background:#ff7700"></i>Allied</span>
-        <span><i style="background:#00d4ff"></i>Diplomatic</span>
-        <span><i style="background:#00ff88"></i>Economic</span>
+    <div class="tabp" id="tab-search">
+      <div class="ph">// LIVE OSINT SEARCH</div>
+      <div class="wx-search">
+        <input type="text" id="search-input" placeholder="Search any person, country, event, or topic..." />
+        <button id="search-btn">SEARCH</button>
+      </div>
+      <div class="scroll" id="search-result">
+        <div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--dim)">Search live news (GDELT + The Guardian) and Wikipedia context for any topic — this is what beats a static actor graph.</div>
       </div>
     </div>
     <div class="tabp" id="tab-leaders">
@@ -551,7 +557,7 @@ async function showCountryIntel(code, x, y) {
 
   try{
     const d = await apiGet('/country?code='+code);
-    const pop = d.population ? (Number(String(d.population).replace(/,/g,''))/1e6).toFixed(1)+'M' : null;
+    const pop = d.population ? (d.population/1e6).toFixed(1)+'M' : null;
     panel.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <div style="font-family:Rajdhani,sans-serif;font-size:1.1rem;font-weight:700;color:var(--nb)">${d.flag||'🏳'} ${d.name||code}</div>
@@ -562,7 +568,7 @@ async function showCountryIntel(code, x, y) {
         ${row('Head of Govt.', d.headOfGovernment)}
         ${row('Capital', d.capital)}
         ${row('Population', pop)}
-        ${row('Region', d.subregion || d.region)}
+        ${row('Region', d.region)}
         ${row('Income Level', d.incomeLevel)}
         ${row('Currency', d.currency)}
         ${row('Language', d.language)}
@@ -945,7 +951,6 @@ async function loadNews(){
     renderTicker(liveArticles);
     // Trigger AI analysis panels
     loadAnalytics(liveArticles);
-    loadActors(liveArticles);
     loadEntities(liveArticles);
   }catch(e){
     document.getElementById('feedstatus').textContent='● ERROR';
@@ -970,14 +975,6 @@ async function loadAnalytics(articles){
     if(!corrs.length) al.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">No correlations found</div>`;
     if(d.fallback) al.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--dim)">⚠ Set ANTHROPIC_API_KEY in Vercel env for AI analysis</div>`;
   }catch(e){al.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Analysis failed: ${e.message}</div>`;}
-}
-
-async function loadActors(articles){
-  try{
-    const d=await apiPost('/analyze',{type:'actors',articles:articles.slice(0,12)});
-    const g=d.result;
-    if(g&&g.actors) renderIntelMap(g.actors,g.links||[]);
-  }catch(e){console.error('Actors:',e);}
 }
 
 async function loadMideast(){
@@ -1044,60 +1041,63 @@ function loadLeaders(){
 }
 
 // ═══════════════════════════════════
-// INTEL MAP SVG
+// INTEL SEARCH — live OSINT (GDELT + Guardian + Wikipedia + AI synthesis)
 // ═══════════════════════════════════
-function renderIntelMap(actors,links){
-  const svg=document.getElementById('imsvg');
-  const wrap=document.getElementById('imwrap');
-  const W=Math.max(wrap.clientWidth||350,350);
-  const H=Math.max(wrap.clientHeight||380,380);
-  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
-  svg.innerHTML='';
-  const LC={adversarial:'#ff2244',allied:'#ff7700',diplomatic:'#00d4ff',economic:'#00ff88'};
-  links.forEach(lk=>{
-    const f=actors.find(a=>a.id===lk.from), t=actors.find(a=>a.id===lk.to);
-    if(!f||!t) return;
-    const col=LC[lk.type]||'#888';
-    const x1=f.x*W,y1=f.y*H,x2=t.x*W,y2=t.y*H;
-    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1',x1);line.setAttribute('y1',y1);line.setAttribute('x2',x2);line.setAttribute('y2',y2);
-    line.setAttribute('stroke',col);line.setAttribute('stroke-width','1.5');line.setAttribute('stroke-opacity','0.5');
-    if(lk.type==='adversarial') line.setAttribute('stroke-dasharray','4,3');
-    svg.appendChild(line);
-    if(lk.label){
-      const lt=document.createElementNS('http://www.w3.org/2000/svg','text');
-      lt.setAttribute('x',(x1+x2)/2);lt.setAttribute('y',(y1+y2)/2-3);
-      lt.setAttribute('text-anchor','middle');lt.setAttribute('font-size','6');
-      lt.setAttribute('fill',col);lt.setAttribute('opacity','0.7');
-      lt.setAttribute('font-family','Share Tech Mono,monospace');
-      lt.textContent=lk.label; svg.appendChild(lt);
+async function runIntelSearch(q){
+  q=(q||'').trim();
+  if(!q) return;
+  const el=document.getElementById('search-result');
+  el.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ SEARCHING LIVE SOURCES...</div>`;
+  tryFlyToSearchResult(q); // fire-and-forget, don't block results on this
+
+  try{
+    const d=await apiGet('/search?q='+encodeURIComponent(q));
+    let html='';
+
+    if(d.wikipedia){
+      html+=`<div class="wiki-card">
+        ${d.wikipedia.thumbnail?`<img src="${d.wikipedia.thumbnail}" alt="">`:''}
+        <div class="wiki-card-body">
+          <div class="wiki-title">${d.wikipedia.title}</div>
+          <div class="wiki-extract">${d.wikipedia.extract||''}</div>
+          ${d.wikipedia.url?`<a class="wiki-link" href="${d.wikipedia.url}" target="_blank" rel="noopener">Wikipedia ↗</a>`:''}
+        </div>
+      </div>`;
     }
-  });
-  actors.forEach(actor=>{
-    const cx=actor.x*W,cy=actor.y*H;
-    const bc=actor.type==='state'?'#00d4ff':actor.type==='org'?'#00ff88':actor.type==='leader'?'#ff7700':'#ff2244';
-    const bg=actor.type==='state'?'#030e20':actor.type==='org'?'#031510':'#1a0505';
-    const lbl=actor.label||actor.id;
-    const bw=Math.max(40,lbl.length*7+16);
-    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','anode');g.setAttribute('transform',`translate(${cx},${cy})`);
-    const glow=document.createElementNS('http://www.w3.org/2000/svg','ellipse');
-    glow.setAttribute('rx','18');glow.setAttribute('ry','12');glow.setAttribute('fill',bc);glow.setAttribute('opacity','0.06');
-    g.appendChild(glow);
-    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
-    rect.setAttribute('x',-bw/2);rect.setAttribute('y','-11');rect.setAttribute('width',bw);rect.setAttribute('height','22');
-    rect.setAttribute('rx','3');rect.setAttribute('fill',bg);rect.setAttribute('stroke',bc);rect.setAttribute('stroke-width','1');
-    g.appendChild(rect);
-    const pin=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    pin.setAttribute('cx',-bw/2+5);pin.setAttribute('cy','-8');pin.setAttribute('r','2');pin.setAttribute('fill','#ff2244');
-    g.appendChild(pin);
-    const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
-    txt.setAttribute('x','2');txt.setAttribute('y','4');txt.setAttribute('text-anchor','middle');
-    txt.setAttribute('font-size','8');txt.setAttribute('font-weight','700');txt.setAttribute('fill',bc);
-    txt.setAttribute('font-family','Rajdhani,sans-serif');txt.textContent=lbl;
-    g.appendChild(txt);
-    svg.appendChild(g);
-  });
+
+    if(d.synthesis){
+      html+=`<div class="ai-synth">
+        <div class="ai-synth-title">⚡ HERE'S WHAT'S HAPPENING WITH "${q.toUpperCase()}"</div>
+        <div class="ai-synth-text">${d.synthesis}</div>
+      </div>`;
+    }
+
+    if(d.articles?.length){
+      html+=d.articles.map((a,i)=>`
+        <div class="si" data-idx="${i}">
+          <div class="si-title">${a.title}</div>
+          <div class="si-meta"><span>${a.source}</span><span>${timeAgo(a.publishedAt)}</span></div>
+        </div>`).join('');
+    } else if(!d.wikipedia){
+      html+=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--muted)">No results found for "${q}".</div>`;
+    }
+
+    el.innerHTML=html;
+    el.querySelectorAll('.si').forEach(item=>{
+      const a=d.articles[Number(item.dataset.idx)];
+      item.onclick=()=>window.open(a.url,'_blank');
+    });
+  }catch(e){
+    el.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--nr)">⚠ Search error: ${e.message}</div>`;
+  }
+}
+
+async function tryFlyToSearchResult(q){
+  try{
+    const geo=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(q)+'&count=1').then(r=>r.json());
+    const loc=geo.results?.[0];
+    if(loc) flyTo(loc.latitude,loc.longitude,5);
+  }catch(e){}
 }
 
 // ═══════════════════════════════════
@@ -1201,13 +1201,25 @@ async function loadForecast(){
     const riskSection=document.createElement('div');
     riskSection.innerHTML='<div class="ph" style="margin-bottom:2px;color:var(--no)">// COUNTRY RISK MATRIX — ESCALATION PROBABILITY</div>';
 
-    const FLAG_MAP={UA:'🇺🇦',SD:'🇸🇩',MM:'🇲🇲',PS:'🇵🇸',YE:'🇾🇪',SO:'🇸🇴',ML:'🇲🇱',HT:'🇭🇹',LB:'🇱🇧',SY:'🇸🇾',IQ:'🇮🇶',IR:'🇮🇷',KP:'🇰🇵',CN:'🇨🇳',PK:'🇵🇰',ET:'🇪🇹'};
+    // Defensive fallback if /api/forecast ever omits a name for a code —
+    // the real bug (api/forecast.js returning `country` while this file read
+    // `c.name`) is fixed server-side, this is just a safety net.
+    const CODE_NAMES={
+      UA:{flag:'🇺🇦',name:'Ukraine'},SD:{flag:'🇸🇩',name:'Sudan'},MM:{flag:'🇲🇲',name:'Myanmar'},
+      PS:{flag:'🇵🇸',name:'Gaza/Palestine'},YE:{flag:'🇾🇪',name:'Yemen'},SO:{flag:'🇸🇴',name:'Somalia'},
+      ML:{flag:'🇲🇱',name:'Mali'},HT:{flag:'🇭🇹',name:'Haiti'},LB:{flag:'🇱🇧',name:'Lebanon'},
+      SY:{flag:'🇸🇾',name:'Syria'},IQ:{flag:'🇮🇶',name:'Iraq'},IR:{flag:'🇮🇷',name:'Iran'},
+      KP:{flag:'🇰🇵',name:'N.Korea'},CN:{flag:'🇨🇳',name:'China'},PK:{flag:'🇵🇰',name:'Pakistan'},
+      ET:{flag:'🇪🇹',name:'Ethiopia'},
+    };
     const TREND_ICON={worsening:'↑','improving':'↓',stable:'→'};
 
     matrix.forEach(c=>{
       const barColor=c.escalationProbability>80?'var(--nr)':c.escalationProbability>60?'var(--no)':c.escalationProbability>40?'#ffaa00':'var(--nb)';
+      const flag=CODE_NAMES[c.code]?.flag||'🏳';
+      const name=c.name||CODE_NAMES[c.code]?.name||c.code;
       const row=document.createElement('div'); row.className='rmi';
-      row.innerHTML=`<span class="rmi-flag">${FLAG_MAP[c.code]||'🏳'}</span><span class="rmi-name">${c.name}</span><div class="rmi-bar-wrap"><div class="rmi-bar" style="width:${c.escalationProbability}%;background:${barColor}"></div></div><span class="rmi-score" style="color:${barColor}">${c.escalationProbability}%</span><span class="rmi-trend" style="color:${c.trend==='worsening'?'var(--nr)':c.trend==='improving'?'var(--ng)':'var(--muted)'}">${TREND_ICON[c.trend]||'→'}</span>`;
+      row.innerHTML=`<span class="rmi-flag">${flag}</span><span class="rmi-name">${name}</span><div class="rmi-bar-wrap"><div class="rmi-bar" style="width:${c.escalationProbability}%;background:${barColor}"></div></div><span class="rmi-score" style="color:${barColor}">${c.escalationProbability}%</span><span class="rmi-trend" style="color:${c.trend==='worsening'?'var(--nr)':c.trend==='improving'?'var(--ng)':'var(--muted)'}">${TREND_ICON[c.trend]||'→'}</span>`;
       riskSection.appendChild(row);
     });
     el.innerHTML='';
@@ -1383,6 +1395,8 @@ document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>acti
 document.getElementById('briefbtn').addEventListener('click',briefMe);
 document.getElementById('wx-btn').addEventListener('click', ()=>searchWeather(document.getElementById('wx-input').value));
 document.getElementById('wx-input').addEventListener('keydown', e=>{ if(e.key==='Enter') searchWeather(e.target.value); });
+document.getElementById('search-btn').addEventListener('click', ()=>runIntelSearch(document.getElementById('search-input').value));
+document.getElementById('search-input').addEventListener('keydown', e=>{ if(e.key==='Enter') runIntelSearch(e.target.value); });
 let alertOn=false;
 document.getElementById('alertbtn').addEventListener('click',()=>{
   alertOn=!alertOn;

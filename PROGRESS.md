@@ -1,5 +1,138 @@
 # SENTINEL — Progress Log
 
+## Session: 2026-07-02 (3) — Population/currency/language, Forecast names, live OSINT search
+
+Three tasks this session.
+
+### TASK 1 — Country panel: population, currency, language
+
+These were blank because they'd only ever come from REST Countries, which is
+dead (see the (2) entry below). Replaced with two working live sources,
+tested against the real APIs before writing code:
+
+- **Population** — `api.worldbank.org/v2/country/{code}/indicator/SP.POP.TOTL`.
+  Used `mrv=1` ("most recent value") instead of the hardcoded `date=2023` the
+  task suggested — same endpoint, but it can't go stale as years pass. Not
+  covered for Taiwan/Vatican-type entities that aren't World Bank members
+  (verified live), same known gap as the rest of `api/country.js`.
+- **Currency (P38) + language (P37)** — added to the existing Wikidata SPARQL
+  query (the one already resolving countries by ISO code via P297, from the
+  previous session). Naively adding these as more `OPTIONAL` triples in the
+  same flat `SELECT` broke immediately: P37 (official language) is
+  multi-valued for most countries (Switzerland has 4, Taiwan recognizes 25+
+  indigenous languages), and combining multiple multi-valued `OPTIONAL`s in
+  one row produces a row per combination — confirmed live, US came back as 2
+  duplicate rows (Spanish, then Hawaiian) instead of one. Fixed by
+  restructuring the whole query around `GROUP_CONCAT(DISTINCT ... ; separator="|")`
+  for all four optional fields (head of state, head of government, currency,
+  language) with a single `GROUP BY`, then splitting/deduping the `|`-joined
+  strings server-side. Needed one more fix after that: Wikidata sometimes
+  tags the identical label string as both `"en"` and `"mul"`, which SPARQL's
+  `DISTINCT` treats as different terms (different language tags = different
+  RDF terms) even though the text is identical — confirmed live, Vatican
+  City's currency came back `"euro|euro"`. Fixed by deduping the split
+  string values themselves in JS, not relying on SPARQL `DISTINCT` alone.
+  Verified correct end-to-end for US, Switzerland, Taiwan, Bhutan, Vatican
+  City.
+- Dropped `fetchRestCountries` entirely rather than leaving it as a
+  never-succeeding fallback — once population/currency/language move to
+  working sources, it contributed nothing (capital/region already came from
+  World Bank first; flag already had an algorithmic fallback). Simplified
+  `subregion` away too since it was the one field only REST Countries ever
+  supplied.
+
+### TASK 2 — Forecast tab "undefined" names
+
+Root cause: `api/forecast.js`'s `calculateEscalationProbability` returned the
+country name under the key `country`, but `index.html`'s `loadForecast()`
+read `c.name` — a field-name mismatch, not missing data (`base.name` already
+had real names like "Ukraine", "Sudan" for all 16 entries). Fixed the actual
+bug (renamed the field to `name` server-side) and, per the task's explicit
+instruction, also added a small client-side `CODE_NAMES` code→{flag,name}
+map as a defensive fallback in case the API ever omits a name for some code
+— consolidates what used to be a flags-only `FLAG_MAP`. Verified live: all
+16 rows now show real names (Sudan, Myanmar, Gaza/Palestine, Haiti, Ukraine,
+Yemen, Mali, Somalia, Iran, Lebanon, N.Korea, Pakistan, Ethiopia, Iraq,
+Syria, China), zero "undefined".
+
+### TASK 3 — Intel Map → live OSINT search
+
+Deleted the static actor-network SVG graph tab (`renderIntelMap`,
+`loadActors`, `#imwrap`/`#imsvg`/`.anode`/`.ileg`, and the `#tab-intel`
+markup) and replaced it with an "🔍 INTEL SEARCH" tab.
+
+New `api/search.js` combines three free sources per query, all in parallel,
+each independently best-effort so one failing doesn't break the others:
+- **GDELT** doc search (`api.gdeltproject.org/api/v2/doc/doc`) — confirmed
+  live and working early in the session, but GDELT actively rate-limits
+  (their own error response, verified live: *"Please limit requests to one
+  every 5 seconds"*) and returns that as **plain text, not JSON** on a 429 —
+  code explicitly try/catches the `JSON.parse` rather than letting a
+  rate-limit response crash the request.
+- **Guardian** search (`content.guardianapis.com/search`) — same key/pattern
+  `api/news.js` already uses successfully.
+- **Wikipedia** — resolved via `action=opensearch` first (finds the best
+  matching canonical title) before fetching `page/summary`, so lowercase or
+  imprecise queries ("gaza", "ukraine war") still land on the right article
+  instead of 404ing on an exact-match REST call. Skips disambiguation pages
+  (no single answer to show). Verified live for "Ukraine", "gaza" (lowercase),
+  "ukraine war" (multi-word), and a nonsense query (correctly returns null).
+- Articles from GDELT + Guardian are merged, deduped by URL, sorted newest
+  first, capped at 15.
+- If `ANTHROPIC_API_KEY` is set, a 2-sentence synthesis is generated from the
+  combined headlines; the API returns the raw synthesis text and the
+  frontend adds the "Here's what's happening with {query}" framing as a
+  card header (same pattern `briefMe()` already uses for the brief text).
+- Added a short (3min) in-memory cache, both to speed up repeat searches and
+  to be a better citizen of GDELT's rate limit.
+- "Fly to it if it matches a country/city": reused the same free Open-Meteo
+  geocoding endpoint the Weather tab already calls client-side (no new
+  dependency) — fired in parallel with the search request itself, not
+  awaited afterward, so the map starts moving immediately instead of waiting
+  on the news search to finish. Verified live in a real browser: searching
+  "Ukraine" flew the map to `[32, 49]` zoom 5, using the real Open-Meteo
+  geocoding API, not a mock.
+
+**Known limitation hit during this session, not a code bug**: GDELT and
+Guardian's API host were both consistently unreachable (connection timeout,
+not an HTTP error — confirmed via IPv4-forced curl, confirmed DNS resolves
+fine, confirmed `theguardian.com` itself loads while `content.guardianapis.com`
+specifically times out) from this sandbox for the remainder of the session
+after the GDELT rate-limit was hit early on. World Bank, Wikidata, Wikipedia,
+and Open-Meteo were reachable throughout. Given `api/news.js` already uses
+these exact same two hosts successfully in production, this reads as a
+transient sandbox-specific network condition rather than a problem with the
+endpoint URLs or request shape. Verified what could be verified: the
+combine/dedupe/sort/cache logic against realistic mocked GDELT+Guardian
+responses (confirmed correct — deduping a URL that appeared in both mock
+sources kept exactly one copy, sorted newest-first), and confirmed the real
+endpoint degrades gracefully (200 with real Wikipedia data, empty
+`articles`, `null` synthesis) rather than crashing when GDELT/Guardian are
+genuinely unreachable, end to end through a real browser hitting the real
+`/api/search` handler.
+
+### Testing performed
+- `node --check` on all three changed/new API files and the extracted
+  `<script>` block.
+- Direct `curl`/Node verification of the World Bank population endpoint and
+  the restructured Wikidata query (multiple countries) before writing the
+  final code, matching the same "verify the real API shape first" approach
+  from the previous session.
+- Local Node shim mounting the real `api/country.js` and `api/forecast.js`
+  directly: confirmed population/currency/language populate for US,
+  Switzerland, Taiwan, Bhutan; confirmed `risk_matrix` now returns `name`
+  correctly.
+- Full Playwright run against the real `index.html` + all real `api/*.js`
+  handlers (only `/api/search` mocked at the browser level, to isolate
+  frontend rendering from the sandbox's GDELT/Guardian connectivity issue):
+  zero console/page errors. Verified the Forecast tab shows all 16 real
+  country names, the US country panel shows every field populated, the old
+  Intel Map tab is gone (`0` count) and Intel Search is present, the
+  Wikipedia card / AI synthesis card / article list all render from the
+  mocked response, clicking an article opens its URL in a new tab, and the
+  map flies to Ukraine's real coordinates via the live (unmocked) Open-Meteo
+  geocoding call triggered by the search.
+
 ## Session: 2026-07-02 (2) — Country intel now live for every country
 
 ### Problem

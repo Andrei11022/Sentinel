@@ -1,21 +1,27 @@
 // Live country intel for ANY ISO 3166-1 alpha-2 code, aggregated server-side
-// (so the browser never hits restcountries.com/query.wikidata.org directly
-// and never sees a CORS failure). Combines:
-//   - World Bank country API   -> name, capital, region, income level, lat/lon
-//   - REST Countries v3.1      -> population, currency, language, region
-//     (this API's free tier has been deprecated by its operator and
-//     currently returns {success:false} for every request — see PROGRESS.md.
-//     Still attempted here in case that ever changes; failure just means
-//     those few fields fall back to '—' on the frontend.)
-//   - Wikidata SPARQL          -> head of state (P35) + head of government (P6),
-//     resolved by ISO alpha-2 code (P297) so it works for every country
-//     without a hand-maintained QID table.
+// (so the browser never hits worldbank.org/wikidata.org directly and never
+// sees a CORS failure). Combines:
+//   - World Bank country API       -> name, capital, region, income level, lat/lon
+//   - World Bank indicator API     -> population (SP.POP.TOTL, most recent value)
+//   - Wikidata SPARQL, by ISO code -> head of state (P35), head of government (P6),
+//     currency (P38), official language (P37). Resolved via P297 (ISO alpha-2
+//     code) so it works for any country without a hand-maintained QID table.
+//
+// REST Countries is NOT used — its free tier has been deprecated by its
+// operator and returns {success:false} for every request (see PROGRESS.md
+// from the previous session). It contributed nothing this endpoint couldn't
+// get from the two sources above, so rather than keep dead code around, this
+// rewrite drops it entirely.
 //
 // Elections timing and political leaning have no good free live API and
 // change rarely, so they stay as a small hardcoded table.
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1hr — persists across warm invocations
 const cache = new Map();
+
+const WIKIDATA_UA = 'SentinelIntelligence/1.0 (https://github.com/Andrei11022/Sentinel)';
+// Wikimedia's User-Agent policy 403s requests without a descriptive UA
+// (browsers send one automatically; server-side fetch needs it set explicitly).
 
 // No live API covers this well; changes infrequently.
 const ELECTIONS = {
@@ -72,45 +78,50 @@ async function fetchWorldBank(code) {
   }
 }
 
-async function fetchRestCountries(code) {
+async function fetchWorldBankPopulation(code) {
   try {
-    const r = await fetchWithTimeout(
-      `https://restcountries.com/v3.1/alpha/${code}?fields=name,capital,population,currencies,languages,flags,region,subregion`
-    );
+    // mrv=1 ("most recent value") instead of a hardcoded year, so this never
+    // goes stale.
+    const r = await fetchWithTimeout(`https://api.worldbank.org/v2/country/${code}/indicator/SP.POP.TOTL?format=json&mrv=1`);
     const data = await r.json();
-    const d = Array.isArray(data) ? data[0] : data;
-    if (!d || d.success === false || !d.name) return null;
-    return {
-      name: d.name.common || null,
-      capital: d.capital?.[0] || null,
-      population: typeof d.population === 'number' ? d.population.toLocaleString() : null,
-      currency: Object.values(d.currencies || {})[0]?.name || null,
-      language: Object.values(d.languages || {}).slice(0, 2).join(', ') || null,
-      flag: d.flags?.emoji || null,
-      region: d.region || null,
-      subregion: d.subregion || null,
-    };
+    const entry = Array.isArray(data) && Array.isArray(data[1]) ? data[1][0] : null;
+    return typeof entry?.value === 'number' ? entry.value : null;
   } catch (e) {
     return null;
   }
 }
 
+// Splits a "|"-joined GROUP_CONCAT string, dedupes exact-string repeats
+// (Wikidata sometimes has the same label under both "en" and "mul" tags,
+// which SPARQL's DISTINCT treats as different terms), and keeps the first n.
+function dedupeJoined(str, n = 1) {
+  if (!str) return null;
+  const parts = [...new Set(str.split('|').map(s => s.trim()).filter(Boolean))];
+  return parts.length ? parts.slice(0, n).join(', ') : null;
+}
+
 async function fetchWikidata(code) {
   try {
-    const sparql = `SELECT ?countryLabel ?hosLabel ?hogLabel WHERE {
+    // GROUP_CONCAT everything so multi-valued properties (P37 official
+    // language especially — some countries recognize 20+) collapse to one
+    // row instead of a row-per-combination cross product.
+    const sparql = `SELECT ?countryLabel
+      (GROUP_CONCAT(DISTINCT ?hosLabel; separator="|") AS ?hosAll)
+      (GROUP_CONCAT(DISTINCT ?hogLabel; separator="|") AS ?hogAll)
+      (GROUP_CONCAT(DISTINCT ?currencyLabel; separator="|") AS ?currencyAll)
+      (GROUP_CONCAT(DISTINCT ?languageLabel; separator="|") AS ?languageAll)
+    WHERE {
       ?country wdt:P297 "${code}".
-      OPTIONAL { ?country wdt:P35 ?hos. }
-      OPTIONAL { ?country wdt:P6 ?hog. }
-      SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul". }
-    } LIMIT 1`;
+      ?country rdfs:label ?countryLabel. FILTER(LANG(?countryLabel)="en")
+      OPTIONAL { ?country wdt:P35 ?hos. ?hos rdfs:label ?hosLabel. FILTER(LANG(?hosLabel) IN ("en","mul")) }
+      OPTIONAL { ?country wdt:P6 ?hog. ?hog rdfs:label ?hogLabel. FILTER(LANG(?hogLabel) IN ("en","mul")) }
+      OPTIONAL { ?country wdt:P38 ?currency. ?currency rdfs:label ?currencyLabel. FILTER(LANG(?currencyLabel) IN ("en","mul")) }
+      OPTIONAL { ?country wdt:P37 ?language. ?language rdfs:label ?languageLabel. FILTER(LANG(?languageLabel) IN ("en","mul")) }
+    }
+    GROUP BY ?countryLabel`;
     const r = await fetchWithTimeout(
       'https://query.wikidata.org/sparql?query=' + encodeURIComponent(sparql) + '&format=json',
-      { headers: {
-        Accept: 'application/sparql-results+json',
-        // Wikimedia's User-Agent policy 403s requests without a descriptive UA
-        // (browsers send one automatically; server-side fetch needs it set explicitly).
-        'User-Agent': 'SentinelIntelligence/1.0 (https://github.com/Andrei11022/Sentinel)',
-      } }
+      { headers: { Accept: 'application/sparql-results+json', 'User-Agent': WIKIDATA_UA } }
     );
     if (!r.ok) return null;
     const d = await r.json();
@@ -118,8 +129,10 @@ async function fetchWikidata(code) {
     if (!b) return null;
     return {
       name: b.countryLabel?.value || null,
-      headOfState: b.hosLabel?.value || null,
-      headOfGovernment: b.hogLabel?.value || null,
+      headOfState: dedupeJoined(b.hosAll?.value),
+      headOfGovernment: dedupeJoined(b.hogAll?.value),
+      currency: dedupeJoined(b.currencyAll?.value),
+      language: dedupeJoined(b.languageAll?.value, 2),
     };
   } catch (e) {
     return null;
@@ -140,29 +153,28 @@ module.exports = async function handler(req, res) {
     return res.status(200).json(cached.data);
   }
 
-  const [wb, rc, wd] = await Promise.all([
+  const [wb, population, wd] = await Promise.all([
     fetchWorldBank(upperCode),
-    fetchRestCountries(upperCode),
+    fetchWorldBankPopulation(upperCode),
     fetchWikidata(upperCode),
   ]);
 
   // Only a genuinely unrecognized code (no source has ever heard of it)
   // should look like "no data" to the frontend.
-  if (!wb && !rc && !wd) {
+  if (!wb && !population && !wd) {
     return res.status(404).json({ error: 'Country not found', code: upperCode });
   }
 
   const result = {
     code: upperCode,
-    name: rc?.name || wb?.name || wd?.name || upperCode,
-    flag: rc?.flag || flagEmoji(upperCode),
-    capital: rc?.capital || wb?.capital || null,
-    region: rc?.region || wb?.region || null,
-    subregion: rc?.subregion || null,
+    name: wb?.name || wd?.name || upperCode,
+    flag: flagEmoji(upperCode),
+    capital: wb?.capital || null,
+    region: wb?.region || null,
     incomeLevel: wb?.incomeLevel || null,
-    population: rc?.population || null,
-    currency: rc?.currency || null,
-    language: rc?.language || null,
+    population,
+    currency: wd?.currency || null,
+    language: wd?.language || null,
     leader: wd?.headOfState || null,
     headOfGovernment: wd?.headOfGovernment || null,
     elections: ELECTIONS[upperCode] || null,
