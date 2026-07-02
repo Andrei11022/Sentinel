@@ -541,98 +541,38 @@ function updateCountryRiskColors(threats){
 // ═══════════════════════════════════
 // COUNTRY INTEL PANEL (click)
 // ═══════════════════════════════════
-const COUNTRY_QIDS = {
-  US:'Q30',RU:'Q159',CN:'Q148',UA:'Q212',IR:'Q794',
-  IL:'Q801',SA:'Q851',IN:'Q668',TR:'Q43',DE:'Q183',
-  GB:'Q145',FR:'Q142',KP:'Q423',JP:'Q17',BR:'Q155',
-  PK:'Q843',SD:'Q1049',MM:'Q836',YE:'Q805',SY:'Q858',
-  LB:'Q822',VE:'Q717',ML:'Q912',LY:'Q1016',SO:'Q1045',
-  HT:'Q790',AF:'Q889',ET:'Q115',NG:'Q1033',CD:'Q974',
-  EG:'Q79',ZA:'Q258',TZ:'Q924',MA:'Q1028',
-  DZ:'Q262',KE:'Q114',TH:'Q869',VN:'Q881',PH:'Q928',
-  MX:'Q96',AR:'Q414',CO:'Q739',KZ:'Q232',AZ:'Q227'
-};
-const COUNTRY_ELECTIONS = {
-  US:'Nov 2028',RU:'2030 (controlled)',CN:'No free elections',
-  UA:'Suspended (war)',IR:'2029',IL:'By 2026',SA:'None',
-  IN:'2029',TR:'2028',DE:'2029',GB:'2029',FR:'2027',
-  KP:'None',JP:'2025',BR:'2026',PK:'2029',SD:'None (war)',
-  MM:'None (junta)',YE:'None (war)',SY:'Transitional'
-};
-
-async function fetchLiveLeader(code){
-  const qid = COUNTRY_QIDS[code];
-  if(!qid) return '—';
-  try{
-    const sparql = encodeURIComponent(
-      `SELECT ?leaderLabel WHERE { wd:${qid} wdt:P35 ?leader . SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul" } } LIMIT 1`
-    );
-    const wr = await fetch('https://query.wikidata.org/sparql?query='+sparql+'&format=json',
-      {headers:{Accept:'application/sparql-results+json'}});
-    const wj = await wr.json();
-    return wj.results?.bindings?.[0]?.leaderLabel?.value || '—';
-  }catch(e){ return '—'; }
-}
-
+// api/country.js aggregates World Bank + REST Countries + Wikidata server-side
+// (avoiding CORS entirely) and works for any real ISO alpha-2 code, not just a
+// curated list — this just renders whatever fields come back, '—' for gaps.
 async function showCountryIntel(code, x, y) {
   const panel = document.getElementById('country-panel');
   panel.innerHTML = '<div style="color:var(--nb)">⟳ Loading...</div>';
   panel.style.display = 'block';
 
-  const leader = await fetchLiveLeader(code);
-
   try{
-    const r = await fetch('https://restcountries.com/v3.1/alpha/' + code);
-    const data = await r.json();
-    const d = Array.isArray(data) ? data[0] : data;
-    if(!d || !d.name) throw new Error('REST Countries unavailable');
-
-    const name = d.name.common;
-    const pop = d.population ? (d.population/1e6).toFixed(1)+'M' : '—';
-    const capital = d.capital?.[0] || '—';
-    const currency = Object.values(d.currencies||{})[0]?.name || '—';
-    const lang = Object.values(d.languages||{}).slice(0,2).join(', ') || '—';
-    const flag = d.flag || d.flags?.emoji || '';
-    const region = d.region || '—';
-
+    const d = await apiGet('/country?code='+code);
+    const pop = d.population ? (Number(String(d.population).replace(/,/g,''))/1e6).toFixed(1)+'M' : null;
     panel.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-family:Rajdhani,sans-serif;font-size:1.1rem;font-weight:700;color:var(--nb)">${flag} ${name}</div>
+        <div style="font-family:Rajdhani,sans-serif;font-size:1.1rem;font-weight:700;color:var(--nb)">${d.flag||'🏳'} ${d.name||code}</div>
         <button onclick="hideCountryPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:.7rem;">
-        ${row('Head of State', leader)}
-        ${row('Capital', capital)}
+        ${row('Head of State', d.leader)}
+        ${row('Head of Govt.', d.headOfGovernment)}
+        ${row('Capital', d.capital)}
         ${row('Population', pop)}
-        ${row('Currency', currency)}
-        ${row('Language', lang)}
-        ${row('Region', region)}
-        ${row('Next Elections', COUNTRY_ELECTIONS[code]||'—')}
+        ${row('Region', d.subregion || d.region)}
+        ${row('Income Level', d.incomeLevel)}
+        ${row('Currency', d.currency)}
+        ${row('Language', d.language)}
+        ${row('Next Elections', d.elections)}
+        ${row('Political Leaning', d.politicalLeaning)}
       </div>`;
   }catch(e){
-    // REST Countries' free API is deprecated (needs a keyed v5 account) — fall back to local intel
-    try{
-      const d = await apiGet('/country?code='+code);
-      panel.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div style="font-family:Rajdhani,sans-serif;font-size:1.1rem;font-weight:700;color:var(--nb)">${d.flag||'🏳'} ${d.name||code}</div>
-          <button onclick="hideCountryPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:.7rem;">
-          ${row('Head of State', leader!=='—' ? leader : d.leader)}
-          ${row('Ideology', d.ideology)}
-          ${row('Religion', d.religion)}
-          ${row('Currency', d.currency)}
-          ${row('GDP', d.gdp)}
-          ${row('Military', d.military)}
-          ${row('Next Elections', COUNTRY_ELECTIONS[code]||d.elections)}
-        </div>
-        ${d.alliance?`<div style="margin-top:6px;font-size:.67rem;color:#1a4a6a"><b style="color:var(--nb)">Allied:</b> ${d.alliance}</div>`:''}
-        ${d.rivals?`<div style="font-size:.67rem;color:#1a4a6a"><b style="color:var(--nr)">Rivals:</b> ${d.rivals}</div>`:''}
-      `;
-    }catch(e2){
-      panel.innerHTML = '<div style="color:var(--muted);font-size:.7rem">No data available</div>';
-    }
+    // apiGet throws on non-2xx — api/country.js only 400/404s an invalid or
+    // genuinely-unrecognized code, so this is the one case that's truly "no data".
+    panel.innerHTML = '<div style="color:var(--muted);font-size:.7rem">No data available</div>';
   }
 }
 

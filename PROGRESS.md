@@ -1,5 +1,101 @@
 # SENTINEL — Progress Log
 
+## Session: 2026-07-02 (2) — Country intel now live for every country
+
+### Problem
+`api/country.js` only had rich data for the ~24 countries hand-written into a
+`COUNTRY_INTEL` object. Every other country fell through to a REST Countries
+call that's been dead since the previous session (their free tier returns
+`{success:false}` for everything now) and 404'd, so the country panel showed
+nothing for the other ~230 countries on the map.
+
+### Fix — full rewrite of `api/country.js`
+Aggregates three free, no-key, server-side sources per request (server-side
+so the browser never sees the CORS failures the old client-side Wikidata/
+RestCountries calls used to hit):
+
+- **World Bank country API** (`api.worldbank.org/v2/country/{code}`) — name,
+  capital, region, income level, lat/lon. Covers ~215 economies. Doesn't
+  cover Taiwan or Vatican City (not World Bank members) — verified live.
+- **REST Countries v3.1** — population, currency, language, subregion.
+  Attempted for real (so it self-heals if the operator ever restores the free
+  tier) but currently always fails; code explicitly detects the
+  `{success:false}` deprecation body (not just network errors) and treats it
+  as unavailable rather than trying to render a broken shape.
+- **Wikidata SPARQL, resolved by ISO code** — this is the actual fix for "every
+  country," not just the previous session's ~45-entry hardcoded QID map.
+  Queries `?country wdt:P297 "{code}"` (ISO 3166-1 alpha-2 code property) to
+  find the Wikidata entity for *any* country/territory, then reads `wdt:P35`
+  (head of state) and `wdt:P6`, newly added, (head of government) as
+  "truthy" values — Wikidata's rank-resolution shortcut that already picks
+  the current/preferred-rank statement. An earlier attempt at this used
+  explicit statement-node filtering (`FILTER NOT EXISTS { ?stmt pq:P582 ?end }`)
+  to try to isolate the *current* office-holder, but that produced duplicate/
+  wrong rows for countries with messy end-date qualifiers (Taiwan initially
+  returned "Lien Chan," a Premier from the 1990s, as a false "head of
+  government"); switching to the `wdt:` truthy shortcut fixed it and is
+  simpler. Verified correct for US, Taiwan, North Korea, UK, Vatican City,
+  Palestine, Monaco, Kazakhstan.
+  - **Found a real bug during testing, not just an external-API quirk**: every
+    Wikidata call from Node's `fetch` came back `403` even though the exact
+    same query worked fine via `curl` and had worked fine from the browser in
+    the previous session. Root cause: Wikimedia's User-Agent policy blocks
+    requests without a descriptive UA, and Node's default fetch doesn't send
+    one (browsers do, automatically, which is why the old client-side calls
+    worked without needing this). Fixed by setting an explicit `User-Agent`
+    header on the Wikidata request.
+- **In-memory `Map` cache**, 1hr TTL, keyed by uppercased code — repeat
+  requests to the same warm serverless instance return instantly (confirmed:
+  ~250ms cold, ~50ms cached).
+- Elections timing and political leaning stay hardcoded per the task's
+  explicit instruction (no good live API, changes rarely) — political leaning
+  reuses the previous session's curated `ideology` values under a new field
+  name; the old `ideology`/`religion`/`gdp`/`military`/`alliance`/`rivals`/
+  `riskLevel` fields are dropped entirely (not requested to be kept, and there's
+  no live source for them — keeping them would mean two different data
+  shapes depending on which fallback path fired, which is exactly what this
+  rewrite is trying to eliminate).
+- A country code only 404s if **none** of the three sources have ever heard
+  of it (e.g. `ZZ`, `QQ`) — verified live. Every real code tested (including
+  ones with almost no coverage, like Vatican City and Taiwan) returns at
+  least a name, flag, and — via Wikidata — real head of state/government.
+- Flag emoji is computed algorithmically from the ISO code (regional indicator
+  Unicode offset) as a fallback when REST Countries doesn't provide one —
+  works for 100% of valid codes with zero API calls.
+
+### Frontend (`index.html`)
+`showCountryIntel()` simplified from a three-tier client-side fallback chain
+(direct REST Countries fetch → direct Wikidata fetch → `/api/country`) down
+to a single call to `/api/country?code=X`, since the backend now does all
+three lookups itself. Removed the now-redundant `COUNTRY_QIDS`,
+`COUNTRY_ELECTIONS`, and `fetchLiveLeader`. The panel now renders one
+consistent field set for every country (Head of State, Head of Government,
+Capital, Population, Region, Income Level, Currency, Language, Next
+Elections, Political Leaning) using the existing `row()` helper, which
+already rendered `—` for any falsy value — so "show `—` for missing fields"
+required no new code, just feeding it the new field names. "No data
+available" now only appears when `apiGet` throws (`api/country.js` itself
+returned non-2xx, i.e., a code no source recognizes), not per-field.
+
+### Testing performed
+- `node --check` on `api/country.js` and on the extracted `<script>` block.
+- Direct `curl` verification of all three upstream APIs' actual response
+  shapes (World Bank for US/Bhutan/Taiwan/Palestine/Kosovo/invalid-code;
+  REST Countries confirmed still dead; Wikidata SPARQL for US/Bhutan/France/
+  Taiwan/North Korea/Vatican/Palestine/Monaco) before writing any code against
+  assumed shapes.
+- A local Node shim mounting `api/country.js` directly (no Vercel account in
+  this environment): confirmed real end-to-end responses for US (full
+  coverage), Bhutan/Kosovo (World Bank + Wikidata), Taiwan/Vatican
+  (Wikidata-only), and `ZZ`/`QQ` (correctly 404). Confirmed cache hit timing.
+- Full Playwright run against the real `index.html` + all real `api/*.js`
+  handlers (zero mocking): clicked the US (full data), Taiwan (Wikidata-only,
+  proving the "never show no-data for a real country" requirement), and
+  Kazakhstan (a country that was never in the old hardcoded list at all —
+  now shows real head of state/government/capital/region/income level).
+  Also clicked open ocean to confirm no panel/errors when there's no country
+  feature under the cursor. Zero console/page errors throughout.
+
 ## Session: 2026-07-02 — Conflictly-class rebuild (3D globe → 2D tactical map)
 
 Full rewrite of `index.html`. Removed all Three.js code and replaced the 3D

@@ -1,55 +1,176 @@
-const COUNTRY_INTEL = {
-  US: { flag:'🇺🇸', leader:'Donald Trump', ideology:'Right-Populist', religion:'Christian 65%', currency:'USD', elections:'Presidential / 4yr', gdp:'$27.4T', military:'NATO lead, nuclear', alliance:'NATO, AUKUS, Five Eyes', rivals:'China, Russia, Iran', riskLevel:'LOW' },
-  RU: { flag:'🇷🇺', leader:'Vladimir Putin', ideology:'Auth-Nationalist', religion:'Orthodox Christian', currency:'RUB', elections:'Controlled presidential', gdp:'$2.2T (sanctioned)', military:'Nuclear, P5, CSTO', alliance:'China, Belarus, Iran, N.Korea', rivals:'NATO, Ukraine, West', riskLevel:'CRITICAL' },
-  CN: { flag:'🇨🇳', leader:'Xi Jinping', ideology:'Auth-Communist', religion:'Atheist state', currency:'CNY', elections:'No free elections', gdp:'$18.5T', military:'Nuclear, P5, PLAN expanding', alliance:'Russia, Pakistan, ASEAN trade', rivals:'USA, India, Taiwan, Japan', riskLevel:'HIGH' },
-  UA: { flag:'🇺🇦', leader:'Volodymyr Zelensky', ideology:'Liberal Democrat', religion:'Orthodox Christian', currency:'UAH', elections:'Suspended (wartime)', gdp:'$160B (war economy)', military:'NATO partner, Western-equipped', alliance:'NATO, EU, USA, UK', rivals:'Russia (at war)', riskLevel:'CRITICAL' },
-  IR: { flag:'🇮🇷', leader:'Ali Khamenei (Supreme Leader)', ideology:'Theocratic', religion:'Shia Islam 95%', currency:'IRR (collapsed)', elections:'Controlled (Guardian Council)', gdp:'$367B', military:'Missile + proxy network', alliance:'Russia, China, proxies', rivals:'USA, Israel, Saudi Arabia', riskLevel:'CRITICAL' },
-  IL: { flag:'🇮🇱', leader:'Benjamin Netanyahu', ideology:'Right-Nationalist', religion:'Jewish 74%', currency:'ILS', elections:'Parliamentary (Knesset)', gdp:'$521B', military:'Nuclear (undeclared), IDF', alliance:'USA, UAE, Morocco', rivals:'Iran, Hamas, Hezbollah', riskLevel:'HIGH' },
-  SA: { flag:'🇸🇦', leader:'Mohammed bin Salman (MBS)', ideology:'Absolute Monarchy', religion:'Sunni Islam 90%', currency:'SAR', elections:'No elections', gdp:'$1.1T', military:'US-equipped', alliance:'USA, UAE, Egypt, Jordan', rivals:'Iran, Yemen (Houthis)', riskLevel:'MEDIUM' },
-  IN: { flag:'🇮🇳', leader:'Narendra Modi', ideology:'Hindu-Nationalist', religion:'Hindu 80%', currency:'INR', elections:'Parliamentary democracy', gdp:'$3.7T', military:'Nuclear, regional power', alliance:'Quad (USA,Japan,Australia)', rivals:'China, Pakistan', riskLevel:'MEDIUM' },
-  TR: { flag:'🇹🇷', leader:'Recep Tayyip Erdoğan', ideology:'Auth-Islamist', religion:'Sunni Islam 99%', currency:'TRY (inflation crisis)', elections:'Presidential', gdp:'$906B', military:'NATO member, S-400 buyer', alliance:'NATO (strained), Azerbaijan', rivals:'Greece, Kurds, Israel', riskLevel:'MEDIUM' },
-  DE: { flag:'🇩🇪', leader:'Friedrich Merz', ideology:'Centre-Right', religion:'Christian 50%', currency:'EUR', elections:'Parliamentary (Bundestag)', gdp:'$4.5T', military:'NATO, rearming (2% GDP)', alliance:'NATO, EU', rivals:'None formal, Russia tension', riskLevel:'LOW' },
-  GB: { flag:'🇬🇧', leader:'Keir Starmer', ideology:'Centre-Left', religion:'Christian (Anglican)', currency:'GBP', elections:'Parliamentary', gdp:'$3.1T', military:'Nuclear, P5, AUKUS', alliance:'NATO, AUKUS, Five Eyes', rivals:'Russia, post-Brexit EU tension', riskLevel:'LOW' },
-  FR: { flag:'🇫🇷', leader:'Emmanuel Macron', ideology:'Centrist-Liberal', religion:'Secular / Catholic', currency:'EUR', elections:'Presidential + Parliamentary', gdp:'$3.1T', military:'Nuclear, P5, NATO', alliance:'NATO, EU', rivals:'Russia, Sahel instability', riskLevel:'LOW' },
-  KP: { flag:'🇰🇵', leader:'Kim Jong-un', ideology:'Juche/Totalitarian', religion:'State atheism', currency:'KPW', elections:'No free elections', gdp:'$28B (est)', military:'Nuclear, ICBM program', alliance:'Russia (2024 arms), China', rivals:'USA, South Korea, Japan', riskLevel:'CRITICAL' },
-  JP: { flag:'🇯🇵', leader:'Shigeru Ishiba', ideology:'Conservative', religion:'Shinto/Buddhist', currency:'JPY', elections:'Parliamentary', gdp:'$4.2T', military:'Self-Defense + US treaty', alliance:'USA, Quad, ASEAN', rivals:'China, N.Korea, Russia (islands)', riskLevel:'LOW' },
-  BR: { flag:'🇧🇷', leader:'Luiz Inácio Lula', ideology:'Left-Progressive', religion:'Catholic 65%', currency:'BRL', elections:'Presidential', gdp:'$2.1T', military:'Regional power', alliance:'BRICS, Mercosur', rivals:'Environmental pressure', riskLevel:'LOW' },
-  PK: { flag:'🇵🇰', leader:'Shehbaz Sharif', ideology:'Conservative-Islamic', religion:'Sunni Islam 96%', currency:'PKR', elections:'Parliamentary', gdp:'$340B', military:'Nuclear', alliance:'China (CPEC), Saudi Arabia', rivals:'India, Afghanistan (Taliban)', riskLevel:'HIGH' },
-  SY: { flag:'🇸🇾', leader:'Ahmed al-Sharaa (post-Assad)', ideology:'Post-conflict transitional', religion:'Sunni Islam 74%', currency:'SYP (collapsed)', elections:'None (transitional)', gdp:'$25B (devastated)', military:'Fragmented factions', alliance:'Transitional — unclear', rivals:'ISIS remnants, Turkey-Kurd tension', riskLevel:'HIGH' },
-  LY: { flag:'🇱🇾', leader:'Divided (GNU vs parliament)', ideology:'Divided governance', religion:'Sunni Islam 97%', currency:'LYD', elections:'Contested', gdp:'$41B (oil)', military:'Fragmented militia', alliance:'Turkey (west), Russia/UAE (east)', rivals:'Internal: Haftar vs GNU', riskLevel:'HIGH' },
-  MM: { flag:'🇲🇲', leader:'Min Aung Hlaing (junta)', ideology:'Military Authoritarian', religion:'Buddhist 88%', currency:'MMK', elections:'None (coup 2021)', gdp:'$65B (declining)', military:'Tatmadaw vs resistance', alliance:'China, Russia', rivals:'NUG/resistance forces, West', riskLevel:'CRITICAL' },
-  SD: { flag:'🇸🇩', leader:'SAF vs RSF (civil war)', ideology:'Military factions', religion:'Sunni Islam 97%', currency:'SDG (collapsed)', elections:'None', gdp:'$30B', military:'SAF vs RSF civil war', alliance:'SAF: Egypt. RSF: UAE/Wagner', rivals:'Internal civil war since 2023', riskLevel:'CRITICAL' },
+// Live country intel for ANY ISO 3166-1 alpha-2 code, aggregated server-side
+// (so the browser never hits restcountries.com/query.wikidata.org directly
+// and never sees a CORS failure). Combines:
+//   - World Bank country API   -> name, capital, region, income level, lat/lon
+//   - REST Countries v3.1      -> population, currency, language, region
+//     (this API's free tier has been deprecated by its operator and
+//     currently returns {success:false} for every request — see PROGRESS.md.
+//     Still attempted here in case that ever changes; failure just means
+//     those few fields fall back to '—' on the frontend.)
+//   - Wikidata SPARQL          -> head of state (P35) + head of government (P6),
+//     resolved by ISO alpha-2 code (P297) so it works for every country
+//     without a hand-maintained QID table.
+//
+// Elections timing and political leaning have no good free live API and
+// change rarely, so they stay as a small hardcoded table.
+
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1hr — persists across warm invocations
+const cache = new Map();
+
+// No live API covers this well; changes infrequently.
+const ELECTIONS = {
+  US:'Nov 2028', RU:'2030 (controlled)', CN:'No free elections',
+  UA:'Suspended (war)', IR:'2029', IL:'By 2026', SA:'None',
+  IN:'2029', TR:'2028', DE:'2029', GB:'2029', FR:'2027',
+  KP:'None', JP:'2025', BR:'2026', PK:'2029', SD:'None (war)',
+  MM:'None (junta)', YE:'None (war)', SY:'Transitional',
+  EG:'2029 (controlled)',
 };
+
+// No live API covers this well; changes infrequently.
+const POLITICAL_LEANING = {
+  US:'Right-Populist', RU:'Auth-Nationalist', CN:'Auth-Communist',
+  UA:'Liberal Democrat', IR:'Theocratic', IL:'Right-Nationalist',
+  SA:'Absolute Monarchy', IN:'Hindu-Nationalist', TR:'Auth-Islamist',
+  DE:'Centre-Right', GB:'Centre-Left', FR:'Centrist-Liberal',
+  KP:'Juche/Totalitarian', JP:'Conservative', BR:'Left-Progressive',
+  PK:'Conservative-Islamic', SY:'Post-conflict transitional',
+  LY:'Divided governance', MM:'Military Authoritarian', SD:'Military factions',
+};
+
+async function fetchWithTimeout(url, opts = {}, timeoutMs = 9000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function flagEmoji(code) {
+  if (!/^[A-Za-z]{2}$/.test(code)) return null;
+  return code.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)));
+}
+
+async function fetchWorldBank(code) {
+  try {
+    const r = await fetchWithTimeout(`https://api.worldbank.org/v2/country/${code}?format=json`);
+    const data = await r.json();
+    const entry = Array.isArray(data) && Array.isArray(data[1]) ? data[1][0] : null;
+    if (!entry || !entry.name) return null;
+    return {
+      name: entry.name,
+      capital: entry.capitalCity || null,
+      region: entry.region?.value && entry.region.value !== 'Aggregates' ? entry.region.value : null,
+      incomeLevel: entry.incomeLevel?.value && entry.incomeLevel.value !== 'Aggregates' ? entry.incomeLevel.value : null,
+      lat: entry.latitude ? Number(entry.latitude) : null,
+      lon: entry.longitude ? Number(entry.longitude) : null,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+async function fetchRestCountries(code) {
+  try {
+    const r = await fetchWithTimeout(
+      `https://restcountries.com/v3.1/alpha/${code}?fields=name,capital,population,currencies,languages,flags,region,subregion`
+    );
+    const data = await r.json();
+    const d = Array.isArray(data) ? data[0] : data;
+    if (!d || d.success === false || !d.name) return null;
+    return {
+      name: d.name.common || null,
+      capital: d.capital?.[0] || null,
+      population: typeof d.population === 'number' ? d.population.toLocaleString() : null,
+      currency: Object.values(d.currencies || {})[0]?.name || null,
+      language: Object.values(d.languages || {}).slice(0, 2).join(', ') || null,
+      flag: d.flags?.emoji || null,
+      region: d.region || null,
+      subregion: d.subregion || null,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+async function fetchWikidata(code) {
+  try {
+    const sparql = `SELECT ?countryLabel ?hosLabel ?hogLabel WHERE {
+      ?country wdt:P297 "${code}".
+      OPTIONAL { ?country wdt:P35 ?hos. }
+      OPTIONAL { ?country wdt:P6 ?hog. }
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "en,mul". }
+    } LIMIT 1`;
+    const r = await fetchWithTimeout(
+      'https://query.wikidata.org/sparql?query=' + encodeURIComponent(sparql) + '&format=json',
+      { headers: {
+        Accept: 'application/sparql-results+json',
+        // Wikimedia's User-Agent policy 403s requests without a descriptive UA
+        // (browsers send one automatically; server-side fetch needs it set explicitly).
+        'User-Agent': 'SentinelIntelligence/1.0 (https://github.com/Andrei11022/Sentinel)',
+      } }
+    );
+    if (!r.ok) return null;
+    const d = await r.json();
+    const b = d.results?.bindings?.[0];
+    if (!b) return null;
+    return {
+      name: b.countryLabel?.value || null,
+      headOfState: b.hosLabel?.value || null,
+      headOfGovernment: b.hogLabel?.value || null,
+    };
+  } catch (e) {
+    return null;
+  }
+}
 
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { code } = req.query;
+  if (!code || !/^[A-Za-z]{2}$/.test(code)) {
+    return res.status(400).json({ error: 'Provide a 2-letter country code, e.g. ?code=US' });
+  }
+  const upperCode = code.toUpperCase();
 
-  if (code) {
-    const intel = COUNTRY_INTEL[code.toUpperCase()];
-    if (intel) {
-      return res.status(200).json({ code: code.toUpperCase(), ...intel });
-    }
-    // Try to fetch from REST Countries API
-    try {
-      const r = await fetch(`https://restcountries.com/v3.1/alpha/${code}?fields=name,capital,population,area,region,languages,currencies,flags`);
-      const [d] = await r.json();
-      return res.status(200).json({
-        code: code.toUpperCase(),
-        name: d.name?.common,
-        capital: d.capital?.[0],
-        population: d.population?.toLocaleString(),
-        region: d.region,
-        flag: d.flags?.png,
-        currency: Object.values(d.currencies || {})[0]?.name || 'Unknown',
-        riskLevel: 'UNKNOWN',
-      });
-    } catch {
-      return res.status(404).json({ error: 'Country not found' });
-    }
+  const cached = cache.get(upperCode);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    return res.status(200).json(cached.data);
   }
 
-  // Return all country intel
-  return res.status(200).json({ countries: COUNTRY_INTEL });
-}
+  const [wb, rc, wd] = await Promise.all([
+    fetchWorldBank(upperCode),
+    fetchRestCountries(upperCode),
+    fetchWikidata(upperCode),
+  ]);
+
+  // Only a genuinely unrecognized code (no source has ever heard of it)
+  // should look like "no data" to the frontend.
+  if (!wb && !rc && !wd) {
+    return res.status(404).json({ error: 'Country not found', code: upperCode });
+  }
+
+  const result = {
+    code: upperCode,
+    name: rc?.name || wb?.name || wd?.name || upperCode,
+    flag: rc?.flag || flagEmoji(upperCode),
+    capital: rc?.capital || wb?.capital || null,
+    region: rc?.region || wb?.region || null,
+    subregion: rc?.subregion || null,
+    incomeLevel: wb?.incomeLevel || null,
+    population: rc?.population || null,
+    currency: rc?.currency || null,
+    language: rc?.language || null,
+    leader: wd?.headOfState || null,
+    headOfGovernment: wd?.headOfGovernment || null,
+    elections: ELECTIONS[upperCode] || null,
+    politicalLeaning: POLITICAL_LEANING[upperCode] || null,
+    lat: wb?.lat ?? null,
+    lon: wb?.lon ?? null,
+  };
+
+  cache.set(upperCode, { ts: Date.now(), data: result });
+  return res.status(200).json(result);
+};
