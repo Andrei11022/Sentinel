@@ -86,6 +86,9 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 /* COUNTRY TOOLTIP + PANEL */
 #country-tooltip{position:absolute;background:#04091aee;border:1px solid var(--nb);box-shadow:var(--gb);padding:5px 10px;font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:700;color:var(--nb);pointer-events:none;display:none;z-index:90;backdrop-filter:blur(8px);}
 #country-panel{position:absolute;right:12px;top:38px;width:270px;background:#040c18;border:1px solid var(--nb);padding:14px;display:none;z-index:200;backdrop-filter:blur(8px);font-size:.75rem;line-height:1.6;}
+#naval-panel{position:absolute;right:12px;top:38px;width:300px;max-height:calc(100% - 76px);overflow-y:auto;background:#040c18;border:1px solid var(--nb);box-shadow:var(--gb);padding:0;display:none;z-index:200;backdrop-filter:blur(8px);font-size:.75rem;line-height:1.6;}
+#naval-panel::-webkit-scrollbar{width:3px;}
+#naval-panel::-webkit-scrollbar-thumb{background:var(--border);}
 
 /* THREAT MARKERS */
 .threat-marker{position:relative;width:16px;height:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
@@ -115,6 +118,24 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .mil-marker.aff-other{box-shadow:0 0 7px #88889977;border-color:#888;}
 .mil-tip{font-family:'Share Tech Mono',monospace;font-size:.68rem;line-height:1.5;}
 .mil-tip b{color:var(--nb);display:block;font-family:'Rajdhani',sans-serif;font-size:.85rem;}
+
+/* NAVAL MARKERS (positions inferred from live news — see api/naval.js) */
+.naval-marker{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;border:1.5px solid #fff8;background:#0a1424cc;}
+.nv-photo{width:100%;height:150px;object-fit:cover;display:block;border-bottom:1px solid var(--border);}
+.nv-body{padding:14px;}
+.nv-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
+.nv-title{font-family:'Rajdhani',sans-serif;font-size:1.05rem;font-weight:700;color:var(--nb);}
+.nv-class{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:2px;}
+.nv-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;flex-shrink:0;line-height:1;}
+.nv-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.nv-badge{font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:2px 7px;border:1px solid var(--border);color:var(--muted);}
+.nv-badge.status-deployed{border-color:var(--ng);color:var(--ng);}
+.nv-badge.status-inport{border-color:var(--muted);color:var(--muted);}
+.nv-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:.68rem;margin-bottom:10px;}
+.nv-source{font-size:.64rem;color:var(--nb);text-decoration:none;display:block;margin-bottom:10px;padding:7px 8px;border:1px solid var(--border);background:#00d4ff08;line-height:1.4;}
+.nv-source:hover{border-color:var(--nb);}
+.nv-desc{font-size:.7rem;color:var(--text);line-height:1.55;margin-bottom:8px;}
+.nv-note{font-size:.56rem;color:var(--dim);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;line-height:1.5;}
 
 /* AIRCRAFT MARKERS */
 .aircraft-marker{width:14px;height:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;line-height:1;}
@@ -410,7 +431,8 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
         <label class="lp-row"><input type="checkbox" id="lp-military"> 🎖 Military Assets (known positions)</label>
         <label class="lp-row"><input type="checkbox" id="lp-risk" checked> 🗺 Country Risk</label>
         <label class="lp-row"><input type="checkbox" id="lp-aircraft"> ✈ Aircraft (live)</label>
-        <div class="lp-note">Military Assets are known/publicly-documented positions, not live tracking. Aircraft layer is live (OpenSky, 30s refresh). Live naval AIS tracking is a future upgrade.</div>
+        <label class="lp-row"><input type="checkbox" id="lp-naval"> 🚢 Naval (OSINT-estimated)</label>
+        <div class="lp-note">Military Assets are known/publicly-documented positions, not live tracking. Aircraft layer is live (OpenSky, 30s refresh). Naval positions are estimated from OSINT reports (live news mentions), not live GPS tracking.</div>
       </div>
     </div>
     <div id="ghud">
@@ -421,6 +443,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     </div>
     <div id="country-tooltip"></div>
     <div id="country-panel"></div>
+    <div id="naval-panel"></div>
   </div>
 
   <div id="st">
@@ -524,7 +547,7 @@ let hoveredCountryFid = null;
 let liveThreats = [];
 let threatMarkerObjs = [];
 let militaryMarkerObjs = [];
-let activeLayers = { threats:true, conflict:true, military:false, risk:true, aircraft:false };
+let activeLayers = { threats:true, conflict:true, military:false, risk:true, aircraft:false, naval:false };
 
 const GEOJSON_URL = 'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson';
 // This free dataset leaves ISO3166-1-Alpha-2 as "-99" for a handful of real
@@ -643,6 +666,7 @@ function updateCountryRiskColors(threats){
 // (avoiding CORS entirely) and works for any real ISO alpha-2 code, not just a
 // curated list — this just renders whatever fields come back, '—' for gaps.
 async function showCountryIntel(code, x, y) {
+  hideNavalPanel();
   const panel = document.getElementById('country-panel');
   panel.innerHTML = '<div style="color:var(--nb)">⟳ Loading...</div>';
   panel.style.display = 'block';
@@ -942,6 +966,103 @@ function stopAircraftPolling(){
 }
 
 // ═══════════════════════════════════
+// NAVAL (live — positions inferred from live news mentions, never hand-typed;
+// see api/naval.js for the full derivation. Identity list (~40 ships) is
+// static reference data; position/status/last-reported are recomputed
+// server-side every request cycle from the live news feed.)
+// ═══════════════════════════════════
+let navalMarkerObjs = [];
+let navalPollTimer = null;
+
+function createNavalMarkerEl(s){
+  const el = document.createElement('div');
+  el.className = 'naval-marker';
+  el.style.borderColor = s.color;
+  el.style.boxShadow = `0 0 6px ${s.color}aa`;
+  el.textContent = '🚢';
+  el.addEventListener('click', ev=>{
+    ev.stopPropagation();
+    showNavalDetail(s.name);
+  });
+  return el;
+}
+
+async function loadNaval(){
+  try{
+    const d = await apiGet('/naval');
+    navalMarkerObjs.forEach(m=>m.remove());
+    navalMarkerObjs = [];
+    (d.ships||[]).forEach(s=>{
+      const marker = new maplibregl.Marker({ element:createNavalMarkerEl(s) })
+        .setLngLat([s.lon, s.lat])
+        .addTo(map);
+      navalMarkerObjs.push(marker);
+    });
+  }catch(e){ console.error('Naval:', e); }
+}
+
+function startNavalPolling(){
+  loadNaval();
+  if(navalPollTimer) return;
+  // Positions only move as fast as the live news cycle (api/naval.js caches
+  // its own computation for 3min) — polling faster than that would just
+  // re-fetch the same server-side cached result, unlike aircraft's raw
+  // ADS-B telemetry which genuinely changes every poll.
+  navalPollTimer = setInterval(loadNaval, 120000);
+}
+function stopNavalPolling(){
+  if(navalPollTimer){ clearInterval(navalPollTimer); navalPollTimer=null; }
+  navalMarkerObjs.forEach(m=>m.remove());
+  navalMarkerObjs = [];
+  hideNavalPanel();
+}
+
+function navRow(k,v){
+  return `<div style="color:var(--muted)">${k}</div><div style="color:var(--text)">${v||'—'}</div>`;
+}
+
+async function showNavalDetail(name){
+  hideCountryPanel();
+  const panel = document.getElementById('naval-panel');
+  panel.style.display = 'block';
+  panel.innerHTML = '<div style="padding:14px;color:var(--nb)">⟳ Loading live intel...</div>';
+  try{
+    const d = await apiGet('/naval?wiki='+encodeURIComponent(name));
+    const s = d.ship, w = d.wiki;
+    const statusClass = s.status === 'DEPLOYED' ? 'status-deployed' : 'status-inport';
+    panel.innerHTML = `
+      ${w?.thumbnail ? `<img class="nv-photo" src="${w.thumbnail}" alt="${s.name}">` : ''}
+      <div class="nv-body">
+        <div class="nv-head">
+          <div>
+            <div class="nv-title">${s.flag} ${s.name}</div>
+            <div class="nv-class">${s.class}</div>
+          </div>
+          <button class="nv-close" onclick="hideNavalPanel()">✕</button>
+        </div>
+        <div class="nv-badges">
+          <span class="nv-badge">${s.type}</span>
+          <span class="nv-badge ${statusClass}">${s.status}</span>
+          <span class="nv-badge">${s.nationality}</span>
+        </div>
+        <div class="nv-grid">
+          ${navRow('Position', s.positionLabel)}
+          ${navRow('Last reported', s.lastReportedLabel || 'No recent OSINT reports')}
+          ${navRow('Home port', s.homeport)}
+        </div>
+        ${s.source ? `<a class="nv-source" href="${s.source.url}" target="_blank" rel="noopener">📰 ${escapeHtml(s.source.title)} — ${escapeHtml(s.source.source||'')}</a>` : ''}
+        ${w?.extract ? `<div class="nv-desc">${w.extract}</div>` : (w===null ? '<div class="nv-desc" style="color:var(--dim)">No live Wikipedia summary available for this vessel right now.</div>' : '')}
+        <div class="nv-note">Position estimated from OSINT (live news) reports, not live GPS tracking.</div>
+      </div>`;
+  }catch(e){
+    panel.innerHTML = `<div style="padding:14px;color:var(--nr)">⚠ ${e.message}</div>`;
+  }
+}
+function hideNavalPanel(){
+  document.getElementById('naval-panel').style.display='none';
+}
+
+// ═══════════════════════════════════
 // CONFLICT FRONTLINES + TENSION ZONES (approximated — no free exact-line API exists)
 // ═══════════════════════════════════
 const CONFLICT_ZONES_GEOJSON = {
@@ -1017,6 +1138,11 @@ function wireLayerPanel(){
     activeLayers.aircraft = e.target.checked;
     if(activeLayers.aircraft) startAircraftPolling();
     else stopAircraftPolling();
+  });
+  document.getElementById('lp-naval').addEventListener('change', e=>{
+    activeLayers.naval = e.target.checked;
+    if(activeLayers.naval) startNavalPolling();
+    else stopNavalPolling();
   });
 
   const panel = document.getElementById('layer-panel');

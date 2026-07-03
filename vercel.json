@@ -11,10 +11,12 @@
     { "src": "/api/search", "dest": "/api/search.js" },
     { "src": "/api/aircraft", "dest": "/api/aircraft.js" },
     { "src": "/api/analyst", "dest": "/api/analyst.js" },
+    { "src": "/api/naval", "dest": "/api/naval.js" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "functions": {
-    "api/analyst.js": { "maxDuration": 30 }
+    "api/analyst.js": { "maxDuration": 30 },
+    "api/naval.js": { "maxDuration": 30 }
   },
   "headers": [
     {

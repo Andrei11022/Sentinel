@@ -32,6 +32,7 @@ the route in the same commit as the new file.
 | `/api/search` | Intel Search tab | GDELT + Guardian + Wikipedia + optional Claude synthesis |
 | `/api/aircraft` | Live aircraft layer | OpenSky `states/all`, falls back to `adsb.lol/v2/mil` |
 | `/api/analyst` | AI Analyst chat | `/api/news`+`/api/threats` (self-fetch) + Claude, grounded-only |
+| `/api/naval` | Naval ship tracker | `/api/news` (self-fetch) for positions + live Wikipedia for detail cards |
 
 ### Known quirks / gotchas
 - REST Countries' free API is fully deprecated (`success:false` on every
@@ -73,6 +74,43 @@ the route in the same commit as the new file.
   separate keyword hits, so a query like "North Korea missile" can still let
   through an article that's only about North Korea with no missile content —
   fixing that needs real entity detection, not just keyword counting.
+- `/api/naval` never hand-types a ship's position. Only identity (name,
+  class, type, nationality, homeport text, expected operating region) is
+  hardcoded — that never changes. Position is computed fresh every cache
+  cycle: (1) scan `/api/news` articles for the ship's name or region
+  keywords, gated by a required naval-context word (`navy`/`carrier`/
+  `warship`/etc — without this gate, "USS America" false-matched a July 4th
+  anniversary article with zero naval content, confirmed live); (2) extract
+  a place from that article's text against a maritime gazetteer (seas/
+  straits/major ports — same "keyword → stable coordinate" pattern
+  `api/threats.js` uses for country hotspots); (3) if nothing matched this
+  cycle, geocode the ship's home port LIVE via Open-Meteo (never a
+  hand-typed coordinate); (4) if even that live geocode fails, fall back to
+  the gazetteer entry for the ship's own first region keyword, clearly
+  tagged `positionBasis:'region-fallback'` rather than silently mislabeled
+  as a homeport position. Open-Meteo's geocoding API was confirmed flaky in
+  this dev sandbox (timed out on 3/3 direct curl attempts during testing),
+  which is exactly the scenario tier (4) exists for.
+- Wikipedia enrichment for naval ships needs a descriptive `User-Agent`
+  (same Wikimedia policy `api/country.js` already works around for
+  Wikidata) or it starts 429ing under any real testing volume. Also,
+  Wikipedia's `type:'disambiguation'` field doesn't reliably flag set-index
+  list pages ("USS America" comes back `type:'standard'` despite its
+  extract literally starting "USS America may refer to:") — checked the
+  extract wording instead. A plain opensearch can also confidently resolve
+  to the wrong specific (non-disambiguation) article entirely — "Dokdo" (an
+  amphibious assault ship) opensearches straight to "Liancourt Rocks", the
+  disputed islets it's named after — so the resolved summary is also
+  checked for actual ship-related wording (navy/carrier/warship/vessel/...)
+  before being accepted; if either check fails, it retries once via
+  Wikipedia's full-text search API (real relevance ranking, not prefix
+  matching) with the ship's type appended.
+- `api/naval.js` self-fetches `/api/news`, which can legitimately take
+  close to 9s to aggregate all its sources — give the self-fetch a longer
+  timeout (15s) than `/api/news`'s own per-source timeout, or the outer
+  fetch aborts before the inner one ever has a chance to finish (this
+  shipped once during development: every request silently returned zero
+  articles because the two timeouts were racing at the same 9s value).
 
 ### Testing approach
 No Vercel account access has been available in any session — nothing has
@@ -101,6 +139,23 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-03 (11): Added a naval ship tracker (`api/naval.js` + "🚢 NAVAL"
+  layer). ~41 major warships/carrier groups by identity only (name/class/
+  type/nationality/homeport text — reference data that never changes).
+  Position is never hand-typed: computed every cache cycle from a live
+  `/api/news` self-fetch (name or region-keyword mention, gated by a
+  required naval-context word after "USS America" false-matched a July 4th
+  article in testing), a maritime gazetteer for extracting place names from
+  the matched article's own text, live Open-Meteo geocoding of the ship's
+  home port when nothing matched, and a labeled last-resort gazetteer
+  fallback if even that geocode fails. Click a ship for a detail card
+  (styled like the country intel panel) with a live Wikipedia photo +
+  description, resolved through a disambiguation-busting retry (opensearch
+  first, then Wikipedia's full-text search + a ship-context check) after
+  plain opensearch confidently resolved "Dokdo" to the disputed islets
+  instead of the ship. All verified live end-to-end via Playwright,
+  including with Open-Meteo genuinely unreachable mid-session (confirmed
+  via direct curl) to exercise the fallback chain for real.
 - 2026-07-03 (10): Fixed two live bugs. (a) Brief Me was citing ~1-day-old
   articles because it reused the boot-time `liveArticles` cache, which
   mirrors `/api/news`'s severity-first sort — confirmed live that the top
