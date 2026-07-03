@@ -4,7 +4,11 @@
 
 **Frontend**: single-file `index.html` — MapLibre GL JS 2D tactical map
 (CARTO dark-matter basemap, free/no-key) + a 9-tab sidebar. No build step,
-no framework, vanilla JS in one `<script>` block.
+no framework, vanilla JS in one `<script>` block. One responsive breakpoint
+at `max-width:768px`: sidebar becomes a full-screen slide-up sheet (opened
+via the header's "☰ INTEL" button, `#sb.open`), and `html{font-size}` is
+bumped so all rem-sized text scales up — nearly every font-size in this
+file is in `rem`/`em`, so that one rule is what keeps mobile readable.
 
 **Backend**: Vercel serverless functions in `api/*.js`, all
 `module.exports = async function handler(req, res)`. `vercel.json` uses an
@@ -70,6 +74,16 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-03 (8): Mobile responsive pass — sidebar converts to a full-screen
+  slide-up sheet below 768px (opened/closed via a header "☰ INTEL" button),
+  root font-size bumps on mobile so all rem-sized text stays readable
+  without pinch-zoom, stat bar goes 2x2, header hides SOURCES/clock/STATUS
+  (keeps THREATS/RISK), brief/alert buttons go icon-only. Also fixed a
+  desktop regression from session 7: layer panel was too cramped to read —
+  widened to 206px with 11-12px fonts and real row padding, collapsed state
+  is now a clean 32px icon button, and `.maplibregl-popup` got an explicit
+  z-index so marker popups always render above the layer panel/ticker.
+  Desktop layout otherwise unchanged (verified via Playwright at 1500px).
 - 2026-07-02 (7): Layer panel UI fix (collapsible, 180px width cap, smaller
   font, more transparent, mobile-collapsed/desktop-expanded default); this
   file trimmed from 660 lines of session narrative to architecture facts.
