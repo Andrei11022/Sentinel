@@ -59,22 +59,32 @@ the route in the same commit as the new file.
 - `ANTHROPIC_API_KEY` gates all Claude-backed features; every one has a
   defined no-key fallback (static/local output, or a clear "needs
   configuration" message) rather than erroring.
-- `/api/news`'s main list sorts by threatScore first (date only breaks close
-  ties) — that's deliberate for the severity-ranked Briefing feed, but it
-  means "top of the feed" is NOT "newest." Anything that needs recency
-  (Brief Me, Middle East tab) does its own fresh `/api/news` fetch and its
-  own `publishedAt`-descending sort rather than reusing the cached
-  `liveArticles` global or feed order.
+- `/api/news`'s main list is pure `publishedAt`-descending — top of the feed
+  is genuinely newest. It used to sort by threatScore first (date only
+  broke close ties), which silently overrode publish order; that was
+  reported and fixed as a regression (see changelog). `/api/threats.js`
+  still needs a severity-first pick for "worst threat per country" — it
+  does that with its own local sort on a copy of the articles array now,
+  rather than relying on `/api/news`'s exposed order, so it doesn't drift
+  again if that order changes for an unrelated reason in the future.
 - Guardian's search API (`/api/search`) matches loosely across its whole
   corpus on multi-word queries — `order-by=newest` was returning barely-related
   "whatever's newest that matched anything" results (confirmed live: a
   2-word geopolitical query returned Chris Froome's retirement announcement).
-  Fixed with `order-by=relevance` plus a real post-fetch relevance filter
-  requiring the query's keywords actually appear in title/description.
-  Known remaining gap: multi-word proper nouns ("North Korea") count as two
-  separate keyword hits, so a query like "North Korea missile" can still let
-  through an article that's only about North Korea with no missile content —
-  fixing that needs real entity detection, not just keyword counting.
+  Fixed with `order-by=relevance` plus a post-fetch relevance filter
+  requiring query keywords to actually appear in title/description. The
+  first version of that filter required ALL keywords for 2-word queries,
+  which overcorrected into rejecting real results ("Pakistan election"
+  found nothing because Guardian's genuinely-relevant Pakistan articles
+  didn't also say "election") — also reported and fixed as a regression.
+  Current rule: 2-word queries need just 1 of the 2 keywords to actually
+  appear (still zero tolerance for 0-keyword junk, which is what the
+  original bug was); 3+-word queries need a majority (`keywordsRequired()`
+  in `api/search.js`). Known remaining gap: multi-word proper nouns
+  ("North Korea") count as two separate keyword hits, so a query like
+  "North Korea missile" can still let through an article that's only about
+  North Korea with no missile content — fixing that needs real entity
+  detection, not just keyword counting.
 - `/api/naval` never hand-types a ship's position. Only identity (name,
   class, type, nationality, homeport text, expected operating region) is
   hardcoded — that never changes. Position is computed fresh every cache
@@ -143,6 +153,17 @@ the route in the same commit as the new file.
   verified instead; the ElevenLabs path itself is standard, well-documented
   REST usage and should work once the key is set in Vercel, but has not
   been exercised against the real API in this repo yet.
+- `/api/country`'s Wikidata calls occasionally hit a genuine transient
+  latency spike well past what's reasonable to make a user wait on —
+  confirmed live: a US lookup timed out at the old 9s limit, then the
+  *exact same query* came back in ~200-700ms on every other attempt
+  (moments later, and consistently since). It's not a per-country
+  complexity issue — plenty of "busy" Wikidata entities returned instantly.
+  Fixed with a longer timeout (12s), one automatic retry on `/api/country`'s
+  Wikidata call specifically, and — since a single blip is expected to be
+  transient — a much shorter cache TTL (5min vs the normal 1hr) for any
+  result where a source came back partial, so a one-off failure self-heals
+  on the next click instead of showing missing fields for an hour.
 
 ### Testing approach
 No Vercel account access has been available in any session — nothing has
@@ -153,13 +174,8 @@ against that shim for real browser behavior. Real live external APIs are
 hit directly wherever possible rather than mocked.
 
 ## Active issues
-None currently known/reported as broken.
-
-**Known limitation** (not a bug, documented above): Intel Search's
-relevance filter can still admit an article that only covers one half of a
-multi-word proper-noun query (e.g. "North Korea missile" matching a North
-Korea article with no missile content) since it counts keywords, not
-entities.
+None currently known/reported as broken. (Intel Search's multi-word-proper-noun
+gap is a documented known limitation, not an active bug — see gotchas above.)
 
 **Unverified**: real Vercel deployment behavior — the `x-forwarded-proto`
 self-fetch header pattern, `functions.maxDuration` config, and Vercel's
@@ -171,6 +187,27 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-04 (13): Fixed three reported regressions, all confirmed live
+  before and after. (1) Intel Search's relevance filter (added session 10)
+  had overcorrected: requiring ALL keywords for 2-word queries rejected
+  real results ("Pakistan election" found nothing because Guardian's
+  genuinely-relevant Pakistan articles didn't also say "election").
+  Loosened to require just 1 of 2 keywords for 2-word queries (3+-word
+  queries still need a majority); nonsense queries still correctly return
+  zero results. (2) `/api/news`'s Briefing feed sorted by threatScore
+  first, so "top of feed" wasn't "newest" — now pure `publishedAt`-
+  descending. `/api/threats.js` depended on that exposed order to pick the
+  worst threat per country, so it got its own local severity sort on a
+  copy of the articles first, decoupling it from the feed's now-different
+  order. (3) `/api/country` was showing blank fields for some countries —
+  root-caused live to Wikidata occasionally timing out at the old 9s limit
+  on a purely transient basis (the exact same query came back in
+  ~200-700ms on every other attempt) and then caching that partial result
+  for a full hour. Fixed with a longer timeout (12s), one automatic retry
+  on the Wikidata call, and a much shorter cache TTL (5min) for any partial
+  result so a one-off failure self-heals quickly instead of showing
+  missing fields for an hour. US/France/Nigeria/Kazakhstan/Vietnam all
+  verified showing complete data.
 - 2026-07-03 (12): Replaced Brief Me's robotic browser speechSynthesis
   with real TTS — `api/tts.js` proxies ElevenLabs (voice "Adam",
   `eleven_turbo_v2_5`) via `ELEVENLABS_API_KEY`, returning raw `audio/mpeg`

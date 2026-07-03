@@ -16,7 +16,14 @@
 // Elections timing and political leaning have no good free live API and
 // change rarely, so they stay as a small hardcoded table.
 
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1hr — persists across warm invocations
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1hr for a complete result — persists across warm invocations
+// Wikidata's public SPARQL endpoint occasionally has one-off latency spikes
+// well past what's reasonable to make a user wait on (confirmed live: the
+// exact same US query that timed out once came back in ~200ms on every
+// other attempt) — when a source comes back partial/null, that's very
+// likely transient, so cache it far more briefly rather than baking a
+// one-time blip into an hour of "missing" data on every country click.
+const PARTIAL_CACHE_TTL_MS = 5 * 60 * 1000;
 const cache = new Map();
 
 const WIKIDATA_UA = 'SentinelIntelligence/1.0 (https://github.com/Andrei11022/Sentinel)';
@@ -44,7 +51,7 @@ const POLITICAL_LEANING = {
   LY:'Divided governance', MM:'Military Authoritarian', SD:'Military factions',
 };
 
-async function fetchWithTimeout(url, opts = {}, timeoutMs = 9000) {
+async function fetchWithTimeout(url, opts = {}, timeoutMs = 12000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -100,7 +107,17 @@ function dedupeJoined(str, n = 1) {
   return parts.length ? parts.slice(0, n).join(', ') : null;
 }
 
+// One retry on failure — Wikidata's public endpoint blips are transient
+// (the exact query that timed out once came back in ~200ms moments later
+// in testing), so a single immediate retry resolves most of them without
+// meaningfully slowing down the case where it just works the first time.
 async function fetchWikidata(code) {
+  const first = await fetchWikidataOnce(code);
+  if (first) return first;
+  return fetchWikidataOnce(code);
+}
+
+async function fetchWikidataOnce(code) {
   try {
     // GROUP_CONCAT everything so multi-valued properties (P37 official
     // language especially — some countries recognize 20+) collapse to one
@@ -149,7 +166,7 @@ module.exports = async function handler(req, res) {
   const upperCode = code.toUpperCase();
 
   const cached = cache.get(upperCode);
-  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+  if (cached && Date.now() - cached.ts < cached.ttl) {
     return res.status(200).json(cached.data);
   }
 
@@ -183,6 +200,11 @@ module.exports = async function handler(req, res) {
     lon: wb?.lon ?? null,
   };
 
-  cache.set(upperCode, { ts: Date.now(), data: result });
+  // Full TTL only when every source actually answered — a result missing
+  // World Bank or Wikidata data gets a much shorter TTL so a transient
+  // failure self-heals on the next click instead of showing "—" for an
+  // hour (see PARTIAL_CACHE_TTL_MS comment above).
+  const isComplete = wb && wd && population != null;
+  cache.set(upperCode, { ts: Date.now(), data: result, ttl: isComplete ? CACHE_TTL_MS : PARTIAL_CACHE_TTL_MS });
   return res.status(200).json(result);
 };

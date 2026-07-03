@@ -201,11 +201,16 @@ module.exports = async function handler(req, res) {
     })
   );
 
-  articles.sort((a, b) => {
-    const scoreDiff = b.threatScore - a.threatScore;
-    if (Math.abs(scoreDiff) > 8) return scoreDiff;
-    return new Date(b.publishedAt) - new Date(a.publishedAt);
-  });
+  // Pure newest-first. This used to sort by threatScore first (date only
+  // broke close ties), which silently overrode publish order — the
+  // Briefing feed's top item could be a high-score article from a day ago
+  // while genuinely fresh headlines sat further down. A live feed's own
+  // top-to-bottom order should mean newest-to-oldest; severity is already
+  // visible per-article (color-coded threat score) without needing the
+  // whole list re-ordered around it. (Consumers that specifically want the
+  // worst-severity item, like /api/threats.js's per-country selection, do
+  // their own severity sort locally instead of relying on this order.)
+  articles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
 
   const maxArticles = type === 'mideast' ? 18 : 30;
   const sliced = articles.slice(0, maxArticles);

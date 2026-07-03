@@ -146,9 +146,16 @@ module.exports=async function handler(req,res){
     
     const threats=[];
     const seenCountries=new Set();
-    
-    for(let i=0;i<articles.length;i++){
-      const threat=buildThreatFromArticle(articles[i],i);
+
+    // Own severity-first ordering for the purposes of picking the worst
+    // threat per country+type, independent of whatever order /api/news
+    // returns articles in — that endpoint sorts by publish date for the
+    // Briefing feed, which is a different, unrelated concern from "which
+    // single article represents this country's worst active threat."
+    const bySeverity=articles.slice().sort((a,b)=>(b.threatScore||50)-(a.threatScore||50));
+
+    for(let i=0;i<bySeverity.length;i++){
+      const threat=buildThreatFromArticle(bySeverity[i],i);
       if(!threat) continue;
       
       const key=threat.country+':'+threat.type;

@@ -36,15 +36,24 @@ function extractKeywords(query) {
 }
 
 // How many of the query's significant keywords have to actually appear
-// before an article counts as relevant. 1-2 keywords must ALL be present —
-// otherwise a 2-word query like "Ukraine grain" could match on "Ukraine"
-// alone, which is the exact "just any partial token" bug this exists to
-// stop. Longer queries require a majority (not literally every word) since
-// real headlines paraphrase — "China warns Taiwan over defense pact" is
-// clearly about "Taiwan China military" even without the literal word
-// "military" in it.
+// before an article counts as relevant.
+//
+// Requiring ALL keywords for 2-word queries (the previous rule) turned out
+// too strict: "Pakistan election" was rejecting genuinely relevant Guardian
+// results ("Pakistan roof collapse", "Pakistan PM signs agreement", ...)
+// just because none of them also said "election" — confirmed live, this is
+// what made the search feel like it returned nothing for real queries.
+// A single keyword is enough for a 2-word query; the "no junk" guarantee
+// still comes from requiring that keyword to genuinely appear in the
+// title/description (not zero matches, which is what let completely
+// unrelated articles like Chris Froome's retirement through in the
+// original bug this whole filter exists to fix).
+// Longer queries still require a majority (not every word) since real
+// headlines paraphrase — "China warns Taiwan over defense pact" is clearly
+// about "Taiwan China military" even without the literal word "military".
 function keywordsRequired(count) {
-  if (count <= 2) return count;
+  if (count <= 1) return count;
+  if (count === 2) return 1;
   return Math.max(2, Math.ceil(count * 0.6));
 }
 
