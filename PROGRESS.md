@@ -59,6 +59,33 @@ the route in the same commit as the new file.
 - `ANTHROPIC_API_KEY` gates all Claude-backed features; every one has a
   defined no-key fallback (static/local output, or a clear "needs
   configuration" message) rather than erroring.
+- All five Claude-backed endpoints (`analyst.js`, `analyze.js`, `search.js`,
+  `entities.js`, `forecast.js`) were hardcoded to `claude-sonnet-4-20250514`,
+  which is deprecated (retired 2026-06-15) — this was the actual cause of
+  the AI Analyst's "Anthropic API 400". Current model is `claude-sonnet-5`.
+  Two things to know if you touch these again: (1) `thinking` is
+  deliberately set to `{type:'disabled'}` on all five — Sonnet 5 runs
+  adaptive thinking by default when the field is omitted, which returns a
+  leading `thinking` content block before the `text` block, and every one
+  of these files was extracting the answer via `content?.[0]?.text` — that
+  silently breaks the moment adaptive thinking turns on (grabs the empty
+  thinking block instead). All five now use
+  `content?.find(b => b.type === 'text')?.text` instead, which is correct
+  regardless of `thinking` mode, but leave `thinking: {type:'disabled'}` in
+  place too since these are short grounded-citation tasks that don't need
+  deep reasoning and thinking adds latency/cost for no benefit here.
+  (2) `askClaude()` in `analyst.js` used to throw just the HTTP status
+  (`Anthropic API 400`) with no body — genuinely couldn't diagnose the
+  actual failure from that. It now reads and logs the real response body
+  (`console.error` + included in the thrown message); verified live against
+  the real Anthropic endpoint with a deliberately-invalid key that the fix
+  correctly surfaces Anthropic's actual structured error JSON instead of a
+  bare status code. `entities.js` and `forecast.js` had a related silent
+  bug: they parsed `d.content` without checking `r.ok` first, so a failed
+  request (empty/undefined `.content`) fell through to `JSON.parse('{}')`
+  or `JSON.parse('[]')` and returned an empty-but-"successful" result
+  instead of throwing into their local-fallback path — both now check
+  `r.ok` and throw with the real error body first.
 - `/api/news`'s main list is pure `publishedAt`-descending — top of the feed
   is genuinely newest. It used to sort by threatScore first (date only
   broke close ties), which silently overrode publish order; that was
@@ -187,6 +214,35 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-04 (14): Fixed the AI Analyst's "Anthropic API 400" error — root
+  cause was `claude-sonnet-4-20250514`, deprecated and retired 2026-06-15,
+  hardcoded across all five Claude-backed endpoints (confirmed via the
+  current model catalog: `claude-sonnet-5` is the live replacement).
+  `askClaude()` also used to throw only the HTTP status with no body,
+  making this genuinely undiagnosable from the surfaced error alone — now
+  reads and logs the real Anthropic error JSON (verified live against the
+  real API with a deliberately-invalid key: the fix correctly surfaces
+  Anthropic's actual `{type:"authentication_error",...}` body instead of a
+  bare "Anthropic API 401"). Migrating models also surfaced a latent bug
+  every one of these five files shared: they all extracted the answer via
+  `content?.[0]?.text`, which breaks the moment adaptive thinking is on
+  (Sonnet 5's default when `thinking` is omitted) because the first block
+  becomes an empty `thinking` block, not the answer — fixed by explicitly
+  setting `thinking:{type:'disabled'}` (these are short grounded-citation
+  tasks with no need for deep reasoning) and finding the text block by
+  type instead of assuming index 0. Also hardened `analyst.js`'s history
+  sanitization to drop empty-content turns, collapse any accidental
+  same-role-twice run, and never let history itself end on 'user' before
+  the new turn is appended — belt-and-suspenders against the "roles must
+  alternate" 400 even though the frontend was already building history
+  correctly. `entities.js` and `forecast.js` had a related silent bug
+  (parsed `.content` without checking `r.ok`, so a failed request quietly
+  returned an empty "successful" result instead of falling back) — fixed
+  alongside the model swap since it's the same call site. No live
+  ANTHROPIC_API_KEY has been available in any session, so the success path
+  (a real question getting a real grounded answer) is unverified — the
+  no-key fallback path and the full frontend request/response plumbing
+  were verified end-to-end via Playwright instead.
 - 2026-07-04 (13): Fixed three reported regressions, all confirmed live
   before and after. (1) Intel Search's relevance filter (added session 10)
   had overcorrected: requiring ALL keywords for 2-word queries rejected

@@ -102,12 +102,30 @@ function extractCitedSources(answerText, articles) {
   }));
 }
 
+// Anthropic 400s on messages that don't strictly alternate user/assistant
+// (and on empty-content turns) — the frontend only ever appends a complete
+// user+assistant pair after a successful reply, so `history` should already
+// alternate correctly and end on 'assistant', but this sanitizes properly
+// rather than trusting that: drop empty/whitespace-only content, collapse
+// any accidental same-role-twice run, and make sure history doesn't itself
+// end on 'user' (the caller is about to append a fresh user turn, and two
+// user messages in a row is exactly the "roles must alternate" 400).
 function sanitizeHistory(history) {
   if (!Array.isArray(history)) return [];
-  return history
-    .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+  const cleaned = history
+    .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim().length > 0)
     .slice(-8) // last 4 pairs
-    .map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    .map(m => ({ role: m.role, content: m.content.trim().slice(0, 4000) }));
+
+  const alternated = [];
+  for (const m of cleaned) {
+    if (alternated.length && alternated[alternated.length - 1].role === m.role) continue;
+    alternated.push(m);
+  }
+  if (alternated.length && alternated[alternated.length - 1].role === 'user') {
+    alternated.pop();
+  }
+  return alternated;
 }
 
 async function askClaude(question, history, articles, threats) {
@@ -124,16 +142,32 @@ async function askClaude(question, history, articles, threats) {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      // claude-sonnet-4-20250514 is deprecated (retired 2026-06-15) — this
+      // was the actual cause of "Anthropic API 400" on every question.
+      // Current model is claude-sonnet-5. Thinking explicitly off: Sonnet 5
+      // runs adaptive thinking by default when the field is omitted, which
+      // returns a leading thinking block before the text block — silently
+      // breaking the old content?.[0]?.text extraction below (it would grab
+      // the empty thinking block instead of the answer).
+      model: 'claude-sonnet-5',
       max_tokens: 1000,
+      thinking: { type: 'disabled' },
       system: SYSTEM_PROMPT,
       messages,
     }),
   }, 25000);
 
-  if (!r.ok) throw new Error(`Anthropic API ${r.status}`);
+  if (!r.ok) {
+    // The real fix: log (and surface) the actual Anthropic error body
+    // instead of just the status code — "Anthropic API 400" alone doesn't
+    // say *why*, and every one of this codebase's Claude-backed endpoints
+    // had the same blind spot.
+    const errBody = await r.text().catch(() => '');
+    console.error('Anthropic API error', r.status, errBody);
+    throw new Error(`Anthropic API ${r.status}: ${errBody.slice(0, 300)}`);
+  }
   const d = await r.json();
-  const text = d.content?.[0]?.text?.trim();
+  const text = d.content?.find(b => b.type === 'text')?.text?.trim();
   if (!text) throw new Error('Empty response from Anthropic API');
   return text;
 }

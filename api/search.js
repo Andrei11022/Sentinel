@@ -178,8 +178,13 @@ async function synthesize(query, articles) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': CLAUDE_KEY, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        // See PROGRESS.md — claude-sonnet-4-20250514 is deprecated (retired
+        // 2026-06-15); current model is claude-sonnet-5, thinking off since
+        // it defaults to adaptive-on and would otherwise put a thinking
+        // block ahead of the text block.
+        model: 'claude-sonnet-5',
         max_tokens: 200,
+        thinking: { type: 'disabled' },
         messages: [{
           role: 'user',
           content: `In exactly 2 sentences, summarize what's currently happening with "${query}" based on these live headlines. Be concrete and specific, no preamble.\n\n${headlines}`,
@@ -188,7 +193,7 @@ async function synthesize(query, articles) {
     }, 12000);
     if (!r.ok) return null;
     const d = await r.json();
-    return d.content?.[0]?.text?.trim() || null;
+    return d.content?.find((b) => b.type === 'text')?.text?.trim() || null;
   } catch (e) {
     return null;
   }

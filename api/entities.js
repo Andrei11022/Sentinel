@@ -83,16 +83,29 @@ async function extractEntitiesAI(articles) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': CLAUDE_KEY, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      // See PROGRESS.md — claude-sonnet-4-20250514 is deprecated (retired
+      // 2026-06-15); current model is claude-sonnet-5, thinking explicitly
+      // off since it defaults to adaptive-on and would otherwise put a
+      // thinking block ahead of the text block in the response.
+      model: 'claude-sonnet-5',
       max_tokens: 1000,
+      thinking: { type: 'disabled' },
       messages: [{
         role: 'user',
         content: `Extract all named entities from these headlines. Return ONLY JSON:\n{"people":[{"name":"...","role":"...","country":"...","threatLevel":"HIGH|MEDIUM|LOW"}],"organizations":[{"name":"...","type":"state|militant|alliance|ngo","threatLevel":"HIGH|MEDIUM|LOW"}],"locations":[{"name":"...","type":"country|city|region|waterway","lat":0,"lon":0,"conflictZone":true}],"relationships":[{"from":"...","to":"...","type":"allied|adversarial|economic|diplomatic","strength":"strong|moderate|weak"}]}\n\nHeadlines:\n${headlines}`
       }]
     })
   });
+  // Was previously parsed unconditionally regardless of r.ok — a 400/401/etc
+  // response body has no `.content`, so this silently "succeeded" with an
+  // empty {} instead of throwing into the caller's local-extraction
+  // fallback. Throw explicitly so real API failures actually fall back.
+  if (!r.ok) {
+    const errBody = await r.text().catch(() => '');
+    throw new Error(`Anthropic API ${r.status}: ${errBody.slice(0, 300)}`);
+  }
   const d = await r.json();
-  const text = d.content?.[0]?.text || '{}';
+  const text = d.content?.find((b) => b.type === 'text')?.text || '{}';
   return JSON.parse(text.replace(/```json|```/g, '').trim());
 }
 

@@ -287,15 +287,23 @@ async function runAnthropic(type, articles) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        // claude-sonnet-4-20250514 is deprecated (retires 2026-06-15) — every
+        // Claude-backed feature in this codebase was still on it. Current
+        // model is claude-sonnet-5. Thinking explicitly off: Sonnet 5 runs
+        // adaptive thinking by default when the field is omitted, which
+        // returns a leading thinking block before the text block — silently
+        // breaking any code (like the old content?.[0]?.text here) that
+        // assumes the first content block is the answer.
+        model: 'claude-sonnet-5',
         max_tokens: 900,
+        thinking: { type: 'disabled' },
         messages: [{ role: 'user', content: prompt }],
       }),
     });
 
     if (!r.ok) return null;
     const d = await r.json();
-    const text = d.content?.[0]?.text || '';
+    const text = d.content?.find((b) => b.type === 'text')?.text || '';
     if (!text.trim()) return null;
 
     if (['correlations', 'warnings', 'actors', 'entities'].includes(type)) {

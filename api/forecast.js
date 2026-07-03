@@ -77,16 +77,30 @@ module.exports = async function handler(req, res) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': CLAUDE_KEY, 'anthropic-version': '2023-06-01' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          // See PROGRESS.md — claude-sonnet-4-20250514 is deprecated
+          // (retired 2026-06-15); current model is claude-sonnet-5,
+          // thinking explicitly off since it defaults to adaptive-on and
+          // would otherwise put a thinking block ahead of the text block.
+          model: 'claude-sonnet-5',
           max_tokens: 800,
+          thinking: { type: 'disabled' },
           messages: [{
             role: 'user',
             content: `Based on these headlines, generate 3 geopolitical scenarios for the next 30-90 days. For each: probability, timeline, trigger event, cascade effects.\n\nReturn ONLY JSON:\n[{"title":"...","probability":"X%","timeline":"30|60|90 days","trigger":"...","cascade":["effect1","effect2","effect3"],"severity":"HIGH|MEDIUM|LOW"}]\n\nHeadlines:\n${headlines}`
           }]
         })
       });
+      // Was previously parsed unconditionally regardless of r.ok, so a
+      // failed request (e.g. a bad model ID) silently returned an empty
+      // scenarios array tagged fallback:false — a real failure disguised as
+      // a legitimate empty AI result, instead of falling through to the
+      // (better) static scenarios below.
+      if (!r.ok) {
+        const errBody = await r.text().catch(() => '');
+        throw new Error(`Anthropic API ${r.status}: ${errBody.slice(0, 300)}`);
+      }
       const d = await r.json();
-      const text = d.content?.[0]?.text || '[]';
+      const text = d.content?.find((b) => b.type === 'text')?.text || '[]';
       const scenarios = JSON.parse(text.replace(/```json|```/g, '').trim());
       return res.status(200).json({ scenarios, fallback: false });
     } catch (e) {
