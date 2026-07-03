@@ -416,9 +416,11 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     <div class="tbns">
       <button class="btn" id="sb-toggle">☰ INTEL</button>
       <button class="btn" id="briefbtn">🔊 <span class="btn-label">BRIEF ME</span></button>
+      <button class="btn red" id="brief-stop" style="display:none">⏹ <span class="btn-label">STOP</span></button>
       <button class="btn red" id="alertbtn">⚠ <span class="btn-label">ALERT MODE</span></button>
     </div>
   </div>
+  <audio id="brief-audio" style="display:none"></audio>
 
   <div id="gl">
     <div id="map"></div>
@@ -1495,13 +1497,128 @@ async function tryFlyToSearchResult(q){
 // ═══════════════════════════════════
 // BRIEF ME
 // ═══════════════════════════════════
+
+// Playback state machine for the BRIEF ME button + STOP button. Real audio
+// (ElevenLabs, via /api/tts) is the primary path; browser speechSynthesis
+// is only a fallback for when no ELEVENLABS_API_KEY is configured yet or
+// the ElevenLabs call fails, so Brief Me never just goes silent.
+function setBriefPlaybackUI(state){
+  const btn = document.getElementById('briefbtn');
+  const stopBtn = document.getElementById('brief-stop');
+  if(state === 'generating'){
+    btn.innerHTML = '⟳ <span class="btn-label">GENERATING...</span>';
+    stopBtn.style.display = 'none';
+  } else if(state === 'voicing'){
+    btn.innerHTML = '⟳ <span class="btn-label">VOICING...</span>';
+    stopBtn.style.display = 'inline-flex';
+  } else if(state === 'playing'){
+    btn.innerHTML = '🔊 <span class="btn-label">SPEAKING...</span>';
+    stopBtn.style.display = 'inline-flex';
+  } else {
+    btn.innerHTML = '🔊 <span class="btn-label">BRIEF ME</span>';
+    stopBtn.style.display = 'none';
+  }
+}
+
+// Incremented on every stop/new-brief so an already-in-flight playback
+// attempt (mid-fetch, or a browser-TTS fallback still waiting on its voice
+// list to load) can tell it's been superseded and quietly bail instead of
+// starting to speak after the user already hit STOP. Plain double-firing
+// guards aren't enough here — confirmed live in testing that the fallback's
+// own delayed-retry path (armed via both onvoiceschanged AND a setTimeout
+// when getVoices() is empty) can still kick off a fresh utterance well
+// after STOP was clicked if nothing invalidates it.
+let briefPlaybackToken = 0;
+
+function stopBriefPlayback(){
+  briefPlaybackToken++;
+  const audio = document.getElementById('brief-audio');
+  audio.pause();
+  audio.currentTime = 0;
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+  setBriefPlaybackUI('idle');
+}
+
+function speakBriefFallback(text, myToken){
+  if(!('speechSynthesis' in window)){ if(myToken===briefPlaybackToken) setBriefPlaybackUI('idle'); return; }
+  speechSynthesis.cancel();
+  let spoken=false;
+  const doSpeak=()=>{
+    // Guarded against double-invocation: when getVoices() is empty this is
+    // armed via BOTH onvoiceschanged and a setTimeout fallback below, and if
+    // the browser's real voice list loads async within that window both can
+    // fire, creating two overlapping utterances that fight over playback
+    // state (confirmed live in testing).
+    if(spoken) return;
+    spoken=true;
+    speechSynthesis.onvoiceschanged=null;
+    if(myToken!==briefPlaybackToken) return; // superseded by STOP or a newer brief
+    // Wrapped defensively: this is the last fallback in the chain (ElevenLabs
+    // already failed to get here), so any exception — including the browser
+    // rejecting sp.voice=pref if a voice lookup ever misbehaves — must not
+    // leave the BRIEF ME button stuck on "VOICING..." with no way to retry.
+    try{
+      const sp=new SpeechSynthesisUtterance(text);
+      const v=speechSynthesis.getVoices();
+      const pref=v.find(x=>/david|daniel|alex|mark|en-us/i.test(x.name));
+      if(pref) sp.voice=pref;
+      sp.rate=0.88;sp.pitch=0.78;sp.volume=1;
+      sp.onstart=()=>{ if(myToken===briefPlaybackToken) setBriefPlaybackUI('playing'); };
+      sp.onend=()=>{ if(myToken===briefPlaybackToken) setBriefPlaybackUI('idle'); };
+      sp.onerror=()=>{ if(myToken===briefPlaybackToken) setBriefPlaybackUI('idle'); };
+      speechSynthesis.speak(sp);
+    }catch(e){
+      console.warn('Browser speechSynthesis fallback failed:', e.message);
+      if(myToken===briefPlaybackToken) setBriefPlaybackUI('idle');
+    }
+  };
+  if(speechSynthesis.getVoices().length>0) doSpeak();
+  else {speechSynthesis.onvoiceschanged=doSpeak; setTimeout(doSpeak,600);}
+}
+
+async function speakBrief(text){
+  const myToken = briefPlaybackToken; // briefMe() already called stopBriefPlayback() to advance this
+  setBriefPlaybackUI('voicing');
+  const audio = document.getElementById('brief-audio');
+  try{
+    const r = await fetch(API+'/tts', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text }),
+    });
+    if(myToken !== briefPlaybackToken) return; // stopped while the request was in flight
+    const ct = r.headers.get('content-type') || '';
+    if(r.ok && ct.startsWith('audio/')){
+      const blob = await r.blob();
+      if(myToken !== briefPlaybackToken) return; // stopped while decoding
+      const url = URL.createObjectURL(blob);
+      audio.src = url;
+      audio.onplay = ()=> { if(myToken===briefPlaybackToken) setBriefPlaybackUI('playing'); };
+      audio.onended = ()=> { if(myToken===briefPlaybackToken) setBriefPlaybackUI('idle'); URL.revokeObjectURL(url); };
+      audio.onerror = ()=> { if(myToken===briefPlaybackToken) setBriefPlaybackUI('idle'); };
+      await audio.play();
+      return;
+    }
+    let msg = 'TTS unavailable';
+    try{ const j = await r.json(); msg = j.error || msg; }catch(e){}
+    console.warn('ElevenLabs TTS unavailable, falling back to browser voice:', msg);
+  }catch(e){
+    console.warn('TTS request failed, falling back to browser voice:', e.message);
+  }
+  if(myToken !== briefPlaybackToken) return; // stopped while ElevenLabs attempt was failing
+  speakBriefFallback(text, myToken);
+}
+
 async function briefMe(){
+  stopBriefPlayback(); // cancel any in-progress narration before starting a new brief
   const btn=document.getElementById('briefbtn');
-  btn.textContent='⟳ GENERATING...'; btn.disabled=true;
+  setBriefPlaybackUI('generating');
+  btn.disabled=true;
   activateTab('news');
   const bb=document.getElementById('briefbox');
   bb.innerHTML='<span style="color:var(--nb)">⟳ GENERATING AI BRIEF...</span>';
   bb.classList.add('show');
+  let text = null;
   try{
     // Fresh fetch (same live-fetch pattern the Middle East tab uses) instead
     // of whatever's sitting in liveArticles from whenever the page last
@@ -1518,25 +1635,15 @@ async function briefMe(){
     }
 
     const d=await apiPost('/analyze',{type:'brief',articles:fresh.slice(0,10)});
-    const text=typeof d.result==='string'?d.result:'Brief unavailable';
+    text=typeof d.result==='string'?d.result:'Brief unavailable';
     const ri=document.getElementById('sri').textContent;
     bb.innerHTML=`<b>// SENTINEL BRIEF — ${new Date().toUTCString()}</b><br><br>${text}<br><br><b style="color:var(--nr)">RISK: ${ri}/100</b>`;
     if(d.fallback) bb.innerHTML+=`<br><span style="color:var(--dim);font-size:.6rem">⚠ Fallback mode — add ANTHROPIC_API_KEY in Vercel settings for AI briefs</span>`;
-    if('speechSynthesis' in window){
-      speechSynthesis.cancel();
-      const doSpeak=()=>{
-        const sp=new SpeechSynthesisUtterance(text);
-        const v=speechSynthesis.getVoices();
-        const pref=v.find(x=>/david|daniel|alex|mark|en-us/i.test(x.name));
-        if(pref) sp.voice=pref;
-        sp.rate=0.88;sp.pitch=0.78;sp.volume=1;
-        speechSynthesis.speak(sp);
-      };
-      if(speechSynthesis.getVoices().length>0) doSpeak();
-      else {speechSynthesis.onvoiceschanged=()=>{doSpeak();speechSynthesis.onvoiceschanged=null;}; setTimeout(doSpeak,600);}
-    }
-  }catch(e){bb.innerHTML=`<b>// BRIEF ERROR</b><br><br>${e.message}`;}
-  btn.textContent='🔊 BRIEF ME'; btn.disabled=false;
+  }catch(e){
+    bb.innerHTML=`<b>// BRIEF ERROR</b><br><br>${e.message}`;
+  }
+  btn.disabled=false;
+  if(text) speakBrief(text); else setBriefPlaybackUI('idle');
 }
 
 // ═══════════════════════════════════
@@ -1803,6 +1910,7 @@ document.getElementById('sb-toggle').addEventListener('click',()=>{
   document.getElementById('sb-toggle').textContent = open ? '✕ CLOSE' : '☰ INTEL';
 });
 document.getElementById('briefbtn').addEventListener('click',briefMe);
+document.getElementById('brief-stop').addEventListener('click',stopBriefPlayback);
 document.getElementById('wx-btn').addEventListener('click', ()=>searchWeather(document.getElementById('wx-input').value));
 document.getElementById('wx-input').addEventListener('keydown', e=>{ if(e.key==='Enter') searchWeather(e.target.value); });
 document.getElementById('search-btn').addEventListener('click', ()=>runIntelSearch(document.getElementById('search-input').value));

@@ -33,6 +33,7 @@ the route in the same commit as the new file.
 | `/api/aircraft` | Live aircraft layer | OpenSky `states/all`, falls back to `adsb.lol/v2/mil` |
 | `/api/analyst` | AI Analyst chat | `/api/news`+`/api/threats` (self-fetch) + Claude, grounded-only |
 | `/api/naval` | Naval ship tracker | `/api/news` (self-fetch) for positions + live Wikipedia for detail cards |
+| `/api/tts` | Brief Me voice | ElevenLabs TTS (voice "Adam"), falls back to browser speechSynthesis client-side |
 
 ### Known quirks / gotchas
 - REST Countries' free API is fully deprecated (`success:false` on every
@@ -111,6 +112,37 @@ the route in the same commit as the new file.
   fetch aborts before the inner one ever has a chance to finish (this
   shipped once during development: every request silently returned zero
   articles because the two timeouts were racing at the same 9s value).
+- Brief Me's voice is ElevenLabs (`api/tts.js`, voice "Adam",
+  `eleven_turbo_v2_5`) via `ELEVENLABS_API_KEY`; with no key or on any
+  ElevenLabs failure it falls back to the browser's built-in
+  speechSynthesis client-side (see `speakBrief()`/`speakBriefFallback()` in
+  `index.html`) rather than going silent. That fallback path had two real
+  bugs, both caught live in testing and fixed:
+  (1) `sp.voice = pref` throws if the matched voice object is ever
+  malformed — was uncaught, which left the BRIEF ME button stuck on
+  "VOICING..." forever with no way to retry; now wrapped in try/catch.
+  (2) when `getVoices()` returns empty (voice list not loaded yet — common
+  right after page load), the retry is armed via *both* `onvoiceschanged`
+  *and* a `setTimeout(600ms)`, and if the browser's real voice list loads
+  within that window both can fire, starting two overlapping utterances
+  that fight over playback state — confirmed live as the STOP button
+  silently "not working" (it did stop the first utterance, then a second,
+  already-armed one started up right after). Fixed with a playback
+  generation token (`briefPlaybackToken`, incremented on every stop/new
+  request) that every in-flight attempt checks before actually starting to
+  speak, so STOP genuinely invalidates anything still pending, not just
+  whatever's already playing.
+- ElevenLabs' API key was pasted in plaintext mid-conversation once ("I
+  will add it, just use process.env.ELEVENLABS_API_KEY" — and the raw
+  key). It was never written to any file (`api/tts.js` only ever reads
+  `process.env.ELEVENLABS_API_KEY`, no hardcoded fallback like some other
+  keys in this repo have). A live end-to-end test using the real key was
+  attempted once and was blocked by an agent-safety guardrail against
+  embedding raw secrets in shell commands — that's expected/correct
+  behavior, not a bug to work around. The no-key fallback path was fully
+  verified instead; the ElevenLabs path itself is standard, well-documented
+  REST usage and should work once the key is set in Vercel, but has not
+  been exercised against the real API in this repo yet.
 
 ### Testing approach
 No Vercel account access has been available in any session — nothing has
@@ -139,6 +171,22 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-03 (12): Replaced Brief Me's robotic browser speechSynthesis
+  with real TTS — `api/tts.js` proxies ElevenLabs (voice "Adam",
+  `eleven_turbo_v2_5`) via `ELEVENLABS_API_KEY`, returning raw `audio/mpeg`
+  that the frontend plays through a hidden `<audio>` element, with a new
+  STOP button and a generating/voicing/speaking state machine on the BRIEF
+  ME button itself. No key or any ElevenLabs failure falls back to browser
+  speechSynthesis (never silent) — and that fallback path had two real,
+  previously-latent bugs surfaced by testing the new stateful UI against
+  it: an uncaught exception on a malformed voice object could strand the
+  button on "VOICING..." forever, and a double-arm race
+  (`onvoiceschanged` + `setTimeout`) could start a second utterance right
+  after STOP had already stopped the first. Both fixed (try/catch +
+  a playback generation token that invalidates anything still in flight
+  when STOP or a new brief request supersedes it). `ELEVENLABS_API_KEY` is
+  read from env only, never hardcoded, per this repo's existing key
+  convention.
 - 2026-07-03 (11): Added a naval ship tracker (`api/naval.js` + "🚢 NAVAL"
   layer). ~41 major warships/carrier groups by identity only (name/class/
   type/nationality/homeport text — reference data that never changes).

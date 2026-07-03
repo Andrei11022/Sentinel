@@ -12,11 +12,13 @@
     { "src": "/api/aircraft", "dest": "/api/aircraft.js" },
     { "src": "/api/analyst", "dest": "/api/analyst.js" },
     { "src": "/api/naval", "dest": "/api/naval.js" },
+    { "src": "/api/tts", "dest": "/api/tts.js" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "functions": {
     "api/analyst.js": { "maxDuration": 30 },
-    "api/naval.js": { "maxDuration": 30 }
+    "api/naval.js": { "maxDuration": 30 },
+    "api/tts.js": { "maxDuration": 30 }
   },
   "headers": [
     {
