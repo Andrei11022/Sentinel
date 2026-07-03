@@ -57,6 +57,22 @@ the route in the same commit as the new file.
 - `ANTHROPIC_API_KEY` gates all Claude-backed features; every one has a
   defined no-key fallback (static/local output, or a clear "needs
   configuration" message) rather than erroring.
+- `/api/news`'s main list sorts by threatScore first (date only breaks close
+  ties) — that's deliberate for the severity-ranked Briefing feed, but it
+  means "top of the feed" is NOT "newest." Anything that needs recency
+  (Brief Me, Middle East tab) does its own fresh `/api/news` fetch and its
+  own `publishedAt`-descending sort rather than reusing the cached
+  `liveArticles` global or feed order.
+- Guardian's search API (`/api/search`) matches loosely across its whole
+  corpus on multi-word queries — `order-by=newest` was returning barely-related
+  "whatever's newest that matched anything" results (confirmed live: a
+  2-word geopolitical query returned Chris Froome's retirement announcement).
+  Fixed with `order-by=relevance` plus a real post-fetch relevance filter
+  requiring the query's keywords actually appear in title/description.
+  Known remaining gap: multi-word proper nouns ("North Korea") count as two
+  separate keyword hits, so a query like "North Korea missile" can still let
+  through an article that's only about North Korea with no missile content —
+  fixing that needs real entity detection, not just keyword counting.
 
 ### Testing approach
 No Vercel account access has been available in any session — nothing has
@@ -69,6 +85,12 @@ hit directly wherever possible rather than mocked.
 ## Active issues
 None currently known/reported as broken.
 
+**Known limitation** (not a bug, documented above): Intel Search's
+relevance filter can still admit an article that only covers one half of a
+multi-word proper-noun query (e.g. "North Korea missile" matching a North
+Korea article with no missile content) since it counts keywords, not
+entities.
+
 **Unverified**: real Vercel deployment behavior — the `x-forwarded-proto`
 self-fetch header pattern, `functions.maxDuration` config, and Vercel's
 exact `routes` matching semantics are all inferred from docs/local
@@ -79,6 +101,22 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-03 (10): Fixed two live bugs. (a) Brief Me was citing ~1-day-old
+  articles because it reused the boot-time `liveArticles` cache, which
+  mirrors `/api/news`'s severity-first sort — confirmed live that the top
+  of that sort was 25.8h old while true newest articles were minutes old.
+  `briefMe()` now does its own fresh `/api/news` fetch and sorts by
+  `publishedAt` descending (same pattern the Middle East tab already used),
+  and `api/analyze.js`'s `buildBrief()` + Claude prompt now sort/label by
+  recency instead of re-sorting by threatScore. (b) Intel Search returned
+  largely unrelated articles for multi-word queries — root-caused live to
+  Guardian's `order-by=newest` search discarding its own relevance ranking
+  (a 2-word query returned Chris Froome's retirement announcement and
+  Taylor Swift gossip). Fixed with `order-by=relevance` plus a real
+  post-fetch filter requiring query keywords to actually appear in the
+  title/description, ranked title-matches-first, empty result falls
+  through to the existing "No results found" UI state instead of showing
+  unrelated items.
 - 2026-07-03 (9): Rebuilt aircraft popups — `/api/aircraft` now returns every
   field OpenSky/adsb.lol actually provide (category/type, vertical rate,
   on-ground, squawk, registration) and a human-readable `militaryReason` for

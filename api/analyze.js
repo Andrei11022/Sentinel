@@ -97,15 +97,18 @@ function buildWarnings(articles) {
 }
 
 function buildBrief(articles) {
-  const sorted = articles.slice().sort((a, b) => b.threatScore - a.threatScore);
+  // Brief Me is about what's happening NOW, so this sorts by publish date
+  // (not threatScore like the rest of this file) — a day-old high-severity
+  // headline should never outrank a fresh one here.
+  const sorted = articles.slice().sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
   const top = sorted.slice(0, 4);
   const hotspots = [...new Set(top.map((a) => inferLocation(`${a.title} ${a.summary}`).name))].slice(0, 3);
   const conflictCount = sorted.filter((a) => a.tag === 'CONFLICT' || a.tag === 'MILITARY').length;
   const nuclearCount = sorted.filter((a) => a.tag === 'NUCLEAR').length;
   const cyberCount = sorted.filter((a) => a.tag === 'CYBER').length;
 
-  const s1 = `Current reporting from ${articles.length} live headlines indicates elevated risk across ${hotspots.length || 1} primary theaters: ${hotspots.join(', ') || 'global domains'}.`;
-  const s2 = top[0] ? `The highest-priority development is "${top[0].title}", with additional pressure from "${top[1]?.title || top[0].title}".` : 'No high-confidence priority development is available in the current feed.';
+  const s1 = `Current reporting from ${articles.length} live headlines (last few hours) indicates elevated risk across ${hotspots.length || 1} primary theaters: ${hotspots.join(', ') || 'global domains'}.`;
+  const s2 = top[0] ? `The most recent development is "${top[0].title}" (${timeAgoLabel(top[0].publishedAt)}), with additional pressure from "${top[1]?.title || top[0].title}".` : 'No high-confidence recent development is available in the current feed.';
   const s3 = `Operational pattern: ${conflictCount} kinetic or military items, ${nuclearCount} nuclear-related items, and ${cyberCount} cyber-related items were identified in this cycle.`;
   const s4 = `Actor overlap across these reports suggests concurrent stress on Euro-Atlantic and Middle East decision cycles, increasing escalation risk in short windows.`;
   const s5 = `Near-term outlook: maintain watch for rapid retaliation chains, especially where headlines indicate repeated references to the same actors and corridors.`;
@@ -265,7 +268,7 @@ async function runAnthropic(type, articles) {
   if (!CLAUDE_KEY) return null;
 
   const prompts = {
-    brief: `Write a concise 5-sentence intelligence brief from these live headlines.\n${articles.map((a) => `- [${a.tag}] ${a.title}`).join('\n')}`,
+    brief: `Write a concise 5-sentence intelligence brief covering what is happening RIGHT NOW. These headlines are sorted newest first and are all from the last few hours — focus on the newest ones and do not treat older items in this list as more important just because they read as more severe.\n${articles.map((a) => `- [${a.tag}] (${timeAgoLabel(a.publishedAt)}) ${a.title}`).join('\n')}`,
     correlations: `Return ONLY JSON array with 4 correlation objects (title, score, desc, actors[]) from:\n${articles.map((a) => `[${a.tag}] ${a.title}`).join('\n')}`,
     warnings: `Return ONLY JSON array of warning events (title,severity,lat,lon,type,desc,ts,country) from:\n${articles.map((a) => `[${a.tag}] ${a.title}`).join('\n')}`,
     actors: `Return ONLY JSON object {actors:[...],links:[...]} from:\n${articles.map((a) => a.title).join('\n')}`,
@@ -313,12 +316,17 @@ module.exports = async function handler(req, res) {
   if (!type) return res.status(400).json({ error: 'Unknown type' });
 
   const clean = cleanArticles(articles);
+  // Defensive: brief must be newest-first regardless of what order the
+  // caller sent articles in (the main feed itself sorts by severity).
+  const forType = type === 'brief'
+    ? clean.slice().sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
+    : clean;
 
   try {
-    const aiResult = await runAnthropic(type, clean);
+    const aiResult = await runAnthropic(type, forType);
     if (aiResult) return res.status(200).json({ result: aiResult, fallback: false });
 
-    if (type === 'brief') return res.status(200).json({ result: buildBrief(clean), fallback: true });
+    if (type === 'brief') return res.status(200).json({ result: buildBrief(forType), fallback: true });
     if (type === 'correlations') return res.status(200).json({ result: buildCorrelations(clean), fallback: true });
     if (type === 'warnings') return res.status(200).json({ result: buildWarnings(clean), fallback: true });
     if (type === 'actors') return res.status(200).json({ result: extractActors(clean), fallback: true });
@@ -327,7 +335,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Unknown type' });
   } catch (e) {
     // In error conditions, still provide deterministic local output from live headlines.
-    if (type === 'brief') return res.status(200).json({ result: buildBrief(clean), fallback: true, error: e.message });
+    if (type === 'brief') return res.status(200).json({ result: buildBrief(forType), fallback: true, error: e.message });
     if (type === 'correlations') return res.status(200).json({ result: buildCorrelations(clean), fallback: true, error: e.message });
     if (type === 'warnings') return res.status(200).json({ result: buildWarnings(clean), fallback: true, error: e.message });
     if (type === 'actors') return res.status(200).json({ result: extractActors(clean), fallback: true, error: e.message });

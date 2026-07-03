@@ -17,6 +17,67 @@ const GUARDIAN_KEY = process.env.GUARDIAN_KEY || '473fcab8-81fa-4e79-a17e-429deb
 const CACHE_TTL_MS = 3 * 60 * 1000; // short TTL — news search results move fast
 const cache = new Map();
 
+// GDELT and Guardian both do broad full-text search (GDELT in particular
+// will match a query term anywhere in an article's body, not just the
+// headline) so their raw results routinely include stuff only tangentially
+// related to what was searched. Everything below re-checks relevance
+// ourselves against title/description before an article is ever returned.
+const STOPWORDS = new Set([
+  'a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'and', 'or', 'is',
+  'are', 'was', 'were', 'with', 'about', 'news', 'latest', 'today',
+]);
+
+function extractKeywords(query) {
+  return query
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 1 && !STOPWORDS.has(w));
+}
+
+// How many of the query's significant keywords have to actually appear
+// before an article counts as relevant. 1-2 keywords must ALL be present —
+// otherwise a 2-word query like "Ukraine grain" could match on "Ukraine"
+// alone, which is the exact "just any partial token" bug this exists to
+// stop. Longer queries require a majority (not literally every word) since
+// real headlines paraphrase — "China warns Taiwan over defense pact" is
+// clearly about "Taiwan China military" even without the literal word
+// "military" in it.
+function keywordsRequired(count) {
+  if (count <= 2) return count;
+  return Math.max(2, Math.ceil(count * 0.6));
+}
+
+// 0 = matched in the title, 1 = matched only once title+description are
+// combined, -1 = not actually relevant. The relevance gate itself checks
+// title+description together — a genuinely relevant article can split
+// "Gaza" (title) and "Israel Defense Forces" (description) across the two
+// fields, and requiring the full keyword set in ONE field alone rejected
+// real matches like that during testing. Title-only matches still rank
+// above description-assisted ones.
+function relevanceRank(article, query, keywords) {
+  const title = (article.title || '').toLowerCase();
+  const desc = (article.summary || '').toLowerCase();
+  const combined = `${title} ${desc}`;
+  const q = query.toLowerCase();
+  const need = keywordsRequired(keywords.length);
+
+  const combinedMatches = keywords.filter(k => combined.includes(k)).length;
+  if (!combined.includes(q) && combinedMatches < need) return -1;
+
+  const titleMatches = keywords.filter(k => title.includes(k)).length;
+  return (title.includes(q) || titleMatches >= need) ? 0 : 1;
+}
+
+function filterAndRankByRelevance(articles, query) {
+  const keywords = extractKeywords(query);
+  return articles
+    .map(a => ({ article: a, rank: relevanceRank(a, query, keywords) }))
+    .filter(x => x.rank !== -1)
+    .sort((x, y) => x.rank - y.rank || new Date(y.article.publishedAt) - new Date(x.article.publishedAt))
+    .map(x => x.article);
+}
+
 async function fetchWithTimeout(url, opts = {}, timeoutMs = 9000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -50,7 +111,13 @@ async function fetchGdelt(query) {
 
 async function fetchGuardian(query) {
   try {
-    const url = `https://content.guardianapis.com/search?q=${encodeURIComponent(query)}&order-by=newest&page-size=15&show-fields=trailText&api-key=${GUARDIAN_KEY}`;
+    // order-by=relevance (not newest) — Guardian's search matches loosely on
+    // multi-word queries (full-text OR across the whole corpus), and
+    // order-by=newest was discarding Guardian's own relevance ranking in
+    // favor of "whatever's newest that matched anything," which is exactly
+    // what produced unrelated results in testing. Relevance ranking plus our
+    // own title/description keyword filter below is what actually fixes it.
+    const url = `https://content.guardianapis.com/search?q=${encodeURIComponent(query)}&order-by=relevance&page-size=15&show-fields=trailText&api-key=${GUARDIAN_KEY}`;
     const r = await fetchWithTimeout(url);
     if (!r.ok) return [];
     const data = await r.json();
@@ -138,15 +205,15 @@ module.exports = async function handler(req, res) {
   ]);
 
   const seen = new Set();
-  const articles = [...guardian, ...gdelt]
+  const deduped = [...guardian, ...gdelt]
     .filter(a => a.title && a.url)
     .filter(a => {
       if (seen.has(a.url)) return false;
       seen.add(a.url);
       return true;
-    })
-    .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt))
-    .slice(0, 15);
+    });
+
+  const articles = filterAndRankByRelevance(deduped, q).slice(0, 15);
 
   const synthesis = await synthesize(q, articles);
 

@@ -1377,7 +1377,21 @@ async function briefMe(){
   bb.innerHTML='<span style="color:var(--nb)">⟳ GENERATING AI BRIEF...</span>';
   bb.classList.add('show');
   try{
-    const d=await apiPost('/analyze',{type:'brief',articles:liveArticles.slice(0,10)});
+    // Fresh fetch (same live-fetch pattern the Middle East tab uses) instead
+    // of whatever's sitting in liveArticles from whenever the page last
+    // loaded — the main feed sorts by severity, not recency, so its top
+    // items (and liveArticles, which mirrors it) can be a day-old high-score
+    // article. Brief Me needs the newest headlines, sorted by publish date.
+    const nd = await apiGet('/news?type=world');
+    const byRecency = (nd.articles||[]).slice().sort((a,b)=> new Date(b.publishedAt) - new Date(a.publishedAt));
+    let fresh = [];
+    for(const hours of [3,6,12,24]){
+      const cutoff = Date.now() - hours*3600*1000;
+      fresh = byRecency.filter(a => new Date(a.publishedAt).getTime() >= cutoff);
+      if(fresh.length >= 5) break;
+    }
+
+    const d=await apiPost('/analyze',{type:'brief',articles:fresh.slice(0,10)});
     const text=typeof d.result==='string'?d.result:'Brief unavailable';
     const ri=document.getElementById('sri').textContent;
     bb.innerHTML=`<b>// SENTINEL BRIEF — ${new Date().toUTCString()}</b><br><br>${text}<br><br><b style="color:var(--nr)">RISK: ${ri}/100</b>`;
