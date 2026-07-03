@@ -120,9 +120,17 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .aircraft-marker{width:14px;height:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;line-height:1;}
 .aircraft-marker.civ{color:#3a7aaa;text-shadow:0 0 4px #3a7aaaaa;}
 .aircraft-marker.mil{color:#ff2244;text-shadow:0 0 6px #ff2244cc;}
-.ac-tip{font-family:'Share Tech Mono',monospace;font-size:.68rem;line-height:1.6;}
-.ac-tip b{color:var(--nb);display:block;font-family:'Rajdhani',sans-serif;font-size:.85rem;margin-bottom:2px;}
-.ac-tip .ac-mil-flag{color:var(--nr);}
+.ac-tip{font-family:'Share Tech Mono',monospace;}
+.ac-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.ac-title{font-family:'Rajdhani',sans-serif;font-size:1.05rem;font-weight:700;color:var(--nb);}
+.ac-tip.mil .ac-title{color:var(--nr);}
+.ac-live{font-size:.52rem;letter-spacing:.06em;color:var(--ng);border:1px solid var(--ng);padding:1px 6px;flex-shrink:0;white-space:nowrap;}
+.ac-grid{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.7rem;line-height:1.6;}
+.ac-grid .k{color:var(--muted);}
+.ac-grid .v{color:var(--text);white-space:nowrap;}
+.ac-mil-flag{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);color:var(--nr);font-size:.65rem;line-height:1.4;}
+.pop-wrap.ac-tip{max-width:260px;}
+.popup-mil .maplibregl-popup-content{border-color:var(--nr)!important;box-shadow:var(--gr)!important;}
 .lp-note{font-size:.6rem;color:var(--dim);line-height:1.5;margin-top:7px;padding-top:7px;border-top:1px solid var(--border);}
 
 /* POPUP CONTENT (threats + generic) */
@@ -841,7 +849,7 @@ function createAircraftMarkerEl(a){
   el.appendChild(icon);
   el.addEventListener('click', ev=>{
     ev.stopPropagation();
-    new maplibregl.Popup({ offset:10 })
+    new maplibregl.Popup({ offset:10, className: a.isMilitary?'popup-mil':'' })
       .setLngLat([a.lon, a.lat])
       .setHTML(aircraftPopupHtml(a))
       .addTo(map);
@@ -849,15 +857,61 @@ function createAircraftMarkerEl(a){
   return el;
 }
 
+const COMPASS_PTS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+function compassDir(deg){
+  return COMPASS_PTS[Math.round((((deg%360)+360)%360) / 22.5) % 16];
+}
+
+// OpenSky/adsb.lol report origin_country as an ISO-3166 short English name,
+// not a code — map the common ones to alpha-2 and derive the flag emoji from
+// that (regional-indicator codepoints) rather than hand-listing 70 flags.
+const COUNTRY_NAME_TO_ISO2 = {
+  'united states':'US','united kingdom':'GB','germany':'DE','france':'FR',
+  'russian federation':'RU','russia':'RU','china':'CN','ukraine':'UA','israel':'IL',
+  'iran, islamic republic of':'IR','iran':'IR','saudi arabia':'SA','india':'IN','turkey':'TR',
+  'poland':'PL','netherlands':'NL','italy':'IT','spain':'ES','canada':'CA','japan':'JP',
+  'korea, republic of':'KR','south korea':'KR','australia':'AU','brazil':'BR','mexico':'MX',
+  'egypt':'EG','united arab emirates':'AE','qatar':'QA','belgium':'BE','switzerland':'CH',
+  'austria':'AT','sweden':'SE','norway':'NO','denmark':'DK','finland':'FI','portugal':'PT',
+  'greece':'GR','romania':'RO','czech republic':'CZ','czechia':'CZ','ireland':'IE','iceland':'IS',
+  'pakistan':'PK','indonesia':'ID','thailand':'TH','viet nam':'VN','vietnam':'VN',
+  'philippines':'PH','malaysia':'MY','singapore':'SG','south africa':'ZA','nigeria':'NG',
+  'kenya':'KE','colombia':'CO','argentina':'AR','chile':'CL','new zealand':'NZ','taiwan':'TW',
+  "korea, democratic people's republic of":'KP','north korea':'KP','syrian arab republic':'SY',
+  'syria':'SY','jordan':'JO','lebanon':'LB','iraq':'IQ','yemen':'YE','kuwait':'KW','bahrain':'BH',
+  'oman':'OM','cyprus':'CY','croatia':'HR','serbia':'RS','bulgaria':'BG','hungary':'HU',
+  'slovakia':'SK','slovenia':'SI','estonia':'EE','latvia':'LV','lithuania':'LT','luxembourg':'LU','malta':'MT',
+};
+function isoFlag(code){
+  if(!code || code.length!==2) return null;
+  return String.fromCodePoint(...[...code.toUpperCase()].map(c=>127397+c.charCodeAt(0)));
+}
+function countryFlag(name){
+  if(!name) return null;
+  const code = COUNTRY_NAME_TO_ISO2[name.toLowerCase().trim()];
+  return code ? isoFlag(code) : null;
+}
+
 function aircraftPopupHtml(a){
-  const alt = a.altitude!=null ? Math.round(a.altitude)+' m' : '—';
-  const spd = a.velocity!=null ? Math.round(a.velocity*3.6)+' km/h' : '—'; // OpenSky/adsb.lol give m/s
-  return `<div class="pop-wrap ac-tip">
-    <b>${a.isMilitary?'🎖 ':'✈ '}${a.callsign||'Unknown callsign'}</b>
-    <div>ORIGIN: ${a.country||'—'}</div>
-    <div>ALTITUDE: ${alt}</div>
-    <div>SPEED: ${spd}</div>
-    ${a.isMilitary?'<div class="ac-mil-flag">⚠ LIKELY MILITARY</div>':''}
+  const mil = a.isMilitary;
+  const title = a.callsign || (mil ? 'Military Aircraft (unidentified)' : 'Aircraft (unidentified)');
+  const flag = countryFlag(a.country);
+
+  // Only real values get a row — no dashes, no "Unknown" placeholders.
+  const rows = [];
+  if(a.category) rows.push(['TYPE', a.category]);
+  if(a.altitude!=null) rows.push(['ALTITUDE', `${Math.round(a.altitude)} m / ${Math.round(a.altitude*3.28084)} ft`]);
+  if(a.velocity!=null) rows.push(['SPEED', `${Math.round(a.velocity*3.6)} km/h / ${Math.round(a.velocity*1.94384)} kt`]);
+  if(a.heading!=null) rows.push(['HEADING', `${Math.round(a.heading)}° ${compassDir(a.heading)}`]);
+  if(a.country) rows.push(['ORIGIN', `${flag?flag+' ':''}${a.country}`]);
+
+  return `<div class="pop-wrap ac-tip${mil?' mil':''}">
+    <div class="ac-head">
+      <div class="ac-title">${mil?'🎖':'✈'} ${title}</div>
+      <span class="ac-live">● LIVE ADS-B</span>
+    </div>
+    ${rows.length ? `<div class="ac-grid">${rows.map(([k,v])=>`<div class="k">${k}</div><div class="v">${v}</div>`).join('')}</div>` : ''}
+    ${mil && a.militaryReason ? `<div class="ac-mil-flag">⚠ FLAGGED MILITARY — ${a.militaryReason}</div>` : ''}
   </div>`;
 }
 

@@ -42,6 +42,11 @@ the route in the same commit as the new file.
   JSON) on 429 — `/api/search` handles this explicitly.
 - OpenSky's anonymous quota is ~100 `states/all` calls/day — `/api/aircraft`
   caches 30s server-side to stay under it.
+- `/api/aircraft`'s two sources report different units at the wire level
+  (OpenSky: meters, m/s; adsb.lol: feet, knots, ft/min) — the backend
+  normalizes everything to OpenSky's units (meters, m/s) before returning,
+  so the frontend can convert to display units from one canonical shape
+  regardless of which source served the response.
 - Wikidata's SPARQL endpoint 403s requests with no descriptive `User-Agent`
   (Node's default fetch sends none; browsers do automatically) —
   `api/country.js` sets one explicitly.
@@ -74,6 +79,18 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-03 (9): Rebuilt aircraft popups — `/api/aircraft` now returns every
+  field OpenSky/adsb.lol actually provide (category/type, vertical rate,
+  on-ground, squawk, registration) and a human-readable `militaryReason` for
+  every flagged aircraft instead of a bare boolean; also fixed a real unit
+  bug where the adsb.lol fallback path passed raw feet/knots through as if
+  they were meters/m-s (see gotcha above). Frontend popup only renders rows
+  with real values (no more dash-filled cards), titles unidentified military
+  contacts "Military Aircraft (unidentified)" instead of "Unknown callsign",
+  shows altitude/speed in both units, heading with compass point, origin
+  country+flag (derived from a name→ISO2 table, not hardcoded flags), and is
+  restyled to match the country intel panel (Rajdhani title, Share Tech Mono
+  grid, red border/glow for military vs cyan for civilian).
 - 2026-07-03 (8): Mobile responsive pass — sidebar converts to a full-screen
   slide-up sheet below 768px (opened/closed via a header "☰ INTEL" button),
   root font-size bumps on mobile so all rem-sized text stays readable

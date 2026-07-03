@@ -12,22 +12,53 @@
 // Military detection on the OpenSky path is a best-effort heuristic, not a
 // verified classification: known military callsign prefixes, plus the
 // well-documented ICAO24 hex block (AE0000-AFFFFF) publicly associated with
-// US DoD-registered aircraft.
+// US DoD-registered aircraft. Every flagged aircraft carries a human-readable
+// `militaryReason` so the frontend never just asserts "military" with no basis.
+//
+// Units are normalized to OpenSky's native units regardless of source, since
+// adsb.lol reports altitude in feet and speed in knots while OpenSky reports
+// meters and m/s — the frontend converts from these canonical units to
+// whatever display units it wants (both m/ft, both km/h/kt, etc).
+//   altitude: meters | velocity: m/s | verticalRate: m/s
 
 const CACHE_TTL_MS = 30 * 1000;
 const cache = { ts: 0, data: null };
+
+const FT_TO_M = 0.3048;
+const KT_TO_MS = 0.514444;
+const FPM_TO_MS = 0.00508;
 
 const MIL_CALLSIGN_PREFIXES = [
   'RCH', 'RRR', 'CFC', 'NATO', 'ASCOT', 'GAF', 'FAF', 'CTM', 'SPAR',
   'CNV', 'IAM', 'KNIFE', 'REACH', 'VIVI', 'DUKE', 'TREND', 'HKY',
 ];
 
-function isMilitaryAircraft(icao24, callsign) {
+function classifyMilitary(icao24, callsign) {
   const cs = (callsign || '').toUpperCase();
-  if (MIL_CALLSIGN_PREFIXES.some(p => cs.startsWith(p))) return true;
-  if (icao24 && /^ae/i.test(icao24)) return true; // US DoD ICAO24 block
-  return false;
+  const prefix = MIL_CALLSIGN_PREFIXES.find(p => cs.startsWith(p));
+  if (prefix) return { isMilitary: true, militaryReason: `callsign pattern "${prefix}"` };
+  if (icao24 && /^ae/i.test(icao24)) {
+    return { isMilitary: true, militaryReason: 'ICAO24 in US DoD hex block (AE0000–AFFFFF)' };
+  }
+  return { isMilitary: false, militaryReason: null };
 }
+
+// ADS-B emitter category, per the OpenSky `category` field (index 17) and
+// the equivalent 2-char codes adsb.lol/dump1090 report — same enum, two
+// different encodings, so one label set serves both.
+const CATEGORY_LABELS = [
+  null, 'No category info', 'Light aircraft', 'Small aircraft', 'Large aircraft',
+  'High vortex large', 'Heavy aircraft', 'High performance', 'Rotorcraft',
+  'Glider / sailplane', 'Lighter than air', 'Parachutist / skydiver',
+  'Ultralight / hang-glider', 'Reserved', 'UAV / drone', 'Space vehicle',
+  'Surface vehicle (emergency)', 'Surface vehicle (service)',
+  'Point obstacle', 'Cluster obstacle', 'Line obstacle',
+];
+const ADSB_CATEGORY_INDEX = {
+  A0: 1, A1: 2, A2: 3, A3: 4, A4: 5, A5: 6, A6: 7, A7: 8,
+  B0: 1, B1: 9, B2: 10, B3: 11, B4: 12, B6: 14, B7: 15,
+  C0: 1, C1: 16, C2: 17, C3: 18, C4: 19, C5: 19, C6: 19, C7: 20,
+};
 
 async function fetchWithTimeout(url, opts = {}, timeoutMs = 15000) {
   const controller = new AbortController();
@@ -48,17 +79,25 @@ async function fetchOpenSky() {
 
     const mapped = states
       .filter(s => s[5] != null && s[6] != null && !s[8]) // has position, airborne
-      .map(s => ({
-        icao24: s[0],
-        callsign: (s[1] || '').trim() || null,
-        country: s[2] || null,
-        lon: s[5],
-        lat: s[6],
-        altitude: s[7] ?? s[13] ?? null,
-        velocity: s[9] ?? null,
-        heading: s[10] ?? 0,
-        isMilitary: isMilitaryAircraft(s[0], s[1]),
-      }));
+      .map(s => {
+        const mil = classifyMilitary(s[0], s[1]);
+        return {
+          icao24: s[0],
+          callsign: (s[1] || '').trim() || null,
+          country: s[2] || null,
+          lon: s[5],
+          lat: s[6],
+          altitude: s[7] ?? s[13] ?? null,
+          velocity: s[9] ?? null,
+          heading: s[10] ?? 0,
+          verticalRate: s[11] ?? null,
+          onGround: !!s[8],
+          squawk: s[14] || null,
+          category: CATEGORY_LABELS[s[17]] || null,
+          registration: null, // not exposed by this source
+          ...mil,
+        };
+      });
 
     // Military first so the 200-cap never silently drops them for civilian traffic.
     mapped.sort((a, b) => Number(b.isMilitary) - Number(a.isMilitary));
@@ -77,17 +116,30 @@ async function fetchAdsbLolMilitary() {
 
     const mapped = list
       .filter(a => a.lat != null && a.lon != null && a.alt_baro !== 'ground')
-      .map(a => ({
-        icao24: a.hex || null,
-        callsign: (a.flight || '').trim() || null,
-        country: null, // not provided by this source
-        lon: a.lon,
-        lat: a.lat,
-        altitude: typeof a.alt_baro === 'number' ? a.alt_baro : null,
-        velocity: typeof a.gs === 'number' ? a.gs : null,
-        heading: a.track ?? a.nav_heading ?? 0,
-        isMilitary: true, // pre-filtered by the source
-      }));
+      .map(a => {
+        const rateFtMin = typeof a.baro_rate === 'number' ? a.baro_rate
+          : typeof a.geom_rate === 'number' ? a.geom_rate : null;
+        const catIdx = a.category ? ADSB_CATEGORY_INDEX[a.category] : null;
+        return {
+          icao24: a.hex || null,
+          callsign: (a.flight || '').trim() || null,
+          country: null, // not provided by this source
+          lon: a.lon,
+          lat: a.lat,
+          altitude: typeof a.alt_baro === 'number' ? a.alt_baro * FT_TO_M : null,
+          velocity: typeof a.gs === 'number' ? a.gs * KT_TO_MS : null,
+          heading: a.track ?? a.nav_heading ?? 0,
+          verticalRate: rateFtMin != null ? rateFtMin * FPM_TO_MS : null,
+          onGround: false, // pre-filtered above
+          squawk: a.squawk || null,
+          // `t` (ICAO type designator, e.g. "C17", "F16") is far more specific
+          // than the generic emitter category — prefer it when present.
+          category: a.t || CATEGORY_LABELS[catIdx] || null,
+          registration: a.r || null,
+          isMilitary: true, // pre-filtered by the source
+          militaryReason: 'source pre-filtered: api.adsb.lol/v2/mil (military-only feed)',
+        };
+      });
 
     return { aircraft: mapped.slice(0, 200), source: 'adsb.lol (military-only fallback)' };
   } catch (e) {
