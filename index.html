@@ -398,6 +398,23 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .sim-cascade-list li{font-size:.7rem;color:var(--text);padding:2px 0;padding-left:14px;position:relative;}
 .sim-cascade-list li::before{content:'→';color:var(--nr);position:absolute;left:0;}
 
+/* ALERT MODE */
+@keyframes alertPulse{0%,100%{opacity:1}50%{opacity:.5}}
+#alertbtn.pulsing{animation:alertPulse 1.3s ease-in-out infinite;}
+#alert-banner-container{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;}
+.alert-banner{pointer-events:auto;background:linear-gradient(90deg,#cc0022,#ff2244);color:#fff;padding:10px 18px;border-radius:4px;box-shadow:0 4px 24px rgba(255,0,50,.55);font-family:'Share Tech Mono',monospace;min-width:300px;max-width:560px;cursor:pointer;animation:alertSlideIn .35s ease-out;border:1px solid #ff8899;}
+.alert-banner.dismissing{animation:alertSlideOut .3s ease-in forwards;}
+@keyframes alertSlideIn{from{transform:translateY(-140%);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes alertSlideOut{from{transform:translateY(0);opacity:1}to{transform:translateY(-140%);opacity:0}}
+.alert-banner-head{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.76rem;margin-bottom:4px;letter-spacing:.5px;}
+.alert-banner-sev{background:rgba(255,255,255,.28);padding:1px 7px;border-radius:2px;font-size:.6rem;}
+.alert-banner-title{font-size:.74rem;line-height:1.35;}
+.alert-banner-meta{font-size:.6rem;opacity:.85;margin-top:4px;}
+.alert-log-panel{position:fixed;top:46px;right:16px;width:280px;max-height:340px;overflow-y:auto;background:var(--panel);border:1px solid var(--border);z-index:500;font-family:'Share Tech Mono',monospace;font-size:.66rem;box-shadow:0 6px 24px rgba(0,0,0,.5);}
+.alert-log-item{padding:8px 10px;border-bottom:1px solid var(--border);}
+.alert-log-item:last-child{border-bottom:none;}
+.alert-log-empty{padding:14px;color:var(--muted);text-align:center;}
+
 /* WEATHER */
 .wx-search{display:flex;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
 .wx-search input{flex:1;background:var(--panel);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-family:'Share Tech Mono',monospace;font-size:.7rem;}
@@ -471,8 +488,11 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <button class="btn" id="briefbtn">🔊 <span class="btn-label">BRIEF ME</span></button>
       <button class="btn red" id="brief-stop" style="display:none">⏹ <span class="btn-label">STOP</span></button>
       <button class="btn red" id="alertbtn">⚠ <span class="btn-label">ALERT MODE</span></button>
+      <button class="btn" id="alertlogbtn" title="Alert log">📋</button>
     </div>
   </div>
+  <div id="alert-log-panel" class="alert-log-panel" style="display:none"></div>
+  <div id="alert-banner-container"></div>
   <audio id="brief-audio" style="display:none"></audio>
 
   <div id="gl">
@@ -2183,6 +2203,188 @@ async function runWhatIfSimulation(){
 }
 
 // ═══════════════════════════════════
+// ALERT MODE — polls the live feed for genuinely NEW high-severity
+// articles while ON and announces each with a sound + banner (+ an
+// optional desktop notification). Off by default; no polling, no sound,
+// no notifications until the user explicitly turns it on. Severity reuses
+// the same threatScore/tag heuristic the backend already uses elsewhere
+// in this app (score>=75 or tag==='NUCLEAR' => HIGH).
+// ═══════════════════════════════════
+let alertOn=false;
+let alertSeenIds=new Set();
+let alertPollTimer=null;
+let alertQueue=[];
+let alertAnnouncing=false;
+let alertLog=[];
+const ALERT_POLL_MS=60000;
+const ALERT_LOG_MAX=10;
+const ALERT_ANNOUNCE_GAP_MS=1800; // sequential spacing so overlapping alerts never overlap sounds
+
+// Small name lookup for the codes TICKER_LOC_PATTERNS already recognizes —
+// that array only carries lat/lon/code (for map flyTo), not a display name.
+const ALERT_COUNTRY_NAMES={UA:'Ukraine',RU:'Russia',IL:'Israel',IR:'Iran',TW:'Taiwan',KP:'North Korea',YE:'Yemen',LB:'Lebanon',SD:'Sudan',MM:'Myanmar',CN:'China',PK:'Pakistan',SY:'Syria',HT:'Haiti',VE:'Venezuela',US:'United States',GB:'United Kingdom',FR:'France',DE:'Germany',IN:'India'};
+
+function articleSeverity(a){
+  if(a.threatScore>=75||a.tag==='NUCLEAR') return 'HIGH';
+  if(a.threatScore>=50) return 'MEDIUM';
+  return 'LOW';
+}
+
+function articleKey(a){ return a.id||a.url||a.title; }
+
+let alertAudioCtx=null;
+function playAlertSound(){
+  try{
+    if(!alertAudioCtx) alertAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const ctx=alertAudioCtx;
+    if(ctx.state==='suspended') ctx.resume();
+    const now=ctx.currentTime;
+    // A short, sharp double-beep (not a continuous siren) — tasteful, not spammy.
+    [0,0.18].forEach(offset=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.type='square';
+      osc.frequency.setValueAtTime(880,now+offset);
+      gain.gain.setValueAtTime(0.0001,now+offset);
+      gain.gain.exponentialRampToValueAtTime(0.25,now+offset+0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001,now+offset+0.14);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(now+offset); osc.stop(now+offset+0.16);
+    });
+  }catch(e){ /* Web Audio unavailable -- the banner still shows silently */ }
+}
+
+function showAlertBanner(article,severity,countryName){
+  const container=document.getElementById('alert-banner-container');
+  const banner=document.createElement('div');
+  banner.className='alert-banner';
+  banner.innerHTML=`
+    <div class="alert-banner-head">🚨 ALERT <span class="alert-banner-sev">${severity}</span></div>
+    <div class="alert-banner-title">${article.title}</div>
+    <div class="alert-banner-meta">${countryName?countryName+' · ':''}${article.source||''}</div>
+  `;
+  const dismiss=()=>{
+    banner.classList.add('dismissing');
+    setTimeout(()=>banner.remove(),300);
+  };
+  banner.addEventListener('click',dismiss);
+  setTimeout(dismiss,10000);
+  container.appendChild(banner);
+}
+
+async function ensureNotificationPermission(){
+  if(!('Notification' in window)) return false;
+  if(Notification.permission==='granted') return true;
+  if(Notification.permission==='denied') return false;
+  try{ return (await Notification.requestPermission())==='granted'; }
+  catch(e){ return false; }
+}
+
+function fireDesktopNotification(article,severity){
+  if(!('Notification' in window)||Notification.permission!=='granted') return;
+  try{ new Notification(`⚠ ${severity} ALERT`,{ body:article.title, tag:article.id }); }
+  catch(e){ /* ignore -- banner already covers this */ }
+}
+
+function logAlert(article,severity,countryName){
+  alertLog.unshift({ title:article.title, severity, country:countryName, ts:new Date().toISOString() });
+  alertLog=alertLog.slice(0,ALERT_LOG_MAX);
+  renderAlertLog();
+}
+
+function renderAlertLog(){
+  const panel=document.getElementById('alert-log-panel');
+  if(!alertLog.length){
+    panel.innerHTML='<div class="alert-log-empty">No alerts yet.</div>';
+    return;
+  }
+  panel.innerHTML=alertLog.map(a=>`
+    <div class="alert-log-item">
+      <div style="color:var(--nr);font-weight:700">${a.severity}${a.country?' · '+a.country:''}</div>
+      <div>${a.title}</div>
+      <div style="color:var(--muted);margin-top:2px">${timeAgo(a.ts)}</div>
+    </div>
+  `).join('');
+}
+
+// Announces queued alerts one at a time (sound+banner+notification+log),
+// spaced ALERT_ANNOUNCE_GAP_MS apart, so several new high-severity articles
+// arriving in the same poll never overlap their beeps.
+function processAlertQueue(){
+  if(alertAnnouncing||!alertQueue.length) return;
+  alertAnnouncing=true;
+  const article=alertQueue.shift();
+  const severity=articleSeverity(article);
+  const loc=inferArticleLocation(article.title);
+  const countryName=loc?(ALERT_COUNTRY_NAMES[loc.code]||loc.code):null;
+
+  playAlertSound();
+  showAlertBanner(article,severity,countryName);
+  fireDesktopNotification(article,severity);
+  logAlert(article,severity,countryName);
+
+  setTimeout(()=>{
+    alertAnnouncing=false;
+    processAlertQueue();
+  },ALERT_ANNOUNCE_GAP_MS);
+}
+
+async function alertPollTick(){
+  if(!alertOn) return;
+  try{
+    // Hits the same cached /api/news feed (5min server TTL) as the rest of
+    // the app — a cache hit is fine, the seen-set below only cares whether
+    // an article's own id is genuinely new to THIS browser session, which
+    // is unaffected by whether the server recomputed or served from Redis.
+    const d=await apiGet('/news?type=world');
+    const fresh=[];
+    (d.articles||[]).forEach(a=>{
+      const key=articleKey(a);
+      if(alertSeenIds.has(key)) return;
+      alertSeenIds.add(key);
+      if(articleSeverity(a)==='HIGH') fresh.push(a);
+    });
+    if(fresh.length){
+      alertQueue.push(...fresh);
+      processAlertQueue();
+    }
+  }catch(e){
+    console.error('Alert poll failed:',e.message);
+  }
+}
+
+function updateAlertButtonUI(){
+  const btn=document.getElementById('alertbtn');
+  btn.innerHTML=alertOn?'✓ <span class="btn-label">ALERT ON</span>':'⚠ <span class="btn-label">ALERT MODE</span>';
+  btn.style.color=alertOn?'var(--ng)':'var(--nr)';
+  btn.classList.toggle('pulsing',alertOn);
+}
+
+async function enableAlertMode(){
+  alertOn=true;
+  updateAlertButtonUI();
+  // Seed the seen-set with whatever's currently live BEFORE polling starts,
+  // so turning this on never immediately "alerts" on articles that were
+  // already on screen — only genuinely new arrivals count.
+  try{
+    const d=await apiGet('/news?type=world');
+    (d.articles||[]).forEach(a=>alertSeenIds.add(articleKey(a)));
+  }catch(e){
+    liveArticles.forEach(a=>alertSeenIds.add(articleKey(a)));
+  }
+  await ensureNotificationPermission();
+  if(alertPollTimer) clearInterval(alertPollTimer);
+  alertPollTimer=setInterval(alertPollTick,ALERT_POLL_MS);
+}
+
+function disableAlertMode(){
+  alertOn=false;
+  updateAlertButtonUI();
+  if(alertPollTimer){ clearInterval(alertPollTimer); alertPollTimer=null; }
+  alertQueue=[];
+}
+
+// ═══════════════════════════════════
 // ENTITY EXTRACTION
 // ═══════════════════════════════════
 async function loadEntities(articles){
@@ -2340,11 +2542,20 @@ document.querySelectorAll('.sim-mode-btn').forEach(btn=>{
 document.getElementById('sim-go-conflict').addEventListener('click',runConflictSimulation);
 document.getElementById('sim-go-whatif').addEventListener('click',runWhatIfSimulation);
 document.getElementById('sim-whatif-input').addEventListener('keydown', e=>{ if(e.key==='Enter') runWhatIfSimulation(); });
-let alertOn=false;
 document.getElementById('alertbtn').addEventListener('click',()=>{
-  alertOn=!alertOn;
-  document.getElementById('alertbtn').innerHTML=alertOn?'✓ <span class="btn-label">ALERT ON</span>':'⚠ <span class="btn-label">ALERT MODE</span>';
-  document.getElementById('alertbtn').style.color=alertOn?'var(--ng)':'var(--nr)';
+  if(alertOn) disableAlertMode(); else enableAlertMode();
+});
+renderAlertLog();
+document.getElementById('alertlogbtn').addEventListener('click',(ev)=>{
+  ev.stopPropagation();
+  const panel=document.getElementById('alert-log-panel');
+  panel.style.display=panel.style.display==='none'?'block':'none';
+});
+document.addEventListener('click',(ev)=>{
+  const panel=document.getElementById('alert-log-panel');
+  if(panel.style.display!=='none' && !panel.contains(ev.target) && ev.target.id!=='alertlogbtn'){
+    panel.style.display='none';
+  }
 });
 setInterval(()=>{
   const n=new Date();

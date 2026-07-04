@@ -381,6 +381,45 @@ below for the full tiered-TTL table and the fallback guarantee.
   fetch aborts before the inner one ever has a chance to finish (this
   shipped once during development: every request silently returned zero
   articles because the two timeouts were racing at the same 9s value).
+- **ALERT MODE (header button) used to be a pure UI stub** — toggling it
+  only flipped a boolean and changed the button's own text/color, with no
+  polling, sound, or notification wired to anything. Now fully functional,
+  entirely client-side in `index.html` (no new backend endpoint — it polls
+  the existing `/api/news?type=world`, which is already Redis-cached
+  server-side at 5min): while ON, `alertPollTick()` runs every 60s
+  (`ALERT_POLL_MS`), diffing the feed against a client-side `alertSeenIds`
+  set (article `id`/`url`/`title`) so only genuinely new arrivals count —
+  a 5min-cached server response repeatedly returning the same articles is
+  fine, since dedup happens client-side against actual content, not
+  against whether the server recomputed. Severity reuses this app's
+  existing threatScore/tag heuristic (`score>=75` or `tag==='NUCLEAR'` =>
+  HIGH, matching `buildWarnings`'s `severityForArticle` server-side) — only
+  HIGH triggers an alert. **Turning it ON seeds `alertSeenIds` with
+  whatever's currently live BEFORE the first poll**, specifically so
+  enabling the feature never immediately fires alerts for articles already
+  on screen — only things that arrive afterward. Multiple new HIGH articles
+  in the same poll are queued (`alertQueue`) and announced one at a time
+  (`processAlertQueue()`, `ALERT_ANNOUNCE_GAP_MS=1800`) so simultaneous
+  arrivals never overlap their sounds. Each alert is a Web Audio API
+  double-beep (`playAlertSound()` — two 140ms square-wave tones, no
+  external audio file), a red slide-in banner (`#alert-banner-container`,
+  auto-dismiss 10s or on click), an optional `Notification` API desktop
+  notification (permission requested only once, the first time the user
+  turns ALERT MODE on, via `ensureNotificationPermission()` — never
+  requested on page load), and an entry in a capped 10-item log
+  (`alertLog`, viewable via the new 📋 button's dropdown panel). Turning it
+  OFF clears the poll timer and drops anything still queued — genuinely
+  silent, no residual timers. **No Playwright/real browser was available
+  in this session**, so this was verified with a Node + minimal-DOM-stub
+  harness that `eval`'d the actual extracted JS (not a reimplementation) —
+  confirmed: severity thresholds match the server-side convention,
+  enabling seeds the seen-set with zero banners fired on activation, a
+  poll correctly fires on exactly the one genuinely-new HIGH article while
+  ignoring an already-seen one and a new-but-low-severity one, an
+  identical repeat poll produces zero new alerts, several simultaneous new
+  HIGH articles queue and announce sequentially without overlapping, and
+  disabling cleanly stops the timer. The actual sound/visual/OS-notification
+  experience in a real browser is unverified here.
 - Brief Me's voice is ElevenLabs (`api/tts.js`, voice "Adam",
   `eleven_turbo_v2_5`) via `ELEVENLABS_API_KEY`; with no key or on any
   ElevenLabs failure it falls back to the browser's built-in
@@ -469,6 +508,26 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-04 (22): Made the header's ALERT MODE button actually functional
+  — it was a pure UI stub (toggled a boolean, changed its own label/color,
+  did nothing else). Now: while ON, polls the existing `/api/news` feed
+  every 60s and diffs it client-side against a seen-articles set (seeded
+  on activation so nothing already on screen triggers a false alert),
+  reusing this app's existing threatScore/tag severity heuristic to alert
+  only on HIGH-severity new arrivals. Each alert plays a Web Audio API
+  double-beep (no external audio file), shows a red auto-dismissing slide-in
+  banner, optionally fires an OS `Notification` (permission requested only
+  once, the first time ALERT MODE is turned on — never on page load), and
+  logs into a capped 10-item alert history (viewable via a new 📋 header
+  button). Multiple simultaneous new HIGH articles queue and announce
+  sequentially so their sounds never overlap. Entirely client-side, no new
+  backend endpoint. No Playwright/real browser was available in this
+  session, so this was verified with a Node harness that `eval`'d the
+  actual extracted JS against minimal DOM stubs rather than a real page —
+  confirmed severity thresholds, seen-set seeding, dedup across repeat
+  polls, sequential no-overlap queueing, and clean shutdown all work
+  correctly; the real sound/banner/OS-notification experience in an actual
+  browser is unverified here.
 - 2026-07-04 (21): Added auto-generated, browsable SCENARIOS — the opposite
   interaction model from the SIMULATE tab (zero user input; the app decides
   what to show from the live feed and the user browses). Redesigned the
