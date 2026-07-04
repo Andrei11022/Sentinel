@@ -26,8 +26,11 @@
 // resolve to the same regional centroid so they don't stack exactly on
 // top of each other on the map.
 
+const { getCache, setCache } = require('../lib/cache');
+
 const NEWS_CACHE_TTL_MS = 3 * 60 * 1000; // matches api/search.js's live-news cache cadence
 let listCache = { ts: 0, data: null };
+const FLEET_CACHE_TTL_SEC = 600; // Redis tier, per PROGRESS.md's tiered-caching design
 
 const HOMEPORT_TTL_MS = 24 * 60 * 60 * 1000; // home ports don't move; cache aggressively
 const homeportGeoCache = new Map(); // homeport text -> { ts, coords }
@@ -388,6 +391,11 @@ async function locateShip(ship, articles) {
 }
 
 async function computeFleet(baseUrl) {
+  const cacheKey = 'naval:fleet';
+
+  const fromRedis = await getCache(cacheKey);
+  if (fromRedis) return fromRedis;
+
   if (listCache.data && Date.now() - listCache.ts < NEWS_CACHE_TTL_MS) return listCache.data;
 
   const articles = await fetchLiveNews(baseUrl);
@@ -402,6 +410,7 @@ async function computeFleet(baseUrl) {
     note: 'Positions estimated from OSINT (live news) reports, not live GPS tracking.',
   };
   listCache = { ts: Date.now(), data: payload };
+  await setCache(cacheKey, payload, FLEET_CACHE_TTL_SEC);
   return payload;
 }
 

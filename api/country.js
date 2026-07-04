@@ -24,17 +24,58 @@
 // overwrites a real value, only fills a genuine `null`. Fields the AI
 // actually supplied are listed in `result.aiFields` so the frontend can
 // label them honestly instead of presenting them as live facts.
-const { askAI, isConfigured } = require('../lib/ai');
+const { askAI, isConfigured: aiConfigured } = require('../lib/ai');
+const { getCache, setCache } = require('../lib/cache');
 
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1hr for a complete result — persists across warm invocations
+// Three independently-cached buckets, per PROGRESS.md's tiered-TTL design —
+// caching the whole card under one TTL would freeze leader data behind
+// whatever TTL the slowest-changing field (population, currency, ...) gets.
+// Redis (shared/persistent across invocations) is checked first; each
+// bucket also keeps its own in-memory Map as a same-shape fallback so the
+// endpoint degrades to exactly its pre-Redis behavior if Upstash is
+// unreachable or unconfigured — cache is an optimization, never a hard
+// dependency.
+const STATIC_TTL = 604800;    // 7d: capital, region, incomeLevel, population, currency, language, name, flag, lat/lon
+const LEADERSHIP_TTL = 43200; // 12h: leader, headOfGovernment, elections
+const AI_TTL = 86400;         // 24h: politicalLeaning, governmentType, keyAllies, primaryRivals
 // Wikidata's public SPARQL endpoint occasionally has one-off latency spikes
 // well past what's reasonable to make a user wait on (confirmed live: the
 // exact same US query that timed out once came back in ~200ms on every
 // other attempt) — when a source comes back partial/null, that's very
 // likely transient, so cache it far more briefly rather than baking a
-// one-time blip into an hour of "missing" data on every country click.
-const PARTIAL_CACHE_TTL_MS = 5 * 60 * 1000;
-const cache = new Map();
+// one-time blip into 7 days/12h of "missing" data on every country click.
+const PARTIAL_TTL = 300;
+
+const staticMemCache = new Map();
+const leadershipMemCache = new Map();
+const aiMemCache = new Map();
+
+function memGet(map, key) {
+  const hit = map.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.ts >= hit.ttlMs) {
+    map.delete(key);
+    return null;
+  }
+  return hit.data;
+}
+
+function memSet(map, key, data, ttlSeconds) {
+  map.set(key, { ts: Date.now(), data, ttlMs: ttlSeconds * 1000 });
+}
+
+// Redis first (shared across instances/cold starts), then the per-instance
+// in-memory map, then null (meaning: go do the live work).
+async function readBucket(map, key) {
+  const fromRedis = await getCache(key);
+  if (fromRedis) return fromRedis;
+  return memGet(map, key);
+}
+
+async function writeBucket(map, key, data, ttlSeconds) {
+  memSet(map, key, data, ttlSeconds);
+  await setCache(key, data, ttlSeconds); // best-effort; setCache never throws
+}
 
 const WIKIDATA_UA = 'SentinelIntelligence/1.0 (https://github.com/Andrei11022/Sentinel)';
 // Wikimedia's User-Agent policy 403s requests without a descriptive UA
@@ -176,7 +217,7 @@ const AI_FIELD_MAP = {
 };
 
 async function fillGapsWithAI(countryName) {
-  if (!isConfigured()) return null;
+  if (!aiConfigured()) return null;
   try {
     const text = await askAI({
       messages: [{
@@ -192,6 +233,13 @@ async function fillGapsWithAI(countryName) {
   }
 }
 
+function cleanAIValue(val) {
+  if (val == null) return null;
+  const s = String(val).trim();
+  if (!s || s.toLowerCase() === 'null') return null;
+  return s;
+}
+
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -201,68 +249,127 @@ module.exports = async function handler(req, res) {
   }
   const upperCode = code.toUpperCase();
 
-  const cached = cache.get(upperCode);
-  if (cached && Date.now() - cached.ts < cached.ttl) {
-    return res.status(200).json(cached.data);
-  }
+  const staticKey = `country:static:${upperCode}`;
+  const leadershipKey = `country:leadership:${upperCode}`;
+  const aiKey = `country:ai:${upperCode}`;
+
+  let staticBucket = await readBucket(staticMemCache, staticKey);
+  let leadershipBucket = await readBucket(leadershipMemCache, leadershipKey);
+  let aiBucket = await readBucket(aiMemCache, aiKey);
+
+  const needStatic = !staticBucket;
+  const needLeadership = !leadershipBucket;
+  const needAI = !aiBucket;
+  const needWikidata = needStatic || needLeadership; // one SPARQL query feeds both
 
   const [wb, population, wd] = await Promise.all([
-    fetchWorldBank(upperCode),
-    fetchWorldBankPopulation(upperCode),
-    fetchWikidata(upperCode),
+    needStatic ? fetchWorldBank(upperCode) : Promise.resolve(null),
+    needStatic ? fetchWorldBankPopulation(upperCode) : Promise.resolve(null),
+    needWikidata ? fetchWikidata(upperCode) : Promise.resolve(null),
   ]);
 
-  // Only a genuinely unrecognized code (no source has ever heard of it)
-  // should look like "no data" to the frontend.
-  if (!wb && !population && !wd) {
+  // Only a genuinely unrecognized code (nothing cached, no source has ever
+  // heard of it) should look like "no data" to the frontend.
+  if (!staticBucket && !leadershipBucket && !wb && !wd && population == null) {
     return res.status(404).json({ error: 'Country not found', code: upperCode });
   }
 
-  const result = {
-    code: upperCode,
-    name: wb?.name || wd?.name || upperCode,
-    flag: flagEmoji(upperCode),
-    capital: wb?.capital || null,
-    region: wb?.region || null,
-    incomeLevel: wb?.incomeLevel || null,
-    population,
-    currency: wd?.currency || null,
-    language: wd?.language || null,
-    leader: wd?.headOfState || null,
-    headOfGovernment: wd?.headOfGovernment || null,
-    elections: ELECTIONS[upperCode] || null,
-    politicalLeaning: POLITICAL_LEANING[upperCode] || null,
-    governmentType: null,
-    keyAllies: null,
-    primaryRivals: null,
-    aiFields: [],
-    lat: wb?.lat ?? null,
-    lon: wb?.lon ?? null,
-  };
+  if (needStatic) {
+    const isPartial = !wb || population == null;
+    staticBucket = {
+      name: wb?.name || wd?.name || upperCode,
+      flag: flagEmoji(upperCode),
+      capital: wb?.capital || null,
+      region: wb?.region || null,
+      incomeLevel: wb?.incomeLevel || null,
+      population,
+      currency: wd?.currency || null,
+      language: wd?.language || null,
+      lat: wb?.lat ?? null,
+      lon: wb?.lon ?? null,
+    };
+    await writeBucket(staticMemCache, staticKey, staticBucket, isPartial ? PARTIAL_TTL : STATIC_TTL);
+  }
 
-  // Only spend a Groq call on genuine gaps — never on fields the hardcoded
-  // tables or live sources above already answered.
-  const stillMissing = Object.values(AI_FIELD_MAP).some((field) => result[field] == null);
-  if (stillMissing) {
-    const aiData = await fillGapsWithAI(result.name);
+  if (needLeadership) {
+    leadershipBucket = {
+      leader: wd?.headOfState || null,
+      headOfGovernment: wd?.headOfGovernment || null,
+      elections: ELECTIONS[upperCode] || null,
+      aiFields: [],
+    };
+  }
+  if (needAI) {
+    aiBucket = {
+      politicalLeaning: POLITICAL_LEANING[upperCode] || null,
+      governmentType: null,
+      keyAllies: null,
+      primaryRivals: null,
+      aiFields: [],
+    };
+  }
+
+  // Leadership (elections) and the AI bucket (the other 4 fields) can each
+  // independently want a Groq fill — most commonly on a country's very
+  // first lookup, where neither is cached yet. Make exactly ONE Groq call
+  // when either genuinely needs one, and split its response across
+  // whichever bucket(s) were actually being freshly computed this request —
+  // never call Groq twice for what's really one shared response, and never
+  // touch a bucket that's still valid from cache.
+  const needsElectionsAI = needLeadership && !leadershipBucket.elections;
+  const needsAIBucketFill = needAI && (!aiBucket.politicalLeaning || !aiBucket.governmentType || !aiBucket.keyAllies || !aiBucket.primaryRivals);
+
+  if ((needsElectionsAI || needsAIBucketFill) && aiConfigured()) {
+    const aiData = await fillGapsWithAI(staticBucket.name);
     if (aiData) {
-      for (const [aiKey, field] of Object.entries(AI_FIELD_MAP)) {
-        if (result[field] != null) continue; // never overwrite a real value
-        const val = aiData[aiKey];
-        if (val == null || String(val).trim().toLowerCase() === 'null' || !String(val).trim()) continue;
-        result[field] = String(val).trim();
-        result.aiFields.push(field);
+      if (needsElectionsAI) {
+        const val = cleanAIValue(aiData.nextElections);
+        if (val) {
+          leadershipBucket.elections = val;
+          leadershipBucket.aiFields.push('elections');
+        }
+      }
+      if (needsAIBucketFill) {
+        for (const [aiKeyName, field] of Object.entries(AI_FIELD_MAP)) {
+          if (field === 'elections') continue; // handled above, belongs to the leadership bucket
+          if (aiBucket[field] != null) continue; // never overwrite a real (hardcoded-table) value
+          const val = cleanAIValue(aiData[aiKeyName]);
+          if (!val) continue;
+          aiBucket[field] = val;
+          aiBucket.aiFields.push(field);
+        }
       }
     }
   }
 
-  // Full TTL only when every source actually answered — a result missing
-  // World Bank or Wikidata data gets a much shorter TTL so a transient
-  // failure self-heals on the next click instead of showing "—" for an
-  // hour (see PARTIAL_CACHE_TTL_MS comment above). The AI gap-fill result
-  // (or lack of one) is cached right along with everything else here, so
-  // it's not re-requested from Groq on every click.
-  const isComplete = wb && wd && population != null;
-  cache.set(upperCode, { ts: Date.now(), data: result, ttl: isComplete ? CACHE_TTL_MS : PARTIAL_CACHE_TTL_MS });
+  if (needLeadership) {
+    await writeBucket(leadershipMemCache, leadershipKey, leadershipBucket, !wd ? PARTIAL_TTL : LEADERSHIP_TTL);
+  }
+  if (needAI) {
+    await writeBucket(aiMemCache, aiKey, aiBucket, AI_TTL);
+  }
+
+  const result = {
+    code: upperCode,
+    name: staticBucket.name,
+    flag: staticBucket.flag,
+    capital: staticBucket.capital,
+    region: staticBucket.region,
+    incomeLevel: staticBucket.incomeLevel,
+    population: staticBucket.population,
+    currency: staticBucket.currency,
+    language: staticBucket.language,
+    leader: leadershipBucket.leader,
+    headOfGovernment: leadershipBucket.headOfGovernment,
+    elections: leadershipBucket.elections,
+    politicalLeaning: aiBucket.politicalLeaning,
+    governmentType: aiBucket.governmentType,
+    keyAllies: aiBucket.keyAllies,
+    primaryRivals: aiBucket.primaryRivals,
+    aiFields: [...leadershipBucket.aiFields, ...aiBucket.aiFields],
+    lat: staticBucket.lat,
+    lon: staticBucket.lon,
+  };
+
   return res.status(200).json(result);
 };

@@ -21,7 +21,10 @@
 // whatever display units it wants (both m/ft, both km/h/kt, etc).
 //   altitude: meters | velocity: m/s | verticalRate: m/s
 
+const { getCache, setCache } = require('../lib/cache');
+
 const CACHE_TTL_MS = 30 * 1000;
+const CACHE_TTL_SEC = 30;
 const cache = { ts: 0, data: null };
 
 const FT_TO_M = 0.3048;
@@ -150,6 +153,11 @@ async function fetchAdsbLolMilitary() {
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
+  const cacheKey = 'aircraft:live';
+
+  const fromRedis = await getCache(cacheKey);
+  if (fromRedis) return res.status(200).json(fromRedis);
+
   if (cache.data && Date.now() - cache.ts < CACHE_TTL_MS) {
     return res.status(200).json(cache.data);
   }
@@ -161,5 +169,6 @@ module.exports = async function handler(req, res) {
   const payload = { ...result, count: result.aircraft.length, updatedAt: new Date().toISOString() };
   cache.data = payload;
   cache.ts = Date.now();
+  await setCache(cacheKey, payload, CACHE_TTL_SEC);
   return res.status(200).json(payload);
 };

@@ -1,4 +1,14 @@
+const { getCache, setCache } = require('../lib/cache');
+
 const GUARDIAN_KEY = process.env.GUARDIAN_KEY || '473fcab8-81fa-4e79-a17e-429debaa4bc1';
+
+// Main news feed / briefing feed — Redis-cached 5min (with a same-shape
+// in-memory fallback per PROGRESS.md's tiered-caching design), so repeat
+// polling of the same feed type doesn't re-hit Guardian/GDELT/RSS every
+// time. Cache is an optimization only — see lib/cache.js for the
+// no-Upstash/Redis-throws fallback behavior.
+const NEWS_CACHE_TTL = 300;
+const memCache = new Map();
 
 const QUERIES = [
   { q: 'war+OR+conflict+OR+military+OR+troops+OR+invasion+OR+offensive', sec: 'world|politics', label: 'Conflict' },
@@ -112,12 +122,7 @@ function isMideastHeadline(title) {
   return /israel|gaza|iran|hezbollah|hamas|yemen|houthi|lebanon|syria|iraq|west bank|middle east/i.test(title || '');
 }
 
-module.exports = async function handler(req, res) {
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  const type = req.query.type || 'world';
+async function fetchNews(type) {
   const seen = new Set();
   const articles = [];
 
@@ -215,7 +220,7 @@ module.exports = async function handler(req, res) {
   const maxArticles = type === 'mideast' ? 18 : 30;
   const sliced = articles.slice(0, maxArticles);
 
-  res.status(200).json({
+  return {
     articles: sliced,
     meta: {
       total: sliced.length,
@@ -223,5 +228,27 @@ module.exports = async function handler(req, res) {
       fetchedAt: new Date().toISOString(),
       avgThreatScore: Math.round(sliced.reduce((s, a) => s + a.threatScore, 0) / Math.max(sliced.length, 1)),
     },
-  });
+  };
+}
+
+module.exports = async function handler(req, res) {
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  const type = req.query.type || 'world';
+  const cacheKey = `news:${type}`;
+
+  const fromRedis = await getCache(cacheKey);
+  if (fromRedis) return res.status(200).json(fromRedis);
+
+  const memHit = memCache.get(cacheKey);
+  if (memHit && Date.now() - memHit.ts < NEWS_CACHE_TTL * 1000) {
+    return res.status(200).json(memHit.data);
+  }
+
+  const result = await fetchNews(type);
+  memCache.set(cacheKey, { ts: Date.now(), data: result });
+  await setCache(cacheKey, result, NEWS_CACHE_TTL);
+  return res.status(200).json(result);
 };

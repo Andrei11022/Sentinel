@@ -10,6 +10,22 @@
 // links instead of the model just asserting sources exist.
 
 const { askAI, isConfigured } = require('../lib/ai');
+const { getCache, setCache, hashKey } = require('../lib/cache');
+
+// AI analyst answers are grounded in the shared live news/threats feed, not
+// personal context, so identical (question + conversation-so-far) pairs
+// asked by different users within the same window can safely share one
+// cached answer. History is folded into the hash (not just the question
+// text alone) specifically so two unrelated conversations that both happen
+// to send a generic follow-up like "tell me more about that" don't collide
+// and serve each other's answer — only genuinely identical question+history
+// pairs hit the cache.
+const ANALYST_CACHE_TTL = 900;
+const memCache = new Map();
+
+function normalizeQuestion(q) {
+  return q.trim().toLowerCase().replace(/\s+/g, ' ');
+}
 
 const SYSTEM_PROMPT = 'You are SENTINEL, an AI intelligence analyst. Answer using ONLY the ' +
   'provided live intelligence data. Cite sources. If data is insufficient, ' +
@@ -152,6 +168,16 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  const cacheKey = 'analyst:' + hashKey(normalizeQuestion(q) + '|' + JSON.stringify(sanitizeHistory(history)));
+
+  const fromRedis = await getCache(cacheKey);
+  if (fromRedis) return res.status(200).json(fromRedis);
+
+  const memHit = memCache.get(cacheKey);
+  if (memHit && Date.now() - memHit.ts < ANALYST_CACHE_TTL * 1000) {
+    return res.status(200).json(memHit.data);
+  }
+
   const proto = req.headers['x-forwarded-proto'] || 'https';
   const baseUrl = `${proto}://${req.headers.host}`;
 
@@ -169,7 +195,10 @@ module.exports = async function handler(req, res) {
     const answer = await askAnalyst(q, history, filteredArticles, filteredThreats);
     const sources = extractCitedSources(answer, filteredArticles);
 
-    return res.status(200).json({ answer, sources, configured: true });
+    const result = { answer, sources, configured: true };
+    memCache.set(cacheKey, { ts: Date.now(), data: result });
+    await setCache(cacheKey, result, ANALYST_CACHE_TTL);
+    return res.status(200).json(result);
   } catch (e) {
     return res.status(200).json({
       answer: `Analyst error: ${e.message}. Live intelligence feed or the AI model may be temporarily unavailable — try again shortly.`,

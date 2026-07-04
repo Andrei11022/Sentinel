@@ -16,6 +16,7 @@
 // used implementation under the same `type:'entities'` name. No live feature
 // was dropped; that branch was dead code even before this merge.
 const { askAI, isConfigured } = require('../lib/ai');
+const { getCache, setCache } = require('../lib/cache');
 
 // ─── shared by brief/correlations/warnings/actors (was analyze.js) ───
 
@@ -274,7 +275,9 @@ async function runGroqAnalyze(type, articles) {
   }
 }
 
-async function handleAnalyzeType(type, req, res) {
+// Returns the response payload directly (rather than writing to `res`) so
+// the router can cache it — see the router's CACHE_CONFIG for 'brief'.
+async function computeAnalyzeType(type, req) {
   const { articles } = req.body || {};
   const clean = cleanArticles(articles);
   const forType = type === 'brief'
@@ -283,19 +286,19 @@ async function handleAnalyzeType(type, req, res) {
 
   try {
     const aiResult = await runGroqAnalyze(type, forType);
-    if (aiResult) return res.status(200).json({ result: aiResult, fallback: false });
+    if (aiResult) return { result: aiResult, fallback: false };
 
-    if (type === 'brief') return res.status(200).json({ result: buildBrief(forType), fallback: true });
-    if (type === 'correlations') return res.status(200).json({ result: buildCorrelations(clean), fallback: true });
-    if (type === 'warnings') return res.status(200).json({ result: buildWarnings(clean), fallback: true });
-    if (type === 'actors') return res.status(200).json({ result: extractActors(clean), fallback: true });
-    return res.status(400).json({ error: 'Unknown type' });
+    if (type === 'brief') return { result: buildBrief(forType), fallback: true };
+    if (type === 'correlations') return { result: buildCorrelations(clean), fallback: true };
+    if (type === 'warnings') return { result: buildWarnings(clean), fallback: true };
+    if (type === 'actors') return { result: extractActors(clean), fallback: true };
+    return { error: 'Unknown type' };
   } catch (e) {
-    if (type === 'brief') return res.status(200).json({ result: buildBrief(forType), fallback: true, error: e.message });
-    if (type === 'correlations') return res.status(200).json({ result: buildCorrelations(clean), fallback: true, error: e.message });
-    if (type === 'warnings') return res.status(200).json({ result: buildWarnings(clean), fallback: true, error: e.message });
-    if (type === 'actors') return res.status(200).json({ result: extractActors(clean), fallback: true, error: e.message });
-    return res.status(400).json({ error: 'Unknown type' });
+    if (type === 'brief') return { result: buildBrief(forType), fallback: true, error: e.message };
+    if (type === 'correlations') return { result: buildCorrelations(clean), fallback: true, error: e.message };
+    if (type === 'warnings') return { result: buildWarnings(clean), fallback: true, error: e.message };
+    if (type === 'actors') return { result: extractActors(clean), fallback: true, error: e.message };
+    return { error: 'Unknown type' };
   }
 }
 
@@ -387,7 +390,9 @@ async function extractEntitiesAI(articles) {
   return JSON.parse(text.replace(/```json|```/g, '').trim());
 }
 
-async function handleEntities(req, res) {
+// Returns the response payload directly (rather than writing to `res`) so
+// the router can cache it — see the router's CACHE_CONFIG for 'entities'.
+async function computeEntities(req) {
   const { articles, text } = req.body || {};
 
   try {
@@ -410,16 +415,16 @@ async function handleEntities(req, res) {
       ...(entities.organizations || entities.orgs || []).filter(o => o.threatLevel === 'HIGH' || o.threat === 'HIGH'),
     ];
 
-    return res.status(200).json({
+    return {
       entities,
       summary: {
         totalEntities: (entities.people?.length || 0) + (entities.organizations?.length || entities.orgs?.length || 0) + (entities.locations?.length || 0),
         highThreatActors: highThreatActors.map(a => a.name),
         conflictZones: (entities.locations || []).filter(l => l.conflictZone || l.conflict).map(l => l.name),
       }
-    });
+    };
   } catch (e) {
-    return res.status(200).json({ entities: extractEntitiesLocal(text || ''), error: e.message });
+    return { entities: extractEntitiesLocal(text || ''), error: e.message };
   }
 }
 
@@ -470,7 +475,9 @@ function calculateEscalationProbability(countryCode, recentEvents) {
   };
 }
 
-function handleRiskMatrix(req, res) {
+// Returns the response payload directly (rather than writing to `res`) so
+// the router can cache it — see the router's CACHE_CONFIG for 'risk_matrix'.
+function computeRiskMatrix(req) {
   const { articles } = req.query;
   const recentText = (articles || []).map(a => a.title || a.webTitle || '').join(' ');
   const matrix = Object.entries(COUNTRY_RISK_BASE)
@@ -478,10 +485,12 @@ function handleRiskMatrix(req, res) {
     .filter(Boolean)
     .sort((a, b) => b.escalationProbability - a.escalationProbability);
 
-  return res.status(200).json({ matrix, updatedAt: new Date().toISOString() });
+  return { matrix, updatedAt: new Date().toISOString() };
 }
 
-async function handleScenarios(req, res) {
+// Returns the response payload directly (rather than writing to `res`) so
+// the router can cache it — see the router's CACHE_CONFIG for 'scenarios'.
+async function computeScenarios(req) {
   const { articles } = req.body || {};
 
   if (isConfigured()) {
@@ -495,7 +504,7 @@ async function handleScenarios(req, res) {
         maxTokens: 800,
       });
       const scenarios = JSON.parse(text.replace(/```json|```/g, '').trim());
-      return res.status(200).json({ scenarios, fallback: false });
+      return { scenarios, fallback: false };
     } catch (e) {
       // Fall through to static scenarios
     }
@@ -509,7 +518,7 @@ async function handleScenarios(req, res) {
     { title: 'Pakistan nuclear security event', probability: '8%', timeline: '90 days', trigger: 'TTP seizes military base with nuclear components', cascade: ['US/India emergency response', 'China mediation', 'Global security alert', 'NATO Article 5 consultations'], severity: 'HIGH' },
   ];
 
-  return res.status(200).json({ scenarios: staticScenarios, fallback: true });
+  return { scenarios: staticScenarios, fallback: true };
 }
 
 // ─── acled: static conflict event list (was acled.js) ───
@@ -579,17 +588,48 @@ function handleAcled(req, res) {
 
 // ─── router ───
 
+// Redis-cached types, per PROGRESS.md's tiered-caching design (with a
+// same-shape in-memory fallback if Redis is unavailable). Flat, shared cache
+// keys rather than per-input ones — like the rest of this codebase's Redis
+// layer, the point is fewer repeat Groq/live calls under real traffic, and
+// these all regenerate from "whatever the current live feed looks like"
+// rather than needing per-caller precision. `acled` (pure static data, no
+// live/AI call — caching it saves nothing) and `correlations`/`warnings`/
+// `actors` (confirmed unreachable from the frontend, see gotchas) are
+// intentionally left uncached.
+const CACHE_CONFIG = {
+  risk_matrix: { key: 'forecast:risk_matrix', ttl: 1800, fn: (req) => computeRiskMatrix(req) },
+  scenarios: { key: 'forecast:scenarios', ttl: 1800, fn: (req) => computeScenarios(req) },
+  entities: { key: 'entities:latest', ttl: 1800, fn: (req) => computeEntities(req) },
+  brief: { key: 'brief:daily', ttl: 3600, fn: (req) => computeAnalyzeType('brief', req) },
+};
+const memCache = new Map();
+
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const type = req.method === 'POST' ? (req.body || {}).type : req.query.type;
   if (!type) return res.status(400).json({ error: 'Provide a ?type= (risk_matrix, acled, scenarios, brief, correlations, warnings, actors, entities)' });
 
-  if (type === 'risk_matrix') return handleRiskMatrix(req, res);
   if (type === 'acled') return handleAcled(req, res);
-  if (type === 'scenarios') return handleScenarios(req, res);
-  if (type === 'entities') return handleEntities(req, res);
-  if (['brief', 'correlations', 'warnings', 'actors'].includes(type)) return handleAnalyzeType(type, req, res);
+  if (['correlations', 'warnings', 'actors'].includes(type)) {
+    return res.status(200).json(await computeAnalyzeType(type, req));
+  }
+
+  const cached = CACHE_CONFIG[type];
+  if (cached) {
+    const { key, ttl, fn } = cached;
+    const fromRedis = await getCache(key);
+    if (fromRedis) return res.status(200).json(fromRedis);
+
+    const memHit = memCache.get(key);
+    if (memHit && Date.now() - memHit.ts < ttl * 1000) return res.status(200).json(memHit.data);
+
+    const result = await fn(req);
+    memCache.set(key, { ts: Date.now(), data: result });
+    await setCache(key, result, ttl);
+    return res.status(200).json(result);
+  }
 
   return res.status(400).json({ error: 'Unknown type' });
 };

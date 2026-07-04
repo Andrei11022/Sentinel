@@ -50,6 +50,16 @@ in `lib/`, never `api/lib/`.
 9 files under `api/` total (news, threats, country, intelligence, search,
 aircraft, analyst, naval, tts) — 3 under the Hobby cap of 12.
 
+**Caching**: a shared persistent cache, `lib/cache.js` at the repo root
+(`getCache(key)`/`setCache(key, value, ttlSeconds)`/`hashKey(str)`), backs
+onto Upstash Redis's REST API (`UPSTASH_REDIS_REST_URL` +
+`UPSTASH_REDIS_REST_TOKEN`) so repeat requests across different serverless
+invocations — not just within one warm instance — skip live/AI calls
+entirely. Every endpoint that uses it checks Redis first, falls back to its
+own pre-existing in-memory cache if Redis misses/is unconfigured/throws,
+and only does the real work (fetch/AI) as a last resort — see the gotcha
+below for the full tiered-TTL table and the fallback guarantee.
+
 ### Known quirks / gotchas
 - REST Countries' free API is fully deprecated (`success:false` on every
   call) — not used anywhere in this codebase anymore.
@@ -114,6 +124,73 @@ aircraft, analyst, naval, tts) — 3 under the Hobby cap of 12.
   is gone now, replaced by `lib/ai.js` above. If you ever see Anthropic
   fetch code reappear in one of these files, it's a regression, not a
   restoration.
+- **Persistent shared caching via Upstash Redis** (`lib/cache.js`, repo
+  root — outside `api/` for the same reason `lib/ai.js` is: it must never
+  count as a Serverless Function). Same silent-fallback contract as every
+  other optional dependency in this codebase: `getCache`/`setCache` never
+  throw — a missing `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`, a
+  non-2xx response, or a network error all just resolve to `null`/`false`,
+  and every caller falls through to its own pre-existing in-memory cache and
+  then a live call, exactly as if Redis didn't exist. Redis is checked
+  *first*, not instead of the in-memory cache, because Redis is shared
+  across different serverless instances/cold starts while in-memory caches
+  are scoped to one warm instance — the in-memory layer alone already
+  worked fine within a single instance's lifetime; Redis is what makes a
+  cache hit possible across instances too. Exact tiered TTLs (seconds),
+  matched to how often each kind of data actually changes:
+  | Data | TTL | Key |
+  |---|---|---|
+  | Country static facts (capital, population, currency, language, region) | 604800 (7d) | `country:static:{CODE}` |
+  | Country leadership (leader, head of govt, elections) | 43200 (12h) | `country:leadership:{CODE}` |
+  | Country AI-assessed fields (leaning, govt type, allies, rivals) | 86400 (24h) | `country:ai:{CODE}` |
+  | Main news/briefing feed | 300 (5min) | `news:{type}` |
+  | Threats | 1800 (30min) | `threats:world` |
+  | Forecast risk matrix / scenarios | 1800 (30min) | `forecast:risk_matrix`, `forecast:scenarios` |
+  | Entities | 1800 (30min) | `entities:latest` |
+  | Brief Me generated text | 3600 (1h) | `brief:daily` |
+  | AI analyst answers | 900 (15min) | `analyst:{hash}` |
+  | Aircraft | 30 | `aircraft:live` |
+  | Naval fleet list | 600 (10min) | `naval:fleet` |
+  Deliberately **not** cached: `intelligence.js`'s `acled` type (pure static
+  data, no live/AI call — caching it would save nothing) and its
+  `correlations`/`warnings`/`actors` types (confirmed via grep, before this
+  feature existed, to be unreachable from the frontend — see the
+  intelligence.js gotcha below; not worth the complexity for dead code).
+  `api/naval.js`'s per-ship Wikipedia detail-card lookup is also uncached —
+  only its fleet list (the expensive, self-fetch-heavy part) is.
+  Three things worth knowing if you touch this again: (1) **`api/country.js`
+  caches static/leadership/AI facts in 3 fully independent Redis keys with
+  independent TTLs** (not one combined blob) specifically so a 12h-old
+  leader's data can refresh while 7-day-old population data stays put —
+  verified live-ish (mocked): forcing only the leadership key to expire
+  re-triggers exactly one fresh Wikidata call while World Bank and Groq are
+  untouched. Wikidata's single SPARQL query answers both the static bucket
+  (currency/language) and the leadership bucket (head of state/government),
+  so it's only called when *either* bucket needs refreshing, never
+  redundantly for both. (2) **`api/country.js` makes exactly ONE Groq call
+  per request even though two different buckets can each independently want
+  an AI fill** (leadership wants `elections`, the AI bucket wants the other
+  4 fields) — this was a real bug caught during testing: a naive
+  per-bucket-decides-independently design made 2 Groq calls for any country
+  outside both hardcoded tables (e.g. Romania) on its first lookup. Fixed
+  by computing both buckets' *need* first, then making one shared
+  `fillGapsWithAI()` call if either needs it, and distributing the one
+  response across whichever bucket(s) actually needed it. (3) **The AI
+  analyst's cache key hashes `question + sanitized history` together, not
+  just the question** — the task that added this caching only asked for
+  "keyed by normalized question hash," but hashing the question alone would
+  let two unrelated conversations that both happen to ask a generic
+  follow-up like "tell me more about that" collide and serve each other's
+  (contextually wrong) cached answer. Folding in history closes that hole
+  while still caching the common case (two different users asking the same
+  fresh question, e.g. "Summarize last 24h", with no prior history) — a
+  deliberate, documented deviation from the literal task wording, not an
+  oversight. Verified end-to-end through the real `vercel.json` routing
+  (not just unit-called handlers) with mocked Redis + mocked
+  Groq/WorldBank/Wikidata/Guardian/GDELT/RSS/OpenSky: every cached endpoint
+  hit zero new live/AI calls on a second identical request, and every
+  endpoint still returned 200 with a simulated total Redis outage (every
+  Redis call throwing).
 - **`api/intelligence.js` merges four formerly-separate endpoints**
   (`analyze.js`, `entities.js`, `forecast.js`, `acled.js`) behind one flat
   `type` value — done to get under Vercel Hobby's 12-function cap (see
@@ -280,6 +357,47 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-04 (18): Added persistent shared caching via Upstash Redis
+  (`lib/cache.js`, repo root — outside `api/` so it never counts as a
+  Serverless Function, same reasoning as `lib/ai.js`). Every endpoint that
+  makes a live/AI call now checks Redis first, with tiered TTLs matched to
+  how often each kind of data actually changes (7d for country static
+  facts, 12h for country leadership, 24h for AI-assessed country fields,
+  30s-30min for the various news/threats/forecast/entities/aircraft/naval
+  feeds, 1h for Brief Me, 15min for AI analyst answers — full table in the
+  gotchas section). `getCache`/`setCache` never throw: a missing Upstash
+  config, a non-2xx, or a network error all resolve to `null`/`false`, so
+  every endpoint falls through to its own pre-existing in-memory cache and
+  then a live call exactly as before this feature existed — verified by
+  simulating a total Redis outage (every Redis call throwing) and
+  confirming all 8 touched endpoints still returned 200 through the real
+  `vercel.json` routing. `api/country.js` got the most substantial rework:
+  its single combined 1hr/5min in-memory cache became 3 fully independent
+  Redis-backed buckets (static/leadership/AI-assessed) so a 12h-old leader
+  can refresh without waiting on 7-day-cached population data — caught and
+  fixed a real bug while building this, where the split-bucket design
+  naively made 2 separate Groq calls (one per bucket) for any country
+  needing both an AI-filled election date and AI-filled
+  leaning/allies/rivals; fixed to make exactly one shared Groq call and
+  split its response across both buckets. Also made one deliberate,
+  documented deviation from the task's literal instructions: the AI
+  analyst's cache key hashes `question + sanitized history` together
+  rather than the question alone, because hashing only the question would
+  let two unrelated conversations' generic follow-ups ("tell me more about
+  that") collide and serve each other's wrong cached answer. Verified
+  end-to-end through the real `vercel.json` HTTP routing shim with mocked
+  Redis (a real in-memory Map simulating Upstash's actual GET/SET/EX
+  semantics) and mocked Groq/World Bank/Wikidata/Guardian/GDELT/RSS/
+  OpenSky: a cold first pass correctly populated all 12 expected Redis keys
+  and made every expected live/AI call exactly once; an identical second
+  pass produced *zero* new live/AI calls across every cached endpoint.
+  No live Upstash account was available in this sandbox, so the real
+  Upstash REST API's exact request/response shape is unverified here —
+  `lib/cache.js` was built from the task's explicit description of that
+  shape, and every failure mode (network error, non-2xx, malformed value)
+  is swallowed identically regardless of what the real API actually
+  returns, so a shape mismatch would show up as "cache never hits, always
+  falls through to live calls" rather than a crash.
 - 2026-07-04 (17): Country intel panel used to show "—" for `Next Elections`
   and `Political Leaning` for most countries (only ~20 hardcoded), and had
   no `Government Type`/`Key Allies`/`Primary Rivals` fields at all. Added

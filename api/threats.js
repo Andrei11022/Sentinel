@@ -116,6 +116,15 @@ function buildThreatFromArticle(article,index){
   };
 }
 
+const { getCache, setCache } = require('../lib/cache');
+
+// Threats derives entirely from /api/news, so it's cached on the same
+// principle as the rest of this codebase's Redis layer — 30min TTL per
+// PROGRESS.md's tiered-caching design, in-memory fallback if Redis is
+// unavailable, live recompute otherwise.
+const THREATS_CACHE_TTL = 1800;
+const memCache = { ts: 0, data: null };
+
 async function fetchLiveNews(baseUrl){
   try{
     const r=await fetch(`${baseUrl}/api/news?type=world`,{timeout:8000});
@@ -128,58 +137,75 @@ async function fetchLiveNews(baseUrl){
   }
 }
 
+async function computeThreats(baseUrl){
+  const articles=await fetchLiveNews(baseUrl);
+  if(!articles.length){
+    return {
+      threats:[],
+      meta:{total:0,highSeverity:0,mediumSeverity:0,globalRiskIndex:0,updatedAt:new Date().toISOString()}
+    };
+  }
+
+  const threats=[];
+  const seenCountries=new Set();
+
+  // Own severity-first ordering for the purposes of picking the worst
+  // threat per country+type, independent of whatever order /api/news
+  // returns articles in — that endpoint sorts by publish date for the
+  // Briefing feed, which is a different, unrelated concern from "which
+  // single article represents this country's worst active threat."
+  const bySeverity=articles.slice().sort((a,b)=>(b.threatScore||50)-(a.threatScore||50));
+
+  for(let i=0;i<bySeverity.length;i++){
+    const threat=buildThreatFromArticle(bySeverity[i],i);
+    if(!threat) continue;
+
+    const key=threat.country+':'+threat.type;
+    if(seenCountries.has(key)) continue;
+    seenCountries.add(key);
+    threats.push(threat);
+    if(threats.length>=18) break;
+  }
+
+  const highCount=threats.filter(t=>t.severity==='HIGH').length;
+  const medCount=threats.filter(t=>t.severity==='MEDIUM').length;
+  const avgRisk=Math.round(threats.reduce((sum,t)=>sum+t.riskScore,0)/Math.max(threats.length,1));
+  const globalRisk=Math.min(99,Math.max(20,avgRisk));
+
+  return {
+    threats,
+    meta:{
+      total:threats.length,
+      highSeverity:highCount,
+      mediumSeverity:medCount,
+      globalRiskIndex:globalRisk,
+      updatedAt:new Date().toISOString()
+    }
+  };
+}
+
 module.exports=async function handler(req,res){
   if(req.method==='OPTIONS') return res.status(200).end();
-  
-  const proto=req.headers['x-forwarded-proto']||'https';
-  const host=req.headers.host;
-  const baseUrl=`${proto}://${host}`;
-  
+
+  const cacheKey='threats:world';
+
   try{
-    const articles=await fetchLiveNews(baseUrl);
-    if(!articles.length){
-      return res.status(200).json({
-        threats:[],
-        meta:{total:0,highSeverity:0,mediumSeverity:0,globalRiskIndex:0,updatedAt:new Date().toISOString()}
-      });
-    }
-    
-    const threats=[];
-    const seenCountries=new Set();
+    const fromRedis=await getCache(cacheKey);
+    if(fromRedis) return res.status(200).json(fromRedis);
 
-    // Own severity-first ordering for the purposes of picking the worst
-    // threat per country+type, independent of whatever order /api/news
-    // returns articles in — that endpoint sorts by publish date for the
-    // Briefing feed, which is a different, unrelated concern from "which
-    // single article represents this country's worst active threat."
-    const bySeverity=articles.slice().sort((a,b)=>(b.threatScore||50)-(a.threatScore||50));
-
-    for(let i=0;i<bySeverity.length;i++){
-      const threat=buildThreatFromArticle(bySeverity[i],i);
-      if(!threat) continue;
-      
-      const key=threat.country+':'+threat.type;
-      if(seenCountries.has(key)) continue;
-      seenCountries.add(key);
-      threats.push(threat);
-      if(threats.length>=18) break;
+    if(memCache.data && Date.now()-memCache.ts<THREATS_CACHE_TTL*1000){
+      return res.status(200).json(memCache.data);
     }
-    
-    const highCount=threats.filter(t=>t.severity==='HIGH').length;
-    const medCount=threats.filter(t=>t.severity==='MEDIUM').length;
-    const avgRisk=Math.round(threats.reduce((sum,t)=>sum+t.riskScore,0)/Math.max(threats.length,1));
-    const globalRisk=Math.min(99,Math.max(20,avgRisk));
-    
-    return res.status(200).json({
-      threats,
-      meta:{
-        total:threats.length,
-        highSeverity:highCount,
-        mediumSeverity:medCount,
-        globalRiskIndex:globalRisk,
-        updatedAt:new Date().toISOString()
-      }
-    });
+
+    const proto=req.headers['x-forwarded-proto']||'https';
+    const host=req.headers.host;
+    const baseUrl=`${proto}://${host}`;
+
+    const result=await computeThreats(baseUrl);
+    memCache.data=result;
+    memCache.ts=Date.now();
+    await setCache(cacheKey,result,THREATS_CACHE_TTL);
+    return res.status(200).json(result);
   }catch(e){
     return res.status(200).json({
       threats:[],
