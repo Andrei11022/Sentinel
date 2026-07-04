@@ -225,6 +225,7 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .dM{background:var(--no);box-shadow:0 0 6px var(--no);}
 .dL{background:var(--nb);box-shadow:0 0 6px var(--nb);}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.1}}
+.sC{background:#ff003333;color:#ff3366;border:1px solid #ff3366;font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;font-weight:700;}
 .sH{background:#ff224422;color:var(--nr);border:1px solid var(--nr);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;}
 .sM{background:#ff770022;color:var(--no);border:1px solid var(--no);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;}
 .sL{background:#00d4ff15;color:var(--nb);border:1px solid var(--nb);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;}
@@ -1908,38 +1909,63 @@ async function renderRiskMatrix(el){
   }
 }
 
-async function renderAiScenarios(el){
+// Auto-generated, browsable scenarios — the app identifies top active
+// situations from the live feed and Groq projects how each could develop,
+// with real cited sources. Deliberately separate from the SIMULATE tab:
+// this section requires no user input at all, you just browse it; SIMULATE
+// is the opposite (pick two countries, or type your own "what if").
+async function renderScenarios(el){
   const section=document.createElement('div');
-  section.innerHTML='<div class="ph" style="margin-top:8px;color:var(--np)">// AI SCENARIO ENGINE — NEXT 30-90 DAYS</div>';
+  section.innerHTML='<div class="ph" style="margin-top:8px;margin-bottom:2px;color:var(--nr)">// SCENARIOS — AUTO-GENERATED FROM CURRENT INTELLIGENCE</div>';
   el.appendChild(section);
   try{
-    const sd=await apiPost('/intelligence',{type:'scenarios',articles:liveArticles.slice(0,8)});
+    const sd=await apiPost('/intelligence',{type:'scenarios',articles:liveArticles.slice(0,20)});
     const scenarios=sd.scenarios||[];
-
-    scenarios.forEach(s=>{
-      const div=document.createElement('div'); div.className='fci';
-      const sevColor=s.severity==='HIGH'?'sH':'sM';
-      div.innerHTML=`
-        <div class="fci-title">⚠ ${s.title}</div>
-        <div class="fci-meta">
-          <span class="fci-prob">${s.probability}</span>
-          <span class="fci-time">⏱ ${s.timeline}</span>
-          <span class="fci-sev ${sevColor}">${s.severity}</span>
-        </div>
-        <div class="fci-trigger"><b>TRIGGER:</b> ${s.trigger}</div>
-        <div class="fci-cascade">${(s.cascade||[]).map(e=>`<div class="fci-cascade-item">${e}</div>`).join('')}</div>
-      `;
-      section.appendChild(div);
-    });
-
-    if(sd.fallback){
-      const note=document.createElement('div');
-      note.style.cssText=`padding:6px 10px;font-family:\'Share Tech Mono\',monospace;font-size:.58rem;color:var(--dim)`;
-      note.textContent='⚠ AI scenarios require GROQ_API_KEY — showing baseline model';
-      section.appendChild(note);
+    if(!scenarios.length){
+      section.innerHTML+='<div style="padding:8px 10px;font-family:\'Share Tech Mono\',monospace;font-size:.66rem;color:var(--muted)">No active situations detected in the current feed.</div>';
+      return;
     }
+    scenarios.forEach(s=>{
+      const card=document.createElement('div'); card.className='pred-card';
+      const yesW=Math.max(0,Math.min(100,s.probability));
+      const noW=100-yesW;
+      const sevClass=s.severity==='CRITICAL'?'sC':s.severity==='HIGH'?'sH':'sM';
+      const sourcesHtml=(s.sources||[]).map(src=>src.url?`<a href="${src.url}" target="_blank" rel="noopener">${src.source}</a>`:`<span style="color:var(--muted);border:1px solid var(--border);padding:1px 6px">${src.source}</span>`).join('');
+      const triggerHtml=(s.triggerSigns||[]).map(t=>`<li>${t}</li>`).join('');
+      card.innerHTML=`
+        <div class="pred-q">${s.title}</div>
+        <div class="pred-splitbar">
+          <div class="pred-yes" style="width:${yesW}%">${yesW>=12?yesW+'%':''}</div>
+          <div class="pred-no" style="width:${noW}%">${noW>=12?noW+'%':''}</div>
+        </div>
+        <div class="pred-meta">
+          <span>Based on: ${s.basedOn||''}</span>
+          <span class="fci-time">⏱ ${s.timeframe||''}</span>
+          <span class="${sevClass}">${s.severity||''}</span>
+        </div>
+        <div class="pred-reasoning-toggle">▸ Show trigger signs &amp; cascade</div>
+        <div class="pred-reasoning-body">
+          ${triggerHtml?`<div class="pred-indicators"><b>Watch for:</b><ul class="sim-cascade-list">${triggerHtml}</ul></div>`:''}
+          <div style="margin-top:6px">${s.ifItHappens||''}</div>
+        </div>
+        <div class="pred-sources">${sourcesHtml}</div>
+      `;
+      section.appendChild(card);
+      const toggle=card.querySelector('.pred-reasoning-toggle');
+      const body=card.querySelector('.pred-reasoning-body');
+      toggle.addEventListener('click',()=>{
+        const open=body.classList.toggle('open');
+        toggle.textContent=(open?'▾ Hide':'▸ Show')+' trigger signs & cascade';
+      });
+    });
+    const footnote=document.createElement('div');
+    footnote.className='pred-footnote';
+    footnote.textContent=sd.fallback
+      ? '⚠ Groq unavailable — showing a static estimate based on headline volume/severity only, not an AI-generated scenario.'
+      : '* AI-generated scenarios from current intelligence — analytical projections, not predictions.';
+    section.appendChild(footnote);
   }catch(e){
-    section.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">AI scenarios unavailable: ${e.message}</div>`;
+    section.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Scenarios unavailable: ${e.message}</div>`;
   }
 }
 
@@ -1950,7 +1976,7 @@ async function loadForecast(){
   await renderPredictions(el);
   await renderGlobalForecast(el);
   await renderRiskMatrix(el);
-  await renderAiScenarios(el);
+  await renderScenarios(el);
 }
 
 // ═══════════════════════════════════

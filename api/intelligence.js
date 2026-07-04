@@ -5,7 +5,10 @@
 //
 //   GET  ?type=risk_matrix                    -> country risk matrix (was forecast.js)
 //   GET  ?type=acled[&country=&limit=]        -> conflict event list (was acled.js)
-//   POST {type:'scenarios', articles}         -> AI conflict scenarios + static fallback (was forecast.js)
+//   POST {type:'scenarios', articles}         -> auto-generated, browsable forward-looking
+//                                                 scenarios per live situation, with cited sources
+//                                                 (redesigned 2026-07-04 from a simpler forecast.js
+//                                                 scenario engine — see PROGRESS.md)
 //   POST {type:'brief', articles}             -> AI intel brief + local fallback (was analyze.js)
 //   POST {type:'correlations'|'warnings'|'actors', articles} -> same, other analyze.js behaviors
 //   POST {type:'entities', articles, text}    -> entity + relationship extraction (was entities.js)
@@ -505,35 +508,69 @@ function computeRiskMatrix(req) {
 
 // Returns the response payload directly (rather than writing to `res`) so
 // the router can cache it — see the router's CACHE_CONFIG for 'scenarios'.
+//
+// Auto-generated, browsable forward-looking scenarios — distinct from the
+// user-driven SIMULATE tab (which requires picking two countries or typing
+// a "what if"). Situations are derived from whatever the CURRENT live feed
+// actually contains via groupArticlesBySituation() (also used by
+// computePredictions below — LOCATION_DB is just a location-name
+// recognizer, not a source of which situations are "active"), and real
+// articles are attached as `sources` in code rather than trusted from
+// Groq's own citation accuracy inside a multi-item JSON array.
 async function computeScenarios(req) {
   const { articles } = req.body || {};
+  const clean = cleanArticles(articles);
+  const situations = groupArticlesBySituation(clean, 6);
+  const updatedAt = new Date().toISOString();
+
+  if (!situations.length) return { scenarios: [], fallback: true, updatedAt };
 
   if (isConfigured()) {
     try {
-      const headlines = (articles || []).slice(0, 8).map(a => a.title || a.webTitle).join('\n');
-      const text = await askAI({
-        messages: [{
-          role: 'user',
-          content: `Based on these headlines, generate 3 geopolitical scenarios for the next 30-90 days. For each: probability, timeline, trigger event, cascade effects.\n\nReturn ONLY JSON:\n[{"title":"...","probability":"X%","timeline":"30|60|90 days","trigger":"...","cascade":["effect1","effect2","effect3"],"severity":"HIGH|MEDIUM|LOW"}]\n\nHeadlines:\n${headlines}`
-        }],
-        maxTokens: 800,
-      });
-      const scenarios = JSON.parse(text.replace(/```json|```/g, '').trim());
-      return { scenarios, fallback: false };
+      const prompt = `For each SITUATION below, generate ONE plausible forward-looking scenario for how it could develop over the coming weeks, grounded ONLY in the headlines given for that situation — never invent facts not implied by them.\n\nReturn ONLY a JSON array, one object per situation, in the SAME ORDER given:\n[{"title":"a specific forward-looking headline, e.g. 'Ukraine ceasefire talks collapse, front reactivates'","probability":0-100,"timeframe":"e.g. '2-6 weeks'","triggerSigns":["early indicator to watch","another"],"ifItHappens":"2-3 sentence cascade of consequences","severity":"CRITICAL|HIGH|MEDIUM"}]\n\n` +
+        situations.map((s, i) => `SITUATION ${i + 1}: ${s.name}\n${s.articles.slice(0, 6).map((a) => `- [${a.tag}] ${a.title}`).join('\n')}`).join('\n\n');
+
+      const text = await askAI({ messages: [{ role: 'user', content: prompt }], maxTokens: 1600 });
+      const aiItems = JSON.parse(text.replace(/```json|```/g, '').trim());
+
+      const scenarios = situations.map((s, i) => {
+        const ai = aiItems[i] || {};
+        return {
+          title: ai.title || `${s.name}: situation develops further`,
+          basedOn: s.name,
+          probability: Math.max(0, Math.min(100, Math.round(Number(ai.probability) || 40))),
+          timeframe: ai.timeframe || '4-8 weeks',
+          triggerSigns: Array.isArray(ai.triggerSigns) ? ai.triggerSigns.slice(0, 3) : [],
+          ifItHappens: ai.ifItHappens || 'Insufficient data for detailed cascade analysis.',
+          severity: ['CRITICAL', 'HIGH', 'MEDIUM'].includes(ai.severity) ? ai.severity : 'MEDIUM',
+          sources: articleSources(s.articles),
+        };
+      }).sort((a, b) => b.probability - a.probability);
+
+      return { scenarios, fallback: false, updatedAt };
     } catch (e) {
-      // Fall through to static scenarios
+      // Fall through to the heuristic fallback below
     }
   }
 
-  const staticScenarios = [
-    { title: 'Iran nuclear threshold crossed', probability: '34%', timeline: '90 days', trigger: 'Iran enriches to 90% weapons-grade', cascade: ['Israeli strike on Fordow', 'Iranian retaliation via proxies', 'US carrier group engagement', 'Oil price spike >$150/bbl', 'Global recession risk'], severity: 'HIGH' },
-    { title: 'Ukraine front collapse (eastern)', probability: '28%', timeline: '60 days', trigger: 'Russian breakthrough at Pokrovsk or Kramatorsk', cascade: ['Zelensky requests NATO Article 5 consultation', 'Western escalation debate', 'Nuclear rhetoric intensifies', 'European refugee crisis 2.0'], severity: 'HIGH' },
-    { title: 'Taiwan Strait military incident', probability: '18%', timeline: '90 days', trigger: 'PLA vessel fires on Taiwan coast guard', cascade: ['US carrier strike group deployment', 'Japan activates self-defense', 'TSMC production halt risk', 'Global semiconductor shock'], severity: 'HIGH' },
-    { title: 'Gulf oil infrastructure attack', probability: '22%', timeline: '30 days', trigger: 'Houthi/Iran strikes Saudi Abqaiq facility', cascade: ['Oil price spike to $200', 'Global inflation surge', 'US military response', 'Saudi retaliation on Yemen'], severity: 'MEDIUM' },
-    { title: 'Pakistan nuclear security event', probability: '8%', timeline: '90 days', trigger: 'TTP seizes military base with nuclear components', cascade: ['US/India emergency response', 'China mediation', 'Global security alert', 'NATO Article 5 consultations'], severity: 'HIGH' },
-  ];
+  // No Groq / Groq failed — deterministic heuristic, clearly labeled
+  // fallback:true so the frontend never presents a guess as an AI-generated
+  // scenario (same pattern as computePredictions's fallback).
+  const scenarios = situations.map((s) => {
+    const avgScore = Math.round(s.articles.reduce((sum, a) => sum + a.threatScore, 0) / s.articles.length);
+    return {
+      title: `${s.name}: situation continues to develop`,
+      basedOn: s.name,
+      probability: Math.max(10, Math.min(90, avgScore)),
+      timeframe: '4-8 weeks',
+      triggerSigns: [],
+      ifItHappens: 'AI assessment unavailable — showing a static estimate based on current headline volume and severity only.',
+      severity: avgScore > 75 ? 'HIGH' : 'MEDIUM',
+      sources: articleSources(s.articles),
+    };
+  }).sort((a, b) => b.probability - a.probability);
 
-  return { scenarios: staticScenarios, fallback: true };
+  return { scenarios, fallback: true, updatedAt };
 }
 
 // ─── acled: static conflict event list (was acled.js) ───
@@ -842,7 +879,7 @@ async function computeGlobalForecast(req) {
 // "what if" text) rather than being one shared key.
 const CACHE_CONFIG = {
   risk_matrix: { key: 'forecast:risk_matrix', ttl: 1800, fn: (req) => computeRiskMatrix(req) },
-  scenarios: { key: 'forecast:scenarios', ttl: 1800, fn: (req) => computeScenarios(req) },
+  scenarios: { key: 'scenarios:latest', ttl: 3600, fn: (req) => computeScenarios(req) },
   entities: { key: 'entities:latest', ttl: 1800, fn: (req) => computeEntities(req) },
   brief: { key: 'brief:daily', ttl: 3600, fn: (req) => computeAnalyzeType('brief', req) },
   predictions: { key: 'predictions:latest', ttl: 1800, fn: (req) => computePredictions(req) },

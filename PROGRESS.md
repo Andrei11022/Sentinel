@@ -149,7 +149,8 @@ below for the full tiered-TTL table and the fallback guarantee.
   | Country AI-assessed fields (leaning, govt type, allies, rivals) | 86400 (24h) | `country:ai:{CODE}` |
   | Main news/briefing feed | 300 (5min) | `news:{type}` |
   | Threats | 1800 (30min) | `threats:world` |
-  | Forecast risk matrix / scenarios | 1800 (30min) | `forecast:risk_matrix`, `forecast:scenarios` |
+  | Forecast risk matrix | 1800 (30min) | `forecast:risk_matrix` |
+  | Auto-generated Scenarios (SCENARIOS section) | 3600 (1h) | `scenarios:latest` |
   | Entities | 1800 (30min) | `entities:latest` |
   | Brief Me generated text | 3600 (1h) | `brief:daily` |
   | AI analyst answers | 900 (15min) | `analyst:{hash}` |
@@ -259,8 +260,26 @@ below for the full tiered-TTL table and the fallback guarantee.
     global outlook summary; cited article numbers are mapped back to real
     articles the same way `analyst.js`'s `[A#]` extraction works, so
     `sources` are always real, never invented.
+  - **`scenarios`**: **auto-generated, browsable** forward-looking
+    scenarios (up to 6, one per active situation via the same
+    `groupArticlesBySituation()` predictions uses) — deliberately the
+    opposite interaction model from `simulate`: this needs zero user input,
+    the app decides what to show and the user just browses it, while
+    `simulate` requires picking two countries or typing a "what if". This
+    `type` already existed before this feature (as a simpler `forecast.js`-
+    era scenario engine — title/probability/timeline/trigger/cascade/
+    severity, no real sources, no situation-grounding) and was **redesigned
+    in place** rather than given a new type name, since it occupies the
+    same conceptual slot in the Forecast tab and the new spec is a strict
+    superset: richer fields (`basedOn`, `timeframe`, `triggerSigns`,
+    `ifItHappens`), real code-attached sources (same reasoning as
+    `predictions`: don't trust Groq's citation accuracy in a multi-item
+    array), and a longer cache TTL per this redesign's explicit spec (3600s
+    vs the old 1800s — cache key also renamed `scenarios:latest`, matching
+    the `predictions:latest`/`entities:latest` convention, from the old
+    `forecast:scenarios`). Sorted by probability descending server-side.
   - The Forecast tab's `loadForecast()` was split into four independent
-    `render*(el)` functions (predictions, global forecast, risk matrix, AI
+    `render*(el)` functions (predictions, global forecast, risk matrix,
     scenarios), each with its own try/catch, instead of one function
     wrapped in a single try/catch — a failure in any one section (e.g. a
     Groq hiccup on predictions) no longer blanks out the other three,
@@ -450,6 +469,34 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-04 (21): Added auto-generated, browsable SCENARIOS — the opposite
+  interaction model from the SIMULATE tab (zero user input; the app decides
+  what to show from the live feed and the user browses). Redesigned the
+  existing `api/intelligence.js` `type=scenarios` in place (it already
+  existed as a simpler `forecast.js`-era scenario engine occupying the same
+  Forecast-tab slot) rather than adding a new type name, since the new spec
+  is a strict superset of the old one: situations are now derived via the
+  same `groupArticlesBySituation()` predictions already uses (not a fixed
+  list), each scenario gets richer fields (`basedOn`, `timeframe`,
+  `triggerSigns`, `ifItHappens`, `severity` including a new CRITICAL tier),
+  and real articles are attached as `sources` in code rather than trusted
+  from Groq's citation accuracy inside a multi-item JSON array — the same
+  reasoning already established for `predictions`. Cache TTL bumped to
+  3600s (1h) per this feature's explicit spec (was 1800s/30min) and the key
+  renamed `scenarios:latest` (was `forecast:scenarios`, to match the
+  `predictions:latest`/`entities:latest` convention). Frontend:
+  `renderAiScenarios()` (rendered the old title/probability/timeline/
+  trigger/cascade shape as plain `.fci` cards) became `renderScenarios()`
+  (matches the new field shape, reuses the Predictions section's
+  split-probability-bar/expandable-reasoning/sources card design for visual
+  consistency, sorted by probability descending server-side), with an
+  honest footnote — "AI-generated scenarios from current intelligence —
+  analytical projections, not predictions" — distinct from Predictions'
+  own footnote wording. Verified: mocked-Groq test confirmed exactly 1 Groq
+  call across 3 identical requests (cache hit), the no-key path correctly
+  returns `fallback:true` with the deterministic heuristic (not a genuine
+  AI scenario), and an end-to-end pass through the real `vercel.json`
+  routing returned a well-formed, correctly-sorted, real-sourced response.
 - 2026-07-04 (20): Fixed the SIMULATE tab's country pickers only offering
   ~35 hardcoded countries even though `api/country.js` already resolves any
   ISO alpha-2 code live via World Bank + Wikidata — the dropdown, not the
