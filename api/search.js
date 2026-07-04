@@ -11,7 +11,7 @@
 // Guardian occasionally have connectivity hiccups, so a failure in one never
 // blocks the other two.
 
-const { askAI, isConfigured } = require('./lib/ai');
+const { askAI, isConfigured } = require('../lib/ai');
 const GUARDIAN_KEY = process.env.GUARDIAN_KEY || '473fcab8-81fa-4e79-a17e-429debaa4bc1';
 
 const CACHE_TTL_MS = 3 * 60 * 1000; // short TTL — news search results move fast

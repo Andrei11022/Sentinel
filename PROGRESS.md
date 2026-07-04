@@ -19,21 +19,36 @@ frontend gets `Unexpected token '<'` trying to `JSON.parse` a webpage. This
 exact bug has shipped more than once from forgetting this step — always add
 the route in the same commit as the new file.
 
+**Vercel Hobby plan caps Serverless Functions at 12** — every `.js` file
+anywhere under `api/` (including subdirectories) counts as one function,
+whether or not it's referenced by a route, unless it's excluded from the
+functions build. This capped out once already (see changelog) after adding
+enough AI-backed endpoints; fixed by consolidating related endpoints into
+one routed-by-`type` file (`api/intelligence.js`) and moving the shared Groq
+client to a repo-root `lib/` folder (outside `api/`) so it's plain shared
+code, not a function. **If you add a new endpoint, count `find api -name
+"*.js" | wc -l` first** — stay well under 12, and put any new shared helper
+in `lib/`, never `api/lib/`.
+
 ### Endpoints
 | Route | Purpose | Key live sources |
 |---|---|---|
 | `/api/news` | Multi-source world/mideast news | Guardian, GDELT, BBC/Al Jazeera/NPR/France24 RSS |
 | `/api/threats` | Threat markers | derived from `/api/news` (internal self-fetch) |
 | `/api/country` | Country intel panel | World Bank (facts+population), Wikidata SPARQL (leader/head of govt/currency/language) |
-| `/api/forecast` | Risk matrix + scenarios | static base model + optional Groq scenarios |
-| `/api/acled` | Conflict list | static, hand-maintained |
-| `/api/entities` | Entity extraction | Groq or local pattern DB |
-| `/api/analyze` | Brief/correlations/actors | Groq or local fallback |
+| `/api/intelligence?type=risk_matrix` | Country risk matrix | static base model (was `/api/forecast`) |
+| `/api/intelligence` POST `{type:'scenarios'}` | AI conflict scenarios | static fallback + optional Groq (was `/api/forecast`) |
+| `/api/intelligence?type=acled` | Conflict event list | static, hand-maintained (was `/api/acled`) |
+| `/api/intelligence` POST `{type:'entities'}` | Entity + relationship extraction | Groq or local pattern DB (was `/api/entities`) |
+| `/api/intelligence` POST `{type:'brief'\|'correlations'\|'warnings'\|'actors'}` | Brief/correlations/actors | Groq or local fallback (was `/api/analyze`) |
 | `/api/search` | Intel Search tab | GDELT + Guardian + Wikipedia + optional Groq synthesis |
 | `/api/aircraft` | Live aircraft layer | OpenSky `states/all`, falls back to `adsb.lol/v2/mil` |
 | `/api/analyst` | AI Analyst chat | `/api/news`+`/api/threats` (self-fetch) + Groq, grounded-only |
 | `/api/naval` | Naval ship tracker | `/api/news` (self-fetch) for positions + live Wikipedia for detail cards |
 | `/api/tts` | Brief Me voice | ElevenLabs TTS (voice "Adam"), falls back to browser speechSynthesis client-side |
+
+9 files under `api/` total (news, threats, country, intelligence, search,
+aircraft, analyst, naval, tts) — 3 under the Hobby cap of 12.
 
 ### Known quirks / gotchas
 - REST Countries' free API is fully deprecated (`success:false` on every
@@ -60,12 +75,19 @@ the route in the same commit as the new file.
   entirely 2026-07-04, see changelog — Anthropic account ran out of
   credits); every one still has a defined no-key fallback (static/local
   output, or a clear "needs configuration" message) rather than erroring.
-  All five AI-backed endpoints (`analyst.js`, `analyze.js`, `search.js`,
-  `entities.js`, `forecast.js`) now share one client, `api/lib/ai.js`
-  (`askAI({system, messages, maxTokens, timeoutMs})`), instead of each
-  hand-rolling its own fetch — if you add a sixth AI-backed endpoint, use
-  this helper rather than calling Groq directly. It calls Groq's
-  OpenAI-compatible `chat/completions` endpoint
+  All AI-backed code (`analyst.js`, `search.js`, and the merged
+  `intelligence.js` — see below) shares one client, **`lib/ai.js` at the
+  repo root** (`askAI({system, messages, maxTokens, timeoutMs})`), instead
+  of each hand-rolling its own fetch — if you add a new AI-backed endpoint,
+  use this helper rather than calling Groq directly, and `require` it via a
+  relative path (`../lib/ai` from a file directly under `api/`). **Do not
+  put shared helpers under `api/lib/`** — Vercel's Hobby plan counts every
+  `.js` file anywhere under `api/` as its own Serverless Function
+  (subdirectories included), so a helper living there silently eats one of
+  the 12 available slots without being a real endpoint; that's exactly what
+  caused the "No more than 12 Serverless Functions" build failure (see
+  changelog) once `api/lib/ai.js` pushed the true count to 13. It calls
+  Groq's OpenAI-compatible `chat/completions` endpoint
   (`https://api.groq.com/openai/v1/chat/completions`,
   `Authorization: Bearer <GROQ_API_KEY>`), primary model
   `llama-3.3-70b-versatile` with one automatic retry against
@@ -76,22 +98,37 @@ the route in the same commit as the new file.
   OpenAI-style, so `system` is a `{role:'system', content:...}` message
   prepended to the array, not a top-level param like Anthropic's `system`
   field — `askAI` handles this internally, callers just pass `system` as a
-  plain string (or omit it, as `analyze.js`/`forecast.js`/`search.js` do,
-  since their prompts never used a system prompt to begin with). Response
-  text is at `data.choices[0].message.content`, not Anthropic's
+  plain string (or omit it, as most of `intelligence.js`'s prompts do, since
+  they never used a system prompt to begin with). Response text is at
+  `data.choices[0].message.content`, not Anthropic's
   `content[].find(block => block.type==='text')` shape — also handled
   inside the helper, so callers just get back a plain string. No `thinking`
   param exists on Groq's API — none of the old `thinking:{type:'disabled'}`
   workarounds are needed anymore.
-- Prior to the Groq migration, all five endpoints were hardcoded to
+- Prior to the Groq migration, every AI-backed endpoint was hardcoded to
   `claude-sonnet-4-20250514` on Anthropic (deprecated, retired 2026-06-15) —
   this was the actual cause of a previously-fixed "Anthropic API 400". That
   whole code path (the model ID, `thinking:{type:'disabled'}`, the
   `content?.find(b=>b.type==='text')` extraction, and the
   `askClaude`/`runAnthropic`/`extractEntitiesAI`/etc per-file fetch calls)
-  is gone now, replaced by `api/lib/ai.js` above. If you ever see Anthropic
+  is gone now, replaced by `lib/ai.js` above. If you ever see Anthropic
   fetch code reappear in one of these files, it's a regression, not a
   restoration.
+- **`api/intelligence.js` merges four formerly-separate endpoints**
+  (`analyze.js`, `entities.js`, `forecast.js`, `acled.js`) behind one flat
+  `type` value — done to get under Vercel Hobby's 12-function cap (see
+  changelog). Routing: `?type=risk_matrix` and `?type=acled` are GET with
+  query params (both were already query-param-driven); `scenarios`,
+  `brief`, `correlations`, `warnings`, `actors`, and `entities` are POST
+  with `{type, articles}` in the body. **`type:'entities'` maps to the real
+  `entities.js` implementation** (ENTITY_DB-based, with relationships) —
+  `analyze.js` used to have its own, different, ACTOR_DB-based `'entities'`
+  behavior with the same type name, but it was never actually called from
+  the frontend (confirmed by grep before merging), so it was dropped rather
+  than given a colliding/renamed type value. `correlations`/`warnings`/
+  `actors` are preserved verbatim even though they're also currently
+  unreachable from the frontend UI — no code was deleted for those, only
+  for the one confirmed-dead, name-colliding branch.
 - `/api/news`'s main list is pure `publishedAt`-descending — top of the feed
   is genuinely newest. It used to sort by threatScore first (date only
   broke close ties), which silently overrode publish order; that was
@@ -220,6 +257,36 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-04 (16): Fixed a Vercel Hobby-plan build failure ("No more than 12
+  Serverless Functions can be added on the Hobby plan"). Root cause: every
+  `.js` file under `api/` counts as one function regardless of subdirectory,
+  and the prior session's `api/lib/ai.js` (a shared, non-endpoint helper)
+  pushed the real count to 13. Fixed two ways: (1) moved the shared Groq
+  client to a repo-root `lib/ai.js` (outside `api/` entirely, so Vercel
+  never sees it as a function) and updated `analyst.js`/`search.js`'s
+  `require` paths to `../lib/ai`; (2) consolidated `analyze.js`,
+  `entities.js`, `forecast.js`, and `acled.js` — four separate functions —
+  into one new `api/intelligence.js`, routed by a flat `type` value
+  (`risk_matrix`/`acled` as GET+query, `scenarios`/`brief`/`correlations`/
+  `warnings`/`actors`/`entities` as POST+body). `api/` now has 9 files
+  (news, threats, country, intelligence, search, aircraft, analyst, naval,
+  tts), well under the 12-function cap with headroom for future endpoints.
+  No feature was lost: every prompt, fallback path, and response shape from
+  the four merged files is preserved verbatim in `intelligence.js` (verified
+  by testing all 8 `type` values — including AI-backed ones against a
+  mocked Groq response — through both the real handler directly and the
+  real HTTP routing shim that parses `vercel.json` exactly like Vercel
+  would). The one intentional exception: `analyze.js` had a second, dead,
+  ACTOR_DB-based `'entities'` behavior that collided by name with the real,
+  used `entities.js` implementation — confirmed via grep that the frontend
+  never called it, so it was dropped rather than kept under a colliding
+  type value (see gotchas). Updated all 5 frontend call sites in
+  `index.html` to the new `/api/intelligence?type=...` routes, and fixed two
+  stale user-facing strings still mentioning `ANTHROPIC_API_KEY` (missed by
+  the prior session's case-sensitive grep since they were all-caps) to say
+  `GROQ_API_KEY` instead. Updated `vercel.json`'s routes array accordingly;
+  no `functions.maxDuration` entries were needed for `intelligence.js` since
+  none of its paths approach the default timeout.
 - 2026-07-04 (15): Migrated every AI-backed endpoint off Anthropic and onto
   Groq's free tier (Anthropic account ran out of credits). Added
   `api/lib/ai.js`, a shared `askAI({system, messages, maxTokens, timeoutMs})`

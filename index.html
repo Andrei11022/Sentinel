@@ -1634,11 +1634,11 @@ async function briefMe(){
       if(fresh.length >= 5) break;
     }
 
-    const d=await apiPost('/analyze',{type:'brief',articles:fresh.slice(0,10)});
+    const d=await apiPost('/intelligence',{type:'brief',articles:fresh.slice(0,10)});
     text=typeof d.result==='string'?d.result:'Brief unavailable';
     const ri=document.getElementById('sri').textContent;
     bb.innerHTML=`<b>// SENTINEL BRIEF — ${new Date().toUTCString()}</b><br><br>${text}<br><br><b style="color:var(--nr)">RISK: ${ri}/100</b>`;
-    if(d.fallback) bb.innerHTML+=`<br><span style="color:var(--dim);font-size:.6rem">⚠ Fallback mode — add ANTHROPIC_API_KEY in Vercel settings for AI briefs</span>`;
+    if(d.fallback) bb.innerHTML+=`<br><span style="color:var(--dim);font-size:.6rem">⚠ Fallback mode — add GROQ_API_KEY in Vercel settings for AI briefs</span>`;
   }catch(e){
     bb.innerHTML=`<b>// BRIEF ERROR</b><br><br>${e.message}`;
   }
@@ -1653,7 +1653,7 @@ async function loadConflicts(){
   const el=document.getElementById('conflictlist');
   el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ LOADING CONFLICT DATA...</div>`;
   try{
-    const d=await apiGet('/acled');
+    const d=await apiGet('/intelligence?type=acled');
     const {conflicts,stats}=d;
 
     // Update stats bar
@@ -1708,15 +1708,15 @@ async function loadForecast(){
   el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ RUNNING FORECAST ENGINE...</div>`;
   try{
     // Risk matrix
-    const rm=await apiGet('/forecast?type=risk_matrix');
+    const rm=await apiGet('/intelligence?type=risk_matrix');
     const matrix=rm.matrix||[];
 
     const riskSection=document.createElement('div');
     riskSection.innerHTML='<div class="ph" style="margin-bottom:2px;color:var(--no)">// COUNTRY RISK MATRIX — ESCALATION PROBABILITY</div>';
 
-    // Defensive fallback if /api/forecast ever omits a name for a code —
-    // the real bug (api/forecast.js returning `country` while this file read
-    // `c.name`) is fixed server-side, this is just a safety net.
+    // Defensive fallback if /api/intelligence?type=risk_matrix ever omits a
+    // name for a code — the real bug (server returning `country` while this
+    // file read `c.name`) is fixed server-side, this is just a safety net.
     const CODE_NAMES={
       UA:{flag:'🇺🇦',name:'Ukraine'},SD:{flag:'🇸🇩',name:'Sudan'},MM:{flag:'🇲🇲',name:'Myanmar'},
       PS:{flag:'🇵🇸',name:'Gaza/Palestine'},YE:{flag:'🇾🇪',name:'Yemen'},SO:{flag:'🇸🇴',name:'Somalia'},
@@ -1739,7 +1739,7 @@ async function loadForecast(){
     el.appendChild(riskSection);
 
     // Scenarios
-    const sd=await apiPost('/forecast',{type:'scenarios',articles:liveArticles.slice(0,8)});
+    const sd=await apiPost('/intelligence',{type:'scenarios',articles:liveArticles.slice(0,8)});
     const scenarios=sd.scenarios||[];
 
     const scenHeader=document.createElement('div');
@@ -1767,7 +1767,7 @@ async function loadForecast(){
     if(sd.fallback){
       const note=document.createElement('div');
       note.style.cssText=`padding:6px 10px;font-family:\'Share Tech Mono\',monospace;font-size:.58rem;color:var(--dim)`;
-      note.textContent='⚠ AI scenarios require ANTHROPIC_API_KEY — showing baseline model';
+      note.textContent='⚠ AI scenarios require GROQ_API_KEY — showing baseline model';
       el.appendChild(note);
     }
   }catch(e){
@@ -1781,7 +1781,7 @@ async function loadForecast(){
 async function loadEntities(articles){
   if(!articles?.length) return;
   try{
-    const d=await apiPost('/entities',{articles:articles.slice(0,15)});
+    const d=await apiPost('/intelligence',{type:'entities',articles:articles.slice(0,15)});
     const {entities,summary}=d;
     if(!entities) return;
 

@@ -2,12 +2,9 @@
   "version": 2,
   "routes": [
     { "src": "/api/news", "dest": "/api/news.js" },
-    { "src": "/api/analyze", "dest": "/api/analyze.js" },
+    { "src": "/api/intelligence", "dest": "/api/intelligence.js" },
     { "src": "/api/country", "dest": "/api/country.js" },
     { "src": "/api/threats", "dest": "/api/threats.js" },
-    { "src": "/api/acled", "dest": "/api/acled.js" },
-    { "src": "/api/entities", "dest": "/api/entities.js" },
-    { "src": "/api/forecast", "dest": "/api/forecast.js" },
     { "src": "/api/search", "dest": "/api/search.js" },
     { "src": "/api/aircraft", "dest": "/api/aircraft.js" },
     { "src": "/api/analyst", "dest": "/api/analyst.js" },

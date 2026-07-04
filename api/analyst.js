@@ -9,7 +9,7 @@
 // out of the response so the frontend can render real, clickable source
 // links instead of the model just asserting sources exist.
 
-const { askAI, isConfigured } = require('./lib/ai');
+const { askAI, isConfigured } = require('../lib/ai');
 
 const SYSTEM_PROMPT = 'You are SENTINEL, an AI intelligence analyst. Answer using ONLY the ' +
   'provided live intelligence data. Cite sources. If data is insufficient, ' +
