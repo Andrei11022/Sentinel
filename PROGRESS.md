@@ -265,6 +265,31 @@ below for the full tiered-TTL table and the fallback guarantee.
     wrapped in a single try/catch — a failure in any one section (e.g. a
     Groq hiccup on predictions) no longer blanks out the other three,
     which the original single-catch design would have done.
+  - **The SIMULATE tab's two country pickers were a ~35-country hardcoded
+    shortlist (`SIM_COUNTRIES` in `index.html`)** even though the backend
+    (`api/country.js`, self-fetched by `computeSimulateConflict` above)
+    already resolves ANY ISO alpha-2 code live via World Bank + Wikidata —
+    the dropdown was the actual bottleneck, not the data. Reported and
+    fixed: `SIM_COUNTRIES` is now the full ~197-entry ISO 3166-1 list
+    (including Taiwan/Palestine/Kosovo/Vatican City, which this app already
+    treats as first-class entities elsewhere), and the two `<select>`
+    elements became `<input list=...>` + a shared `<datalist>` for genuine
+    type-to-filter searching (native in Chrome/Firefox/Edge; Safari
+    degrades to a plain text field, still functional). Each datalist option
+    is `"Name (CODE)"` so the input stays human-readable after a selection;
+    `extractCountryCode()` parses the trailing code back out, falling back
+    to a case-insensitive name match if the user typed a name without
+    picking from the list, and returns `null` on anything else so the UI
+    can show "pick a valid country" instead of silently sending garbage.
+    No backend changes were needed — `computeSimulateConflict` already
+    degraded gracefully for any code with partial/no live data (a null
+    `fetchCountrySummary()` result already rendered as "(live profile data
+    unavailable)" in the Groq prompt rather than erroring) — confirmed live
+    against the real World Bank/Wikidata APIs (network access available in
+    this sandbox) for Armenia, Vietnam, Nigeria, Chile, and Kazakhstan (all
+    resolved real live names end-to-end through the actual self-fetch to
+    `api/country.js`, not mocked at that boundary) plus Kosovo and Vatican
+    City (special/non-UN-member territories, also resolved correctly).
   - All three new types are cached the same way as the rest of this file's
     Redis-backed types (Redis first, in-memory fallback, then the real
     work) — verified end-to-end through the real `vercel.json` routing with
@@ -425,6 +450,19 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-04 (20): Fixed the SIMULATE tab's country pickers only offering
+  ~35 hardcoded countries even though `api/country.js` already resolves any
+  ISO alpha-2 code live via World Bank + Wikidata — the dropdown, not the
+  data, was the bottleneck. `SIM_COUNTRIES` (`index.html`) is now the full
+  ~197-country ISO 3166-1 list; both pickers became `<input list=...>` +
+  `<datalist>` for real type-to-filter searching instead of a plain
+  `<select>`. No backend changes were needed — `computeSimulateConflict`
+  already handled any code gracefully (a country with no live data renders
+  as "(live profile data unavailable)" in the Groq prompt rather than
+  erroring). Verified live against the real World Bank/Wikidata APIs:
+  Armenia, Vietnam, Nigeria, Chile, and Kazakhstan all resolved real names
+  end-to-end through the actual self-fetch to `api/country.js`; Kosovo and
+  Vatican City (non-UN-member territories) also resolved correctly.
 - 2026-07-04 (19): Added a Predictions + Scenario Simulator system,
   positioned to beat a community-voting predictions competitor (Conflictly)
   by grounding every probability in live reporting + real country data with

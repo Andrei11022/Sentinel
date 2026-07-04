@@ -574,9 +574,10 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
         <button class="sim-mode-btn" data-simmode="whatif">❓ WHAT IF</button>
       </div>
       <div class="sim-form" id="sim-form-conflict">
-        <select id="sim-country-a"></select>
+        <input type="text" id="sim-country-a" list="sim-country-datalist" placeholder="Type a country..." autocomplete="off" />
         <span class="sim-vs">VS</span>
-        <select id="sim-country-b"></select>
+        <input type="text" id="sim-country-b" list="sim-country-datalist" placeholder="Type a country..." autocomplete="off" />
+        <datalist id="sim-country-datalist"></datalist>
         <button class="sim-go" id="sim-go-conflict">SIMULATE</button>
       </div>
       <div class="sim-form" id="sim-form-whatif" style="display:none">
@@ -1960,19 +1961,81 @@ async function loadForecast(){
 // unique request server-side, so repeat clicks on the same matchup/
 // scenario don't re-spend a Groq call. Never run at boot — only on click.
 // ═══════════════════════════════════
+// Full ISO 3166-1 alpha-2 country list (~195 sovereign states, plus Taiwan
+// and Palestine which the rest of this app already treats as first-class
+// entities — see api/country.js's World-Bank-doesn't-cover-Taiwan gotcha).
+// This used to be a hand-picked ~35-country shortlist, which meant most of
+// the world (Armenia, Chile, Kazakhstan, ...) simply couldn't be selected
+// even though api/country.js already resolves ANY ISO code live via World
+// Bank + Wikidata — the dropdown was the bottleneck, not the data. Reference
+// data like this is fine to keep as a plain constant array.
 const SIM_COUNTRIES=[
-  {code:'US',name:'United States'},{code:'RU',name:'Russia'},{code:'CN',name:'China'},
-  {code:'UA',name:'Ukraine'},{code:'IL',name:'Israel'},{code:'IR',name:'Iran'},
-  {code:'TW',name:'Taiwan'},{code:'KP',name:'North Korea'},{code:'KR',name:'South Korea'},
-  {code:'IN',name:'India'},{code:'PK',name:'Pakistan'},{code:'SA',name:'Saudi Arabia'},
-  {code:'TR',name:'Turkey'},{code:'GB',name:'United Kingdom'},{code:'FR',name:'France'},
-  {code:'DE',name:'Germany'},{code:'JP',name:'Japan'},{code:'SY',name:'Syria'},
-  {code:'YE',name:'Yemen'},{code:'EG',name:'Egypt'},{code:'SD',name:'Sudan'},
-  {code:'ET',name:'Ethiopia'},{code:'SO',name:'Somalia'},{code:'ML',name:'Mali'},
-  {code:'MM',name:'Myanmar'},{code:'VE',name:'Venezuela'},{code:'BR',name:'Brazil'},
-  {code:'AU',name:'Australia'},{code:'NG',name:'Nigeria'},{code:'ZA',name:'South Africa'},
-  {code:'LB',name:'Lebanon'},{code:'IQ',name:'Iraq'},{code:'PL',name:'Poland'},
-  {code:'VN',name:'Vietnam'},{code:'PH',name:'Philippines'},
+  {code:'AF',name:'Afghanistan'},{code:'AL',name:'Albania'},{code:'DZ',name:'Algeria'},
+  {code:'AD',name:'Andorra'},{code:'AO',name:'Angola'},{code:'AG',name:'Antigua and Barbuda'},
+  {code:'AR',name:'Argentina'},{code:'AM',name:'Armenia'},{code:'AU',name:'Australia'},
+  {code:'AT',name:'Austria'},{code:'AZ',name:'Azerbaijan'},{code:'BS',name:'Bahamas'},
+  {code:'BH',name:'Bahrain'},{code:'BD',name:'Bangladesh'},{code:'BB',name:'Barbados'},
+  {code:'BY',name:'Belarus'},{code:'BE',name:'Belgium'},{code:'BZ',name:'Belize'},
+  {code:'BJ',name:'Benin'},{code:'BT',name:'Bhutan'},{code:'BO',name:'Bolivia'},
+  {code:'BA',name:'Bosnia and Herzegovina'},{code:'BW',name:'Botswana'},{code:'BR',name:'Brazil'},
+  {code:'BN',name:'Brunei'},{code:'BG',name:'Bulgaria'},{code:'BF',name:'Burkina Faso'},
+  {code:'BI',name:'Burundi'},{code:'CV',name:'Cabo Verde'},{code:'KH',name:'Cambodia'},
+  {code:'CM',name:'Cameroon'},{code:'CA',name:'Canada'},{code:'CF',name:'Central African Republic'},
+  {code:'TD',name:'Chad'},{code:'CL',name:'Chile'},{code:'CN',name:'China'},
+  {code:'CO',name:'Colombia'},{code:'KM',name:'Comoros'},{code:'CG',name:'Congo (Republic)'},
+  {code:'CD',name:'Congo (DRC)'},{code:'CR',name:'Costa Rica'},{code:'CI',name:"Côte d'Ivoire"},
+  {code:'HR',name:'Croatia'},{code:'CU',name:'Cuba'},{code:'CY',name:'Cyprus'},
+  {code:'CZ',name:'Czechia'},{code:'DK',name:'Denmark'},{code:'DJ',name:'Djibouti'},
+  {code:'DM',name:'Dominica'},{code:'DO',name:'Dominican Republic'},{code:'EC',name:'Ecuador'},
+  {code:'EG',name:'Egypt'},{code:'SV',name:'El Salvador'},{code:'GQ',name:'Equatorial Guinea'},
+  {code:'ER',name:'Eritrea'},{code:'EE',name:'Estonia'},{code:'SZ',name:'Eswatini'},
+  {code:'ET',name:'Ethiopia'},{code:'FJ',name:'Fiji'},{code:'FI',name:'Finland'},
+  {code:'FR',name:'France'},{code:'GA',name:'Gabon'},{code:'GM',name:'Gambia'},
+  {code:'GE',name:'Georgia'},{code:'DE',name:'Germany'},{code:'GH',name:'Ghana'},
+  {code:'GR',name:'Greece'},{code:'GD',name:'Grenada'},{code:'GT',name:'Guatemala'},
+  {code:'GN',name:'Guinea'},{code:'GW',name:'Guinea-Bissau'},{code:'GY',name:'Guyana'},
+  {code:'HT',name:'Haiti'},{code:'HN',name:'Honduras'},{code:'HU',name:'Hungary'},
+  {code:'IS',name:'Iceland'},{code:'IN',name:'India'},{code:'ID',name:'Indonesia'},
+  {code:'IR',name:'Iran'},{code:'IQ',name:'Iraq'},{code:'IE',name:'Ireland'},
+  {code:'IL',name:'Israel'},{code:'IT',name:'Italy'},{code:'JM',name:'Jamaica'},
+  {code:'JP',name:'Japan'},{code:'JO',name:'Jordan'},{code:'KZ',name:'Kazakhstan'},
+  {code:'KE',name:'Kenya'},{code:'KI',name:'Kiribati'},{code:'KP',name:'North Korea'},
+  {code:'KR',name:'South Korea'},{code:'XK',name:'Kosovo'},{code:'KW',name:'Kuwait'},
+  {code:'KG',name:'Kyrgyzstan'},{code:'LA',name:'Laos'},{code:'LV',name:'Latvia'},
+  {code:'LB',name:'Lebanon'},{code:'LS',name:'Lesotho'},{code:'LR',name:'Liberia'},
+  {code:'LY',name:'Libya'},{code:'LI',name:'Liechtenstein'},{code:'LT',name:'Lithuania'},
+  {code:'LU',name:'Luxembourg'},{code:'MG',name:'Madagascar'},{code:'MW',name:'Malawi'},
+  {code:'MY',name:'Malaysia'},{code:'MV',name:'Maldives'},{code:'ML',name:'Mali'},
+  {code:'MT',name:'Malta'},{code:'MH',name:'Marshall Islands'},{code:'MR',name:'Mauritania'},
+  {code:'MU',name:'Mauritius'},{code:'MX',name:'Mexico'},{code:'FM',name:'Micronesia'},
+  {code:'MD',name:'Moldova'},{code:'MC',name:'Monaco'},{code:'MN',name:'Mongolia'},
+  {code:'ME',name:'Montenegro'},{code:'MA',name:'Morocco'},{code:'MZ',name:'Mozambique'},
+  {code:'MM',name:'Myanmar'},{code:'NA',name:'Namibia'},{code:'NR',name:'Nauru'},
+  {code:'NP',name:'Nepal'},{code:'NL',name:'Netherlands'},{code:'NZ',name:'New Zealand'},
+  {code:'NI',name:'Nicaragua'},{code:'NE',name:'Niger'},{code:'NG',name:'Nigeria'},
+  {code:'MK',name:'North Macedonia'},{code:'NO',name:'Norway'},{code:'OM',name:'Oman'},
+  {code:'PK',name:'Pakistan'},{code:'PW',name:'Palau'},{code:'PS',name:'Palestine'},
+  {code:'PA',name:'Panama'},{code:'PG',name:'Papua New Guinea'},{code:'PY',name:'Paraguay'},
+  {code:'PE',name:'Peru'},{code:'PH',name:'Philippines'},{code:'PL',name:'Poland'},
+  {code:'PT',name:'Portugal'},{code:'QA',name:'Qatar'},{code:'RO',name:'Romania'},
+  {code:'RU',name:'Russia'},{code:'RW',name:'Rwanda'},{code:'KN',name:'Saint Kitts and Nevis'},
+  {code:'LC',name:'Saint Lucia'},{code:'VC',name:'Saint Vincent and the Grenadines'},
+  {code:'WS',name:'Samoa'},{code:'SM',name:'San Marino'},{code:'ST',name:'Sao Tome and Principe'},
+  {code:'SA',name:'Saudi Arabia'},{code:'SN',name:'Senegal'},{code:'RS',name:'Serbia'},
+  {code:'SC',name:'Seychelles'},{code:'SL',name:'Sierra Leone'},{code:'SG',name:'Singapore'},
+  {code:'SK',name:'Slovakia'},{code:'SI',name:'Slovenia'},{code:'SB',name:'Solomon Islands'},
+  {code:'SO',name:'Somalia'},{code:'ZA',name:'South Africa'},{code:'SS',name:'South Sudan'},
+  {code:'ES',name:'Spain'},{code:'LK',name:'Sri Lanka'},{code:'SD',name:'Sudan'},
+  {code:'SR',name:'Suriname'},{code:'SE',name:'Sweden'},{code:'CH',name:'Switzerland'},
+  {code:'SY',name:'Syria'},{code:'TW',name:'Taiwan'},{code:'TJ',name:'Tajikistan'},
+  {code:'TZ',name:'Tanzania'},{code:'TH',name:'Thailand'},{code:'TL',name:'Timor-Leste'},
+  {code:'TG',name:'Togo'},{code:'TO',name:'Tonga'},{code:'TT',name:'Trinidad and Tobago'},
+  {code:'TN',name:'Tunisia'},{code:'TR',name:'Turkey'},{code:'TM',name:'Turkmenistan'},
+  {code:'TV',name:'Tuvalu'},{code:'UG',name:'Uganda'},{code:'UA',name:'Ukraine'},
+  {code:'AE',name:'United Arab Emirates'},{code:'GB',name:'United Kingdom'},{code:'US',name:'United States'},
+  {code:'UY',name:'Uruguay'},{code:'UZ',name:'Uzbekistan'},{code:'VU',name:'Vanuatu'},
+  {code:'VA',name:'Vatican City'},{code:'VE',name:'Venezuela'},{code:'VN',name:'Vietnam'},
+  {code:'YE',name:'Yemen'},{code:'ZM',name:'Zambia'},{code:'ZW',name:'Zimbabwe'},
 ];
 
 function flagEmojiFor(code){
@@ -1980,19 +2043,42 @@ function flagEmojiFor(code){
   return code.toUpperCase().replace(/./g,c=>String.fromCodePoint(127397+c.charCodeAt(0)));
 }
 
+// A plain <select> with 196 options is workable but not genuinely
+// "searchable/typeable" — a text input backed by <datalist> gives native
+// type-to-filter behavior in Chrome/Firefox/Edge (Safari falls back to a
+// plain text field, which still works, just without live suggestions).
+// Each option's visible/submitted value is "Name (CODE)" so the input
+// stays human-readable after a selection; extractCountryCode() below
+// parses the trailing code back out (or falls back to matching the typed
+// name directly, case-insensitively, if the user didn't pick from the list).
 function populateSimCountrySelects(){
-  const optsHtml=SIM_COUNTRIES.map(c=>`<option value="${c.code}">${flagEmojiFor(c.code)} ${c.name}</option>`).join('');
-  document.getElementById('sim-country-a').innerHTML=optsHtml;
-  document.getElementById('sim-country-b').innerHTML=optsHtml;
-  document.getElementById('sim-country-a').value='US';
-  document.getElementById('sim-country-b').value='CN';
+  const sorted=[...SIM_COUNTRIES].sort((a,b)=>a.name.localeCompare(b.name));
+  const datalist=document.getElementById('sim-country-datalist');
+  datalist.innerHTML=sorted.map(c=>`<option value="${c.name} (${c.code})"></option>`).join('');
+  document.getElementById('sim-country-a').value='United States (US)';
+  document.getElementById('sim-country-b').value='China (CN)';
+}
+
+function extractCountryCode(inputValue){
+  const v=(inputValue||'').trim();
+  const m=v.match(/\(([A-Za-z]{2})\)\s*$/);
+  if(m){
+    const code=m[1].toUpperCase();
+    if(SIM_COUNTRIES.some(c=>c.code===code)) return code;
+  }
+  const byName=SIM_COUNTRIES.find(c=>c.name.toLowerCase()===v.toLowerCase());
+  return byName?byName.code:null;
 }
 
 async function runConflictSimulation(){
-  const a=document.getElementById('sim-country-a').value;
-  const b=document.getElementById('sim-country-b').value;
+  const a=extractCountryCode(document.getElementById('sim-country-a').value);
+  const b=extractCountryCode(document.getElementById('sim-country-b').value);
   const btn=document.getElementById('sim-go-conflict');
   const result=document.getElementById('sim-result');
+  if(!a||!b){
+    result.innerHTML='<div style="padding:14px;color:var(--nr);font-family:\'Share Tech Mono\',monospace;font-size:.7rem">Pick a valid country from the list for both sides.</div>';
+    return;
+  }
   if(a===b){
     result.innerHTML='<div style="padding:14px;color:var(--nr);font-family:\'Share Tech Mono\',monospace;font-size:.7rem">Pick two different countries.</div>';
     return;
