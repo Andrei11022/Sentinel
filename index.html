@@ -676,6 +676,10 @@ async function showCountryIntel(code, x, y) {
   try{
     const d = await apiGet('/country?code='+code);
     const pop = d.population ? (d.population/1e6).toFixed(1)+'M' : null;
+    // Fields api/country.js couldn't get from World Bank/Wikidata/its own
+    // hardcoded tables and had Groq fill instead — labeled honestly rather
+    // than presented as live fact (see row()'s isAI param).
+    const aiFields = new Set(d.aiFields||[]);
     panel.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <div style="font-family:Rajdhani,sans-serif;font-size:1.1rem;font-weight:700;color:var(--nb)">${d.flag||'🏳'} ${d.name||code}</div>
@@ -690,9 +694,13 @@ async function showCountryIntel(code, x, y) {
         ${row('Income Level', d.incomeLevel)}
         ${row('Currency', d.currency)}
         ${row('Language', d.language)}
-        ${row('Next Elections', d.elections)}
-        ${row('Political Leaning', d.politicalLeaning)}
-      </div>`;
+        ${row('Government Type', d.governmentType, aiFields.has('governmentType'))}
+        ${row('Next Elections', d.elections, aiFields.has('elections'))}
+        ${row('Political Leaning', d.politicalLeaning, aiFields.has('politicalLeaning'))}
+        ${row('Key Allies', d.keyAllies, aiFields.has('keyAllies'))}
+        ${row('Primary Rivals', d.primaryRivals, aiFields.has('primaryRivals'))}
+      </div>
+      ${aiFields.size ? '<div style="margin-top:8px;font-size:.6rem;color:var(--muted);opacity:.75">* AI-assessed — not from a live source</div>' : ''}`;
   }catch(e){
     // apiGet throws on non-2xx — api/country.js only 400/404s an invalid or
     // genuinely-unrecognized code, so this is the one case that's truly "no data".
@@ -700,8 +708,10 @@ async function showCountryIntel(code, x, y) {
   }
 }
 
-function row(k, v) {
-  return `<div style="color:var(--muted)">${k}</div><div style="color:var(--text)">${v||'—'}</div>`;
+function row(k, v, isAI) {
+  const label = isAI && v ? k+' *' : k;
+  const valueColor = isAI && v ? 'var(--muted)' : 'var(--text)';
+  return `<div style="color:var(--muted)">${label}</div><div style="color:${valueColor}">${v||'—'}</div>`;
 }
 
 function hideCountryPanel(){

@@ -14,7 +14,17 @@
 // rewrite drops it entirely.
 //
 // Elections timing and political leaning have no good free live API and
-// change rarely, so they stay as a small hardcoded table.
+// change rarely, so a small hardcoded table is checked first (covers ~20
+// countries, no AI cost). For whichever of the 5 "analytical" fields
+// (elections, politicalLeaning, governmentType, keyAllies, primaryRivals)
+// are still empty after that — which is every country outside the table,
+// and always governmentType/keyAllies/primaryRivals since there's no
+// hardcoded source for those at all — one Groq call fills the gaps. Live
+// data (leader, population, capital, currency, ...) always wins; AI never
+// overwrites a real value, only fills a genuine `null`. Fields the AI
+// actually supplied are listed in `result.aiFields` so the frontend can
+// label them honestly instead of presenting them as live facts.
+const { askAI, isConfigured } = require('../lib/ai');
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1hr for a complete result — persists across warm invocations
 // Wikidata's public SPARQL endpoint occasionally has one-off latency spikes
@@ -156,6 +166,32 @@ async function fetchWikidataOnce(code) {
   }
 }
 
+// Maps the AI's JSON keys to this endpoint's result field names.
+const AI_FIELD_MAP = {
+  nextElections: 'elections',
+  politicalLeaning: 'politicalLeaning',
+  governmentType: 'governmentType',
+  keyAllies: 'keyAllies',
+  primaryRivals: 'primaryRivals',
+};
+
+async function fillGapsWithAI(countryName) {
+  if (!isConfigured()) return null;
+  try {
+    const text = await askAI({
+      messages: [{
+        role: 'user',
+        content: `For ${countryName}, provide current factual data as JSON:\n{\n  "nextElections": "month year and type, e.g. Nov 2028 Presidential, or None/Suspended",\n  "politicalLeaning": "brief: e.g. Right-nationalist / Centre-left / Authoritarian",\n  "governmentType": "e.g. Federal republic, Constitutional monarchy",\n  "keyAllies": "top 2-3 allies",\n  "primaryRivals": "top 2-3 rivals"\n}\nReturn ONLY valid JSON, no other text. Use your knowledge; if genuinely unknown, use null.`,
+      }],
+      maxTokens: 300,
+    });
+    const clean = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(clean);
+  } catch (e) {
+    return null;
+  }
+}
+
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -196,14 +232,36 @@ module.exports = async function handler(req, res) {
     headOfGovernment: wd?.headOfGovernment || null,
     elections: ELECTIONS[upperCode] || null,
     politicalLeaning: POLITICAL_LEANING[upperCode] || null,
+    governmentType: null,
+    keyAllies: null,
+    primaryRivals: null,
+    aiFields: [],
     lat: wb?.lat ?? null,
     lon: wb?.lon ?? null,
   };
 
+  // Only spend a Groq call on genuine gaps — never on fields the hardcoded
+  // tables or live sources above already answered.
+  const stillMissing = Object.values(AI_FIELD_MAP).some((field) => result[field] == null);
+  if (stillMissing) {
+    const aiData = await fillGapsWithAI(result.name);
+    if (aiData) {
+      for (const [aiKey, field] of Object.entries(AI_FIELD_MAP)) {
+        if (result[field] != null) continue; // never overwrite a real value
+        const val = aiData[aiKey];
+        if (val == null || String(val).trim().toLowerCase() === 'null' || !String(val).trim()) continue;
+        result[field] = String(val).trim();
+        result.aiFields.push(field);
+      }
+    }
+  }
+
   // Full TTL only when every source actually answered — a result missing
   // World Bank or Wikidata data gets a much shorter TTL so a transient
   // failure self-heals on the next click instead of showing "—" for an
-  // hour (see PARTIAL_CACHE_TTL_MS comment above).
+  // hour (see PARTIAL_CACHE_TTL_MS comment above). The AI gap-fill result
+  // (or lack of one) is cached right along with everything else here, so
+  // it's not re-requested from Groq on every click.
   const isComplete = wb && wd && population != null;
   cache.set(upperCode, { ts: Date.now(), data: result, ttl: isComplete ? CACHE_TTL_MS : PARTIAL_CACHE_TTL_MS });
   return res.status(200).json(result);

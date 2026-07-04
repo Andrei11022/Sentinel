@@ -35,7 +35,7 @@ in `lib/`, never `api/lib/`.
 |---|---|---|
 | `/api/news` | Multi-source world/mideast news | Guardian, GDELT, BBC/Al Jazeera/NPR/France24 RSS |
 | `/api/threats` | Threat markers | derived from `/api/news` (internal self-fetch) |
-| `/api/country` | Country intel panel | World Bank (facts+population), Wikidata SPARQL (leader/head of govt/currency/language) |
+| `/api/country` | Country intel panel | World Bank (facts+population), Wikidata SPARQL (leader/head of govt/currency/language), Groq fills elections/leaning/govt-type/allies/rivals gaps |
 | `/api/intelligence?type=risk_matrix` | Country risk matrix | static base model (was `/api/forecast`) |
 | `/api/intelligence` POST `{type:'scenarios'}` | AI conflict scenarios | static fallback + optional Groq (was `/api/forecast`) |
 | `/api/intelligence?type=acled` | Conflict event list | static, hand-maintained (was `/api/acled`) |
@@ -234,6 +234,29 @@ aircraft, analyst, naval, tts) — 3 under the Hobby cap of 12.
   transient — a much shorter cache TTL (5min vs the normal 1hr) for any
   result where a source came back partial, so a one-off failure self-heals
   on the next click instead of showing missing fields for an hour.
+- `/api/country` fills 5 "analytical" fields Groq covers that World
+  Bank/Wikidata never will — `elections`, `politicalLeaning`,
+  `governmentType`, `keyAllies`, `primaryRivals` — with exactly one Groq
+  call per country, only for whichever of those are still `null` after the
+  small hardcoded `ELECTIONS`/`POLITICAL_LEANING` tables and live sources
+  are checked (`governmentType`/`keyAllies`/`primaryRivals` have no
+  hardcoded source at all, so they're AI-filled for every country; the
+  other two only for the ~20 not in the hardcoded tables). **Live/hardcoded
+  data always wins** — the merge step explicitly skips any field that's
+  already non-null before considering the AI's value, so a real value can
+  never be clobbered by a guess (verified live: US's hardcoded `elections`/
+  `politicalLeaning` survived unchanged while a mocked AI response tried to
+  overwrite them). Fields the AI actually supplied are listed in the
+  response's `aiFields` array so `index.html`'s `row()` helper can label
+  them with a trailing `*` and muted color instead of presenting them as
+  live fact, plus a one-line "* AI-assessed" footnote when the panel has
+  any. The whole AI-filled result is cached inside the same per-country
+  cache entry as everything else (no separate cache), so a country is only
+  ever sent to Groq once per cache TTL, not once per click (verified: 3
+  requests for the same country produced exactly 1 Groq call). If Groq has
+  no key or fails (including after the shared helper's own primary→fallback
+  model retry), the 5 fields simply stay `null` and render as `—`, same as
+  before this feature existed — no error surfaces to the panel.
 
 ### Testing approach
 No Vercel account access has been available in any session — nothing has
@@ -257,6 +280,32 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-04 (17): Country intel panel used to show "—" for `Next Elections`
+  and `Political Leaning` for most countries (only ~20 hardcoded), and had
+  no `Government Type`/`Key Allies`/`Primary Rivals` fields at all. Added
+  one Groq call per country in `api/country.js` (`fillGapsWithAI()`, shared
+  `askAI` helper) that fills whichever of those 5 fields are still `null`
+  after live sources + the existing hardcoded tables — never overwriting a
+  real value (checked field-by-field before accepting the AI's answer).
+  Response now includes `aiFields: string[]` naming which fields came from
+  Groq; `index.html`'s country panel labels those with a trailing `*` +
+  muted color and a "* AI-assessed" footnote, so AI-derived fields are never
+  presented as live fact. The AI result rides along in the same per-country
+  cache entry `api/country.js` already had (1hr full / 5min partial TTL),
+  so it's one Groq call per country per cache period, not per click.
+  Added `api/country.js` to `vercel.json`'s `maxDuration:30` list since it
+  now makes one more sequential network call after an already-borderline
+  Wikidata-retry chain. Verified: US/Romania/Nigeria/Vietnam all populate
+  the 5 fields correctly against real live World Bank/Wikidata data with a
+  mocked Groq response (US's hardcoded `elections`/`politicalLeaning`
+  provably survived a mocked AI response that tried to overwrite them —
+  only `governmentType`/`keyAllies`/`primaryRivals` came from AI for US, all
+  5 did for the other three); cache-hit test confirmed exactly 1 Groq call
+  across 3 requests for the same country; no-key and Groq-failure paths
+  both confirmed to degrade to `null`/`—` with no error surfaced, matching
+  pre-existing behavior. No live `GROQ_API_KEY` was available in this
+  sandbox, so all Groq responses above were mocked — the real Groq success
+  path (a genuine model-generated answer) is unverified here.
 - 2026-07-04 (16): Fixed a Vercel Hobby-plan build failure ("No more than 12
   Serverless Functions can be added on the Hobby plan"). Root cause: every
   `.js` file under `api/` counts as one function regardless of subdirectory,
