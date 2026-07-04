@@ -1,4 +1,4 @@
-const CLAUDE_KEY = process.env.ANTHROPIC_API_KEY || '';
+const { askAI, isConfigured } = require('./lib/ai');
 
 const LOCATION_DB = [
   { key: /ukraine|kyiv|kharkiv|donetsk|zaporizhzhia/i, name: 'Ukraine', country: 'UA', lat: 49.0, lon: 32.0 },
@@ -264,8 +264,8 @@ function extractEntities(articles) {
   return { people: people.slice(0, 16), orgs: orgs.slice(0, 18), locations: locations.slice(0, 18) };
 }
 
-async function runAnthropic(type, articles) {
-  if (!CLAUDE_KEY) return null;
+async function runGroq(type, articles) {
+  if (!isConfigured()) return null;
 
   const prompts = {
     brief: `Write a concise 5-sentence intelligence brief covering what is happening RIGHT NOW. These headlines are sorted newest first and are all from the last few hours — focus on the newest ones and do not treat older items in this list as more important just because they read as more severe.\n${articles.map((a) => `- [${a.tag}] (${timeAgoLabel(a.publishedAt)}) ${a.title}`).join('\n')}`,
@@ -279,31 +279,7 @@ async function runAnthropic(type, articles) {
   if (!prompt) return null;
 
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': CLAUDE_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        // claude-sonnet-4-20250514 is deprecated (retires 2026-06-15) — every
-        // Claude-backed feature in this codebase was still on it. Current
-        // model is claude-sonnet-5. Thinking explicitly off: Sonnet 5 runs
-        // adaptive thinking by default when the field is omitted, which
-        // returns a leading thinking block before the text block — silently
-        // breaking any code (like the old content?.[0]?.text here) that
-        // assumes the first content block is the answer.
-        model: 'claude-sonnet-5',
-        max_tokens: 900,
-        thinking: { type: 'disabled' },
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-
-    if (!r.ok) return null;
-    const d = await r.json();
-    const text = d.content?.find((b) => b.type === 'text')?.text || '';
+    const text = await askAI({ messages: [{ role: 'user', content: prompt }], maxTokens: 900 });
     if (!text.trim()) return null;
 
     if (['correlations', 'warnings', 'actors', 'entities'].includes(type)) {
@@ -331,7 +307,7 @@ module.exports = async function handler(req, res) {
     : clean;
 
   try {
-    const aiResult = await runAnthropic(type, forType);
+    const aiResult = await runGroq(type, forType);
     if (aiResult) return res.status(200).json({ result: aiResult, fallback: false });
 
     if (type === 'brief') return res.status(200).json({ result: buildBrief(forType), fallback: true });

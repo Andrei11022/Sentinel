@@ -9,7 +9,7 @@
 // out of the response so the frontend can render real, clickable source
 // links instead of the model just asserting sources exist.
 
-const CLAUDE_KEY = process.env.ANTHROPIC_API_KEY || '';
+const { askAI, isConfigured } = require('./lib/ai');
 
 const SYSTEM_PROMPT = 'You are SENTINEL, an AI intelligence analyst. Answer using ONLY the ' +
   'provided live intelligence data. Cite sources. If data is insufficient, ' +
@@ -102,14 +102,14 @@ function extractCitedSources(answerText, articles) {
   }));
 }
 
-// Anthropic 400s on messages that don't strictly alternate user/assistant
-// (and on empty-content turns) — the frontend only ever appends a complete
-// user+assistant pair after a successful reply, so `history` should already
-// alternate correctly and end on 'assistant', but this sanitizes properly
-// rather than trusting that: drop empty/whitespace-only content, collapse
-// any accidental same-role-twice run, and make sure history doesn't itself
-// end on 'user' (the caller is about to append a fresh user turn, and two
-// user messages in a row is exactly the "roles must alternate" 400).
+// Groq (OpenAI-compatible chat/completions) also expects clean user/
+// assistant alternation with no empty-content turns — the frontend only
+// ever appends a complete user+assistant pair after a successful reply, so
+// `history` should already alternate correctly and end on 'assistant', but
+// this sanitizes properly rather than trusting that: drop empty/whitespace-
+// only content, collapse any accidental same-role-twice run, and make sure
+// history doesn't itself end on 'user' (the caller is about to append a
+// fresh user turn).
 function sanitizeHistory(history) {
   if (!Array.isArray(history)) return [];
   const cleaned = history
@@ -128,48 +128,12 @@ function sanitizeHistory(history) {
   return alternated;
 }
 
-async function askClaude(question, history, articles, threats) {
+async function askAnalyst(question, history, articles, threats) {
   const messages = [
     ...sanitizeHistory(history),
     { role: 'user', content: buildPrompt(question, articles, threats) },
   ];
-
-  const r = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': CLAUDE_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      // claude-sonnet-4-20250514 is deprecated (retired 2026-06-15) — this
-      // was the actual cause of "Anthropic API 400" on every question.
-      // Current model is claude-sonnet-5. Thinking explicitly off: Sonnet 5
-      // runs adaptive thinking by default when the field is omitted, which
-      // returns a leading thinking block before the text block — silently
-      // breaking the old content?.[0]?.text extraction below (it would grab
-      // the empty thinking block instead of the answer).
-      model: 'claude-sonnet-5',
-      max_tokens: 1000,
-      thinking: { type: 'disabled' },
-      system: SYSTEM_PROMPT,
-      messages,
-    }),
-  }, 25000);
-
-  if (!r.ok) {
-    // The real fix: log (and surface) the actual Anthropic error body
-    // instead of just the status code — "Anthropic API 400" alone doesn't
-    // say *why*, and every one of this codebase's Claude-backed endpoints
-    // had the same blind spot.
-    const errBody = await r.text().catch(() => '');
-    console.error('Anthropic API error', r.status, errBody);
-    throw new Error(`Anthropic API ${r.status}: ${errBody.slice(0, 300)}`);
-  }
-  const d = await r.json();
-  const text = d.content?.find(b => b.type === 'text')?.text?.trim();
-  if (!text) throw new Error('Empty response from Anthropic API');
-  return text;
+  return askAI({ system: SYSTEM_PROMPT, messages, maxTokens: 1000, timeoutMs: 25000 });
 }
 
 module.exports = async function handler(req, res) {
@@ -180,9 +144,9 @@ module.exports = async function handler(req, res) {
   const q = typeof question === 'string' ? question.trim() : '';
   if (!q) return res.status(400).json({ error: 'Provide a question' });
 
-  if (!CLAUDE_KEY) {
+  if (!isConfigured()) {
     return res.status(200).json({
-      answer: 'AI analysis requires configuration — set ANTHROPIC_API_KEY in your Vercel project environment variables to enable the SENTINEL analyst.',
+      answer: 'AI analysis requires configuration — set GROQ_API_KEY in your Vercel project environment variables to enable the SENTINEL analyst.',
       sources: [],
       configured: false,
     });
@@ -202,7 +166,7 @@ module.exports = async function handler(req, res) {
       threats, keywords, t => `${t.title} ${t.desc || ''} ${t.country || ''}`, 10
     );
 
-    const answer = await askClaude(q, history, filteredArticles, filteredThreats);
+    const answer = await askAnalyst(q, history, filteredArticles, filteredThreats);
     const sources = extractCitedSources(answer, filteredArticles);
 
     return res.status(200).json({ answer, sources, configured: true });

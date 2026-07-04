@@ -5,13 +5,13 @@
 //   - Wikipedia summary     -> "what/who is this" context card, resolved via
 //     opensearch first so lowercase/imprecise queries ("gaza", "ukraine war")
 //     still land on the right article
-// If ANTHROPIC_API_KEY is set, adds a 2-sentence AI synthesis of the combined
+// If GROQ_API_KEY is set, adds a 2-sentence AI synthesis of the combined
 // headlines. All three sources run in parallel and are individually
 // best-effort — GDELT rate-limits aggressively (~1 req/5s) and both it and
 // Guardian occasionally have connectivity hiccups, so a failure in one never
 // blocks the other two.
 
-const CLAUDE_KEY = process.env.ANTHROPIC_API_KEY || '';
+const { askAI, isConfigured } = require('./lib/ai');
 const GUARDIAN_KEY = process.env.GUARDIAN_KEY || '473fcab8-81fa-4e79-a17e-429debaa4bc1';
 
 const CACHE_TTL_MS = 3 * 60 * 1000; // short TTL — news search results move fast
@@ -171,29 +171,18 @@ async function fetchWikipedia(query) {
 }
 
 async function synthesize(query, articles) {
-  if (!CLAUDE_KEY || !articles.length) return null;
+  if (!isConfigured() || !articles.length) return null;
   try {
     const headlines = articles.slice(0, 10).map(a => `- ${a.title}`).join('\n');
-    const r = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': CLAUDE_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({
-        // See PROGRESS.md — claude-sonnet-4-20250514 is deprecated (retired
-        // 2026-06-15); current model is claude-sonnet-5, thinking off since
-        // it defaults to adaptive-on and would otherwise put a thinking
-        // block ahead of the text block.
-        model: 'claude-sonnet-5',
-        max_tokens: 200,
-        thinking: { type: 'disabled' },
-        messages: [{
-          role: 'user',
-          content: `In exactly 2 sentences, summarize what's currently happening with "${query}" based on these live headlines. Be concrete and specific, no preamble.\n\n${headlines}`,
-        }],
-      }),
-    }, 12000);
-    if (!r.ok) return null;
-    const d = await r.json();
-    return d.content?.find((b) => b.type === 'text')?.text?.trim() || null;
+    const text = await askAI({
+      messages: [{
+        role: 'user',
+        content: `In exactly 2 sentences, summarize what's currently happening with "${query}" based on these live headlines. Be concrete and specific, no preamble.\n\n${headlines}`,
+      }],
+      maxTokens: 200,
+      timeoutMs: 12000,
+    });
+    return text?.trim() || null;
   } catch (e) {
     return null;
   }

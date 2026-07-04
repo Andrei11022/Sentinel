@@ -1,5 +1,5 @@
 // Entity extraction + relationship mapping from news articles
-const CLAUDE_KEY = process.env.ANTHROPIC_API_KEY || '';
+const { askAI, isConfigured } = require('./lib/ai');
 
 // Known entity database for fast lookup
 const ENTITY_DB = {
@@ -79,33 +79,13 @@ function extractEntitiesLocal(text) {
 
 async function extractEntitiesAI(articles) {
   const headlines = articles.map(a => a.title || a.webTitle).join('\n');
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': CLAUDE_KEY, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({
-      // See PROGRESS.md — claude-sonnet-4-20250514 is deprecated (retired
-      // 2026-06-15); current model is claude-sonnet-5, thinking explicitly
-      // off since it defaults to adaptive-on and would otherwise put a
-      // thinking block ahead of the text block in the response.
-      model: 'claude-sonnet-5',
-      max_tokens: 1000,
-      thinking: { type: 'disabled' },
-      messages: [{
-        role: 'user',
-        content: `Extract all named entities from these headlines. Return ONLY JSON:\n{"people":[{"name":"...","role":"...","country":"...","threatLevel":"HIGH|MEDIUM|LOW"}],"organizations":[{"name":"...","type":"state|militant|alliance|ngo","threatLevel":"HIGH|MEDIUM|LOW"}],"locations":[{"name":"...","type":"country|city|region|waterway","lat":0,"lon":0,"conflictZone":true}],"relationships":[{"from":"...","to":"...","type":"allied|adversarial|economic|diplomatic","strength":"strong|moderate|weak"}]}\n\nHeadlines:\n${headlines}`
-      }]
-    })
+  const text = await askAI({
+    messages: [{
+      role: 'user',
+      content: `Extract all named entities from these headlines. Return ONLY JSON:\n{"people":[{"name":"...","role":"...","country":"...","threatLevel":"HIGH|MEDIUM|LOW"}],"organizations":[{"name":"...","type":"state|militant|alliance|ngo","threatLevel":"HIGH|MEDIUM|LOW"}],"locations":[{"name":"...","type":"country|city|region|waterway","lat":0,"lon":0,"conflictZone":true}],"relationships":[{"from":"...","to":"...","type":"allied|adversarial|economic|diplomatic","strength":"strong|moderate|weak"}]}\n\nHeadlines:\n${headlines}`
+    }],
+    maxTokens: 1000,
   });
-  // Was previously parsed unconditionally regardless of r.ok — a 400/401/etc
-  // response body has no `.content`, so this silently "succeeded" with an
-  // empty {} instead of throwing into the caller's local-extraction
-  // fallback. Throw explicitly so real API failures actually fall back.
-  if (!r.ok) {
-    const errBody = await r.text().catch(() => '');
-    throw new Error(`Anthropic API ${r.status}: ${errBody.slice(0, 300)}`);
-  }
-  const d = await r.json();
-  const text = d.content?.find((b) => b.type === 'text')?.text || '{}';
   return JSON.parse(text.replace(/```json|```/g, '').trim());
 }
 
@@ -118,7 +98,7 @@ module.exports = async function handler(req, res) {
   try {
     let entities;
 
-    if (CLAUDE_KEY && articles?.length) {
+    if (isConfigured() && articles?.length) {
       try {
         entities = await extractEntitiesAI(articles);
       } catch {

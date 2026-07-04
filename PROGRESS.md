@@ -25,13 +25,13 @@ the route in the same commit as the new file.
 | `/api/news` | Multi-source world/mideast news | Guardian, GDELT, BBC/Al Jazeera/NPR/France24 RSS |
 | `/api/threats` | Threat markers | derived from `/api/news` (internal self-fetch) |
 | `/api/country` | Country intel panel | World Bank (facts+population), Wikidata SPARQL (leader/head of govt/currency/language) |
-| `/api/forecast` | Risk matrix + scenarios | static base model + optional Claude scenarios |
+| `/api/forecast` | Risk matrix + scenarios | static base model + optional Groq scenarios |
 | `/api/acled` | Conflict list | static, hand-maintained |
-| `/api/entities` | Entity extraction | Claude or local pattern DB |
-| `/api/analyze` | Brief/correlations/actors | Claude or local fallback |
-| `/api/search` | Intel Search tab | GDELT + Guardian + Wikipedia + optional Claude synthesis |
+| `/api/entities` | Entity extraction | Groq or local pattern DB |
+| `/api/analyze` | Brief/correlations/actors | Groq or local fallback |
+| `/api/search` | Intel Search tab | GDELT + Guardian + Wikipedia + optional Groq synthesis |
 | `/api/aircraft` | Live aircraft layer | OpenSky `states/all`, falls back to `adsb.lol/v2/mil` |
-| `/api/analyst` | AI Analyst chat | `/api/news`+`/api/threats` (self-fetch) + Claude, grounded-only |
+| `/api/analyst` | AI Analyst chat | `/api/news`+`/api/threats` (self-fetch) + Groq, grounded-only |
 | `/api/naval` | Naval ship tracker | `/api/news` (self-fetch) for positions + live Wikipedia for detail cards |
 | `/api/tts` | Brief Me voice | ElevenLabs TTS (voice "Adam"), falls back to browser speechSynthesis client-side |
 
@@ -56,36 +56,42 @@ the route in the same commit as the new file.
   you hand it (for positioning) — never set `transform` directly on a
   marker's outer element (e.g. for rotation); rotate an inner child instead.
   See `createAircraftMarkerEl` in `index.html`.
-- `ANTHROPIC_API_KEY` gates all Claude-backed features; every one has a
-  defined no-key fallback (static/local output, or a clear "needs
-  configuration" message) rather than erroring.
-- All five Claude-backed endpoints (`analyst.js`, `analyze.js`, `search.js`,
-  `entities.js`, `forecast.js`) were hardcoded to `claude-sonnet-4-20250514`,
-  which is deprecated (retired 2026-06-15) — this was the actual cause of
-  the AI Analyst's "Anthropic API 400". Current model is `claude-sonnet-5`.
-  Two things to know if you touch these again: (1) `thinking` is
-  deliberately set to `{type:'disabled'}` on all five — Sonnet 5 runs
-  adaptive thinking by default when the field is omitted, which returns a
-  leading `thinking` content block before the `text` block, and every one
-  of these files was extracting the answer via `content?.[0]?.text` — that
-  silently breaks the moment adaptive thinking turns on (grabs the empty
-  thinking block instead). All five now use
-  `content?.find(b => b.type === 'text')?.text` instead, which is correct
-  regardless of `thinking` mode, but leave `thinking: {type:'disabled'}` in
-  place too since these are short grounded-citation tasks that don't need
-  deep reasoning and thinking adds latency/cost for no benefit here.
-  (2) `askClaude()` in `analyst.js` used to throw just the HTTP status
-  (`Anthropic API 400`) with no body — genuinely couldn't diagnose the
-  actual failure from that. It now reads and logs the real response body
-  (`console.error` + included in the thrown message); verified live against
-  the real Anthropic endpoint with a deliberately-invalid key that the fix
-  correctly surfaces Anthropic's actual structured error JSON instead of a
-  bare status code. `entities.js` and `forecast.js` had a related silent
-  bug: they parsed `d.content` without checking `r.ok` first, so a failed
-  request (empty/undefined `.content`) fell through to `JSON.parse('{}')`
-  or `JSON.parse('[]')` and returned an empty-but-"successful" result
-  instead of throwing into their local-fallback path — both now check
-  `r.ok` and throw with the real error body first.
+- `GROQ_API_KEY` gates all AI-backed features (migrated off Anthropic
+  entirely 2026-07-04, see changelog — Anthropic account ran out of
+  credits); every one still has a defined no-key fallback (static/local
+  output, or a clear "needs configuration" message) rather than erroring.
+  All five AI-backed endpoints (`analyst.js`, `analyze.js`, `search.js`,
+  `entities.js`, `forecast.js`) now share one client, `api/lib/ai.js`
+  (`askAI({system, messages, maxTokens, timeoutMs})`), instead of each
+  hand-rolling its own fetch — if you add a sixth AI-backed endpoint, use
+  this helper rather than calling Groq directly. It calls Groq's
+  OpenAI-compatible `chat/completions` endpoint
+  (`https://api.groq.com/openai/v1/chat/completions`,
+  `Authorization: Bearer <GROQ_API_KEY>`), primary model
+  `llama-3.3-70b-versatile` with one automatic retry against
+  `llama-3.1-8b-instant` if the primary call fails for any reason (model
+  decommissioned, rate-limited, down) — callers still get to catch a final
+  failure and use their own non-AI fallback if both attempts fail.
+  **Important shape difference from the old Anthropic code**: Groq is
+  OpenAI-style, so `system` is a `{role:'system', content:...}` message
+  prepended to the array, not a top-level param like Anthropic's `system`
+  field — `askAI` handles this internally, callers just pass `system` as a
+  plain string (or omit it, as `analyze.js`/`forecast.js`/`search.js` do,
+  since their prompts never used a system prompt to begin with). Response
+  text is at `data.choices[0].message.content`, not Anthropic's
+  `content[].find(block => block.type==='text')` shape — also handled
+  inside the helper, so callers just get back a plain string. No `thinking`
+  param exists on Groq's API — none of the old `thinking:{type:'disabled'}`
+  workarounds are needed anymore.
+- Prior to the Groq migration, all five endpoints were hardcoded to
+  `claude-sonnet-4-20250514` on Anthropic (deprecated, retired 2026-06-15) —
+  this was the actual cause of a previously-fixed "Anthropic API 400". That
+  whole code path (the model ID, `thinking:{type:'disabled'}`, the
+  `content?.find(b=>b.type==='text')` extraction, and the
+  `askClaude`/`runAnthropic`/`extractEntitiesAI`/etc per-file fetch calls)
+  is gone now, replaced by `api/lib/ai.js` above. If you ever see Anthropic
+  fetch code reappear in one of these files, it's a regression, not a
+  restoration.
 - `/api/news`'s main list is pure `publishedAt`-descending — top of the feed
   is genuinely newest. It used to sort by threatScore first (date only
   broke close ties), which silently overrode publish order; that was
@@ -214,6 +220,35 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-04 (15): Migrated every AI-backed endpoint off Anthropic and onto
+  Groq's free tier (Anthropic account ran out of credits). Added
+  `api/lib/ai.js`, a shared `askAI({system, messages, maxTokens, timeoutMs})`
+  client for Groq's OpenAI-compatible `chat/completions` endpoint
+  (`llama-3.3-70b-versatile` primary, automatic one-shot retry against
+  `llama-3.1-8b-instant` on any failure), and rewired `analyst.js`,
+  `analyze.js`, `entities.js`, `forecast.js`, and `search.js` to call it
+  instead of each hand-rolling its own Anthropic fetch. Preserved every
+  existing prompt and all surrounding logic unchanged — only the API-call
+  layer was swapped, per the task's explicit instruction — including
+  `analyst.js`'s `[A#]` citation-extraction logic (verified below) and the
+  history-sanitization pass (still needed: Groq's chat/completions is just
+  as strict about user/assistant alternation as Anthropic was). Handled the
+  one real shape difference: Groq's `system` is an OpenAI-style
+  `{role:'system',...}` message, not Anthropic's top-level `system` param
+  — `askAI` builds that message internally so callers just pass a plain
+  `system` string (or omit it, since `analyze.js`/`forecast.js`/`search.js`
+  never used a system prompt). No live `GROQ_API_KEY` is available in this
+  sandbox, so the real Groq success path is unverified here — instead
+  verified: (1) the `askAI` helper itself against a mocked Groq response,
+  covering the with-system/without-system message shape, the primary-model-
+  fails-falls-back-to-secondary-model path, and the no-key-configured throw;
+  (2) `analyze.js`/`entities.js`/`forecast.js`'s no-key fallback path
+  through their real handlers; (3) `analyst.js`'s full flow end-to-end
+  through the real handler with mocked Groq + mocked `/api/news`+`/api/threats`
+  self-fetches, confirming the `[A1]`-style citation extraction still
+  correctly maps back to the real article's title/url/source after the
+  swap. No `vercel.json` changes needed — `api/lib/ai.js` is a shared
+  module, not a routable endpoint.
 - 2026-07-04 (14): Fixed the AI Analyst's "Anthropic API 400" error — root
   cause was `claude-sonnet-4-20250514`, deprecated and retired 2026-06-15,
   hardcoded across all five Claude-backed endpoints (confirmed via the
