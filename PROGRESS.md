@@ -41,6 +41,10 @@ in `lib/`, never `api/lib/`.
 | `/api/intelligence?type=acled` | Conflict event list | static, hand-maintained (was `/api/acled`) |
 | `/api/intelligence` POST `{type:'entities'}` | Entity + relationship extraction | Groq or local pattern DB (was `/api/entities`) |
 | `/api/intelligence` POST `{type:'brief'\|'correlations'\|'warnings'\|'actors'}` | Brief/correlations/actors | Groq or local fallback (was `/api/analyze`) |
+| `/api/intelligence` POST `{type:'predictions'}` | AI-assessed probability cards per live situation (PREDICTIONS panel) | Groq, grounded in live articles grouped by situation |
+| `/api/intelligence` POST `{type:'simulate', mode:'conflict'}` | Two-country AI war-game briefing (SIMULATE tab) | Groq, grounded in both countries' real `/api/country` profiles (self-fetch) |
+| `/api/intelligence` POST `{type:'simulate', mode:'whatif'}` | Hypothetical-scenario cascade breakdown (SIMULATE tab) | Groq |
+| `/api/intelligence` POST `{type:'forecast'}` | Global "next 30-90 days" outlook (top 3-5 escalation risks) | Groq, grounded in live articles |
 | `/api/search` | Intel Search tab | GDELT + Guardian + Wikipedia + optional Groq synthesis |
 | `/api/aircraft` | Live aircraft layer | OpenSky `states/all`, falls back to `adsb.lol/v2/mil` |
 | `/api/analyst` | AI Analyst chat | `/api/news`+`/api/threats` (self-fetch) + Groq, grounded-only |
@@ -151,6 +155,9 @@ below for the full tiered-TTL table and the fallback guarantee.
   | AI analyst answers | 900 (15min) | `analyst:{hash}` |
   | Aircraft | 30 | `aircraft:live` |
   | Naval fleet list | 600 (10min) | `naval:fleet` |
+  | Predictions (PREDICTIONS panel) | 1800 (30min) | `predictions:latest` |
+  | Global forecast outlook | 3600 (1h) | `global:forecast` |
+  | Simulator (conflict/what-if) | 3600 (1h) | `simulate:conflict:{sortedCodes}`, `simulate:whatif:{hash}` |
   Deliberately **not** cached: `intelligence.js`'s `acled` type (pure static
   data, no live/AI call — caching it would save nothing) and its
   `correlations`/`warnings`/`actors` types (confirmed via grep, before this
@@ -206,6 +213,67 @@ below for the full tiered-TTL table and the fallback guarantee.
   `actors` are preserved verbatim even though they're also currently
   unreachable from the frontend UI — no code was deleted for those, only
   for the one confirmed-dead, name-colliding branch.
+- **Predictions + Scenario Simulator + Global Forecast** (`api/intelligence.js`
+  `type=predictions`/`simulate`/`forecast`, plus a "⚔ SIMULATE" tab and a
+  rebuilt Forecast tab in `index.html`) — positioned to beat a
+  community-voting predictions competitor by grounding every probability in
+  live reporting + real country data with cited sources, instead of guesses.
+  - **`predictions`**: groups live articles into "situations" using the
+    same `LOCATION_DB` keyword-matcher this file already used for
+    warnings/correlations/brief (`groupArticlesBySituation()`) — the
+    situations that make the top-5 list vary with whatever the CURRENT feed
+    actually contains, not a fixed list; `LOCATION_DB` only recognizes
+    location names in text, it doesn't decide which situations are "active."
+    One Groq call returns a question/probability/trend/reasoning/
+    keyIndicators object per situation (same "one call for N items" pattern
+    already used for correlations/warnings/entities); `sources` are the
+    REAL grouped articles attached in code, not something Groq has to get
+    right, since a big multi-item JSON array is a worse place to trust
+    citation accuracy than analyst.js's single-answer `[A#]` extraction.
+    Frontend renders a Conflictly-style split probability bar, trend arrow,
+    an expand/collapse reasoning toggle, and real clickable source links,
+    with an honest footnote distinguishing "AI-assessed from live
+    reporting" from the static heuristic fallback (average threatScore,
+    clearly labeled, when Groq is unavailable).
+  - **`simulate` mode `conflict`**: self-fetches `${baseUrl}/api/country?code=X`
+    for both chosen countries (same self-fetch pattern `analyst.js`/
+    `threats.js`/`naval.js` already use) to ground the prompt in REAL
+    population/income-level/government-type/leader/allies/rivals data —
+    Groq only supplies the higher-level military-comparison/outcome
+    narrative itself, clearly labeled a simulation, never presented as
+    verified military capability (there's no live military-strength API
+    integrated; Groq reasons from the real profile data using its own
+    knowledge, the same pattern already established for `api/country.js`'s
+    AI-assessed fields). **Checks `isConfigured()` before the self-fetch**,
+    not after — a bug caught during testing where the self-fetch ran
+    unconditionally even with no Groq key configured, wasting a network
+    round-trip on data that would go unused. Cache key sorts the two country
+    codes (`simulate:conflict:{sortedCodes}`) so US-CN and CN-US share one
+    cache entry — verified live (mocked): querying both orders produced
+    exactly one Groq call.
+  - **`simulate` mode `whatif`**: no live grounding beyond the user's own
+    scenario text — Groq assesses cascade effects directly. Cache key hashes
+    the normalized scenario text (`simulate:whatif:{hash}`).
+  - **`forecast`**: one Groq call over up to 20 live headlines (labeled
+    `[A#]`) asking for the top 3-5 escalating situations plus a short
+    global outlook summary; cited article numbers are mapped back to real
+    articles the same way `analyst.js`'s `[A#]` extraction works, so
+    `sources` are always real, never invented.
+  - The Forecast tab's `loadForecast()` was split into four independent
+    `render*(el)` functions (predictions, global forecast, risk matrix, AI
+    scenarios), each with its own try/catch, instead of one function
+    wrapped in a single try/catch — a failure in any one section (e.g. a
+    Groq hiccup on predictions) no longer blanks out the other three,
+    which the original single-catch design would have done.
+  - All three new types are cached the same way as the rest of this file's
+    Redis-backed types (Redis first, in-memory fallback, then the real
+    work) — verified end-to-end through the real `vercel.json` routing with
+    mocked Redis/Groq/World Bank/Wikidata: a cold pass made every expected
+    Groq call exactly once (including the self-fetch to the REAL
+    `api/country.js` handler for the conflict simulator, round-tripped
+    through an actual local HTTP server rather than just unit-invoking the
+    handler function), and an identical repeat pass produced zero new Groq
+    calls across all three types.
 - `/api/news`'s main list is pure `publishedAt`-descending — top of the feed
   is genuinely newest. It used to sort by threatScore first (date only
   broke close ties), which silently overrode publish order; that was
@@ -357,6 +425,50 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-04 (19): Added a Predictions + Scenario Simulator system,
+  positioned to beat a community-voting predictions competitor (Conflictly)
+  by grounding every probability in live reporting + real country data with
+  cited sources instead of crowd guesses. Three new `api/intelligence.js`
+  types, kept under the 12-function cap by staying in the same merged
+  endpoint: `predictions` (AI-assessed probability cards per live situation,
+  derived from whatever the current feed actually contains — not a fixed
+  list — via the same `LOCATION_DB` grouping already used for warnings/
+  correlations, one Groq call per batch, real articles attached as sources
+  in code rather than trusting Groq's citation accuracy in a multi-item
+  array), `simulate` (two modes: `conflict` self-fetches both countries'
+  real `/api/country` profiles to ground an AI war-game briefing, `whatif`
+  runs a free-text hypothetical through Groq for a cascade-effect
+  breakdown), and `forecast` (a global "next 30-90 days" outlook, top 3-5
+  escalating situations with `[A#]`-cited real sources). All three cached
+  via the existing Redis layer with their own TTLs (predictions 30min,
+  forecast/simulator 1h) — `simulate`'s cache key is per-request (sorted
+  country-code pair, or a hash of the "what if" text) since unlike the
+  flat-key types, different simulator inputs are genuinely different
+  results. Frontend: rebuilt the Forecast tab's `loadForecast()` into four
+  independently-failing sections (predictions, global outlook, risk matrix,
+  AI scenarios — previously one function under a single try/catch, so one
+  Groq hiccup used to blank out all of it) with Conflictly-style split
+  probability bars, trend arrows, and expandable reasoning; added a new
+  "⚔ SIMULATE" tab (country-vs-country dropdown + free-text "what if" input,
+  never auto-run at boot — only on click, per the task's "on-demand" spec).
+  Every AI-generated result is explicitly labeled ("* AI-assessed from live
+  reporting", "AI simulation for analysis — not a prediction of real
+  events") rather than presented with fake statistical precision. Caught
+  and fixed one real bug during testing: the conflict simulator was
+  self-fetching both countries' `/api/country` data unconditionally, even
+  when Groq wasn't configured and the data would go unused — moved the
+  `isConfigured()` check before the self-fetch. Verified end-to-end through
+  the real `vercel.json` HTTP routing (not just unit-invoking handlers)
+  with mocked Redis/Groq/World Bank/Wikidata: a cold pass made every
+  expected Groq call exactly once, including a genuine round-trip
+  self-fetch from `intelligence.js` through an actual local HTTP server to
+  the real `api/country.js` handler (not mocked at that boundary); an
+  identical repeat pass produced zero new Groq calls across all three new
+  types, and reversing the two countries in a conflict simulation (CN-US
+  vs US-CN) correctly hit the same cache entry. No live `GROQ_API_KEY` or
+  Upstash account was available in this sandbox, so all of the above was
+  verified against mocked responses — the real Groq output quality (are
+  the probabilities/reasoning actually good) is unverified here.
 - 2026-07-04 (18): Added persistent shared caching via Upstash Redis
   (`lib/cache.js`, repo root — outside `api/` so it never counts as a
   Serverless Function, same reasoning as `lib/ai.js`). Every endpoint that

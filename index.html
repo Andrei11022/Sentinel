@@ -345,6 +345,58 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .rmi-score{font-family:'Share Tech Mono',monospace;font-size:.6rem;width:35px;text-align:right;}
 .rmi-trend{font-size:.65rem;width:20px;text-align:center;}
 
+/* PREDICTIONS */
+.pred-card{border:1px solid var(--border);padding:10px;margin-bottom:8px;}
+.pred-q{font-family:'Rajdhani',sans-serif;font-size:.92rem;font-weight:700;color:var(--text);margin-bottom:8px;}
+.pred-splitbar{display:flex;height:22px;border-radius:3px;overflow:hidden;margin-bottom:6px;border:1px solid var(--border);}
+.pred-yes{background:linear-gradient(90deg,var(--nr),#ff5566);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.62rem;color:#fff;font-weight:700;min-width:0;overflow:hidden;white-space:nowrap;}
+.pred-no{background:var(--panel2);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--muted);min-width:0;overflow:hidden;white-space:nowrap;}
+.pred-meta{display:flex;justify-content:space-between;align-items:center;font-size:.62rem;color:var(--muted);margin-bottom:4px;}
+.pred-trend{font-weight:700;}
+.pred-trend-rising{color:var(--nr);}
+.pred-trend-falling{color:var(--ng);}
+.pred-trend-stable{color:var(--no);}
+.pred-reasoning-toggle{font-size:.65rem;color:var(--nb);cursor:pointer;padding-top:4px;user-select:none;}
+.pred-reasoning-body{display:none;font-size:.7rem;color:var(--text);padding-top:6px;margin-top:4px;border-top:1px solid var(--border);}
+.pred-reasoning-body.open{display:block;}
+.pred-indicators{margin-top:6px;font-size:.65rem;color:var(--muted);}
+.pred-indicators b{color:var(--text);}
+.pred-sources{margin-top:6px;font-size:.6rem;display:flex;flex-wrap:wrap;gap:6px;}
+.pred-sources a{color:var(--nb);text-decoration:none;border:1px solid var(--border);padding:1px 6px;}
+.pred-sources a:hover{border-color:var(--nb);}
+.pred-footnote{font-size:.58rem;color:var(--dim);margin:2px 0 10px;}
+
+/* GLOBAL FORECAST OUTLOOK */
+.gfc-outlook{font-size:.75rem;color:var(--text);padding:8px 10px;border:1px solid var(--np);background:#cc44ff0c;margin-bottom:8px;}
+.gfc-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid #0d1e3625;}
+.gfc-item-name{font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:600;flex:1;}
+.gfc-item-prob{font-family:'Share Tech Mono',monospace;font-size:.62rem;width:36px;text-align:right;}
+
+/* SIMULATE TAB */
+.sim-modes{display:flex;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);}
+.sim-mode-btn{flex:1;background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:6px;font-family:'Share Tech Mono',monospace;font-size:.65rem;cursor:pointer;}
+.sim-mode-btn.active{color:var(--nb);border-color:var(--nb);background:#00d4ff0c;}
+.sim-form{padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border);}
+.sim-form select,.sim-form input[type=text]{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-family:'Share Tech Mono',monospace;font-size:.7rem;}
+.sim-form select{flex:1;min-width:120px;}
+.sim-form input[type=text]{flex:1;min-width:200px;}
+.sim-vs{font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--nr);}
+.sim-go{background:var(--nr);border:none;color:#fff;padding:6px 16px;font-family:'Share Tech Mono',monospace;font-size:.7rem;cursor:pointer;font-weight:700;}
+.sim-go:disabled{background:var(--muted);cursor:not-allowed;}
+.sim-card{border:1px solid var(--border);padding:12px;margin:10px;}
+.sim-card-title{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:var(--text);margin-bottom:8px;}
+.sim-row{margin-bottom:8px;font-size:.72rem;color:var(--text);}
+.sim-row b{color:var(--no);display:block;margin-bottom:2px;font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;}
+.sim-vsbar{display:flex;height:26px;border-radius:3px;overflow:hidden;margin:8px 0;border:1px solid var(--border);}
+.sim-vsbar-a{background:linear-gradient(90deg,var(--nb),#4ae8ff);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.65rem;color:#03202e;font-weight:700;}
+.sim-vsbar-b{background:linear-gradient(90deg,#ff5566,var(--nr));display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.65rem;color:#fff;font-weight:700;}
+.sim-risk-HIGH{color:var(--nr);}
+.sim-risk-MEDIUM{color:var(--no);}
+.sim-risk-LOW{color:var(--ng);}
+.sim-cascade-list{list-style:none;padding:0;margin:0;}
+.sim-cascade-list li{font-size:.7rem;color:var(--text);padding:2px 0;padding-left:14px;position:relative;}
+.sim-cascade-list li::before{content:'→';color:var(--nr);position:absolute;left:0;}
+
 /* WEATHER */
 .wx-search{display:flex;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
 .wx-search input{flex:1;background:var(--panel);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-family:'Share Tech Mono',monospace;font-size:.7rem;}
@@ -463,6 +515,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <button class="tab" data-tab="search">🔍 INTEL SEARCH</button>
       <button class="tab" data-tab="conflicts">⚔ CONFLICTS</button>
       <button class="tab" data-tab="forecast">🎯 FORECAST</button>
+      <button class="tab" data-tab="simulate">⚔ SIMULATE</button>
       <button class="tab" data-tab="leaders">👤 LEADERS</button>
       <button class="tab" data-tab="weather">🌤 WEATHER</button>
       <button class="tab" data-tab="mideast">🌙 MIDEAST</button>
@@ -513,6 +566,26 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     <div class="tabp" id="tab-forecast">
       <div class="ph">// PREDICTIVE INTELLIGENCE — SCENARIO ENGINE</div>
       <div class="scroll" id="forecastlist"></div>
+    </div>
+    <div class="tabp" id="tab-simulate">
+      <div class="ph">// SCENARIO SIMULATOR — AI WAR-GAMING &amp; CASCADE ANALYSIS</div>
+      <div class="sim-modes">
+        <button class="sim-mode-btn active" data-simmode="conflict">⚔ CONFLICT SIMULATOR</button>
+        <button class="sim-mode-btn" data-simmode="whatif">❓ WHAT IF</button>
+      </div>
+      <div class="sim-form" id="sim-form-conflict">
+        <select id="sim-country-a"></select>
+        <span class="sim-vs">VS</span>
+        <select id="sim-country-b"></select>
+        <button class="sim-go" id="sim-go-conflict">SIMULATE</button>
+      </div>
+      <div class="sim-form" id="sim-form-whatif" style="display:none">
+        <input type="text" id="sim-whatif-input" placeholder='e.g. "Iran closes the Strait of Hormuz"' />
+        <button class="sim-go" id="sim-go-whatif">SIMULATE</button>
+      </div>
+      <div class="scroll" id="sim-result">
+        <div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--dim)">Pick two countries for an AI conflict war-game, or describe a hypothetical scenario for a cascade-effect breakdown. Every result is an AI simulation for analysis — not a prediction of real events.</div>
+      </div>
     </div>
     <div class="tabp" id="tab-weather">
       <div class="ph">// WEATHER — OPEN-METEO LIVE</div>
@@ -1711,18 +1784,102 @@ async function loadConflicts(){
 }
 
 // ═══════════════════════════════════
-// FORECAST + SCENARIOS
+// FORECAST + PREDICTIONS + SCENARIOS
 // ═══════════════════════════════════
-async function loadForecast(){
-  const el=document.getElementById('forecastlist');
-  el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ RUNNING FORECAST ENGINE...</div>`;
+// Beats a community-voting predictions feed (Conflictly) by grounding every
+// probability in the live feed + real country data instead of guesses —
+// see api/intelligence.js's computePredictions/computeGlobalForecast. Each
+// section below fails independently so one AI hiccup doesn't blank out the
+// whole tab.
+async function renderPredictions(el){
+  const section=document.createElement('div');
+  section.innerHTML='<div class="ph" style="margin-bottom:2px;color:var(--nr)">// AI PREDICTIONS — LIVE PROBABILITY ASSESSMENTS</div>';
+  el.appendChild(section);
   try{
-    // Risk matrix
+    const pd=await apiPost('/intelligence',{type:'predictions',articles:liveArticles.slice(0,20)});
+    const predictions=pd.predictions||[];
+    if(!predictions.length){
+      section.innerHTML+='<div style="padding:8px 10px;font-family:\'Share Tech Mono\',monospace;font-size:.66rem;color:var(--muted)">No active situations detected in the current feed.</div>';
+      return;
+    }
+    predictions.forEach((p,i)=>{
+      const card=document.createElement('div'); card.className='pred-card';
+      const trendIcon=p.trend==='rising'?'↑':p.trend==='falling'?'↓':'→';
+      const yesW=Math.max(0,Math.min(100,p.probability));
+      const noW=100-yesW;
+      const sourcesHtml=(p.sources||[]).map(s=>s.url?`<a href="${s.url}" target="_blank" rel="noopener">${s.source}</a>`:`<span style="color:var(--muted);border:1px solid var(--border);padding:1px 6px">${s.source}</span>`).join('');
+      const indicators=p.keyIndicators||[];
+      const indicatorsHtml=indicators.length?`<div class="pred-indicators">${indicators[0]?`<div><b>↑ raises it:</b> ${indicators[0]}</div>`:''}${indicators[1]?`<div><b>↓ lowers it:</b> ${indicators[1]}</div>`:''}</div>`:'';
+      card.innerHTML=`
+        <div class="pred-q">${p.question}</div>
+        <div class="pred-splitbar">
+          <div class="pred-yes" style="width:${yesW}%">${yesW>=12?yesW+'%':''}</div>
+          <div class="pred-no" style="width:${noW}%">${noW>=12?noW+'%':''}</div>
+        </div>
+        <div class="pred-meta">
+          <span>${p.situation||''}</span>
+          <span class="pred-trend pred-trend-${p.trend}">${trendIcon} ${(p.trend||'stable').toUpperCase()}</span>
+        </div>
+        <div class="pred-reasoning-toggle">▸ Show reasoning</div>
+        <div class="pred-reasoning-body">${p.reasoning||''}${indicatorsHtml}</div>
+        <div class="pred-sources">${sourcesHtml}</div>
+      `;
+      section.appendChild(card);
+      const toggle=card.querySelector('.pred-reasoning-toggle');
+      const body=card.querySelector('.pred-reasoning-body');
+      toggle.addEventListener('click',()=>{
+        const open=body.classList.toggle('open');
+        toggle.textContent=(open?'▾ Hide':'▸ Show')+' reasoning';
+      });
+    });
+    const footnote=document.createElement('div');
+    footnote.className='pred-footnote';
+    footnote.textContent=pd.fallback
+      ? '⚠ Groq unavailable — showing a static estimate based on headline volume/severity only, not an AI assessment.'
+      : '* AI-assessed from live reporting — a probability estimate, not a guarantee of real-world outcomes.';
+    section.appendChild(footnote);
+  }catch(e){
+    section.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Predictions unavailable: ${e.message}</div>`;
+  }
+}
+
+async function renderGlobalForecast(el){
+  const section=document.createElement('div');
+  section.innerHTML='<div class="ph" style="margin-top:8px;margin-bottom:2px;color:var(--np)">// GLOBAL OUTLOOK — NEXT 30-90 DAYS</div>';
+  el.appendChild(section);
+  try{
+    const gf=await apiPost('/intelligence',{type:'forecast',articles:liveArticles.slice(0,20)});
+    if(gf.outlook){
+      const ob=document.createElement('div'); ob.className='gfc-outlook'; ob.textContent=gf.outlook;
+      section.appendChild(ob);
+    }
+    (gf.items||[]).forEach(it=>{
+      const barColor=it.probability>70?'var(--nr)':it.probability>40?'var(--no)':'var(--nb)';
+      const row=document.createElement('div'); row.className='gfc-item';
+      row.title=it.reasoning||'';
+      row.innerHTML=`<span class="gfc-item-name">${it.situation}</span><div class="rmi-bar-wrap" style="flex:1;max-width:140px"><div class="rmi-bar" style="width:${it.probability}%;background:${barColor}"></div></div><span class="gfc-item-prob" style="color:${barColor}">${it.probability}%</span>`;
+      section.appendChild(row);
+    });
+    if(!gf.outlook && !(gf.items||[]).length){
+      section.innerHTML+='<div style="padding:8px 10px;font-family:\'Share Tech Mono\',monospace;font-size:.66rem;color:var(--muted)">Global outlook requires GROQ_API_KEY.</div>';
+    }else{
+      const footnote=document.createElement('div');
+      footnote.className='pred-footnote';
+      footnote.textContent='* AI-assessed from live reporting.';
+      section.appendChild(footnote);
+    }
+  }catch(e){
+    section.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Global outlook unavailable: ${e.message}</div>`;
+  }
+}
+
+async function renderRiskMatrix(el){
+  const section=document.createElement('div');
+  section.innerHTML='<div class="ph" style="margin-bottom:2px;color:var(--no)">// COUNTRY RISK MATRIX — ESCALATION PROBABILITY</div>';
+  el.appendChild(section);
+  try{
     const rm=await apiGet('/intelligence?type=risk_matrix');
     const matrix=rm.matrix||[];
-
-    const riskSection=document.createElement('div');
-    riskSection.innerHTML='<div class="ph" style="margin-bottom:2px;color:var(--no)">// COUNTRY RISK MATRIX — ESCALATION PROBABILITY</div>';
 
     // Defensive fallback if /api/intelligence?type=risk_matrix ever omits a
     // name for a code — the real bug (server returning `country` while this
@@ -1743,20 +1900,20 @@ async function loadForecast(){
       const name=c.name||CODE_NAMES[c.code]?.name||c.code;
       const row=document.createElement('div'); row.className='rmi';
       row.innerHTML=`<span class="rmi-flag">${flag}</span><span class="rmi-name">${name}</span><div class="rmi-bar-wrap"><div class="rmi-bar" style="width:${c.escalationProbability}%;background:${barColor}"></div></div><span class="rmi-score" style="color:${barColor}">${c.escalationProbability}%</span><span class="rmi-trend" style="color:${c.trend==='worsening'?'var(--nr)':c.trend==='improving'?'var(--ng)':'var(--muted)'}">${TREND_ICON[c.trend]||'→'}</span>`;
-      riskSection.appendChild(row);
+      section.appendChild(row);
     });
-    el.innerHTML='';
-    el.appendChild(riskSection);
+  }catch(e){
+    section.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Risk matrix unavailable: ${e.message}</div>`;
+  }
+}
 
-    // Scenarios
+async function renderAiScenarios(el){
+  const section=document.createElement('div');
+  section.innerHTML='<div class="ph" style="margin-top:8px;color:var(--np)">// AI SCENARIO ENGINE — NEXT 30-90 DAYS</div>';
+  el.appendChild(section);
+  try{
     const sd=await apiPost('/intelligence',{type:'scenarios',articles:liveArticles.slice(0,8)});
     const scenarios=sd.scenarios||[];
-
-    const scenHeader=document.createElement('div');
-    scenHeader.className='ph';
-    scenHeader.style.cssText='margin-top:8px;color:var(--np)';
-    scenHeader.textContent='// AI SCENARIO ENGINE — NEXT 30-90 DAYS';
-    el.appendChild(scenHeader);
 
     scenarios.forEach(s=>{
       const div=document.createElement('div'); div.className='fci';
@@ -1771,17 +1928,145 @@ async function loadForecast(){
         <div class="fci-trigger"><b>TRIGGER:</b> ${s.trigger}</div>
         <div class="fci-cascade">${(s.cascade||[]).map(e=>`<div class="fci-cascade-item">${e}</div>`).join('')}</div>
       `;
-      el.appendChild(div);
+      section.appendChild(div);
     });
 
     if(sd.fallback){
       const note=document.createElement('div');
       note.style.cssText=`padding:6px 10px;font-family:\'Share Tech Mono\',monospace;font-size:.58rem;color:var(--dim)`;
       note.textContent='⚠ AI scenarios require GROQ_API_KEY — showing baseline model';
-      el.appendChild(note);
+      section.appendChild(note);
     }
   }catch(e){
-    el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Forecast unavailable: ${e.message}</div>`;
+    section.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">AI scenarios unavailable: ${e.message}</div>`;
+  }
+}
+
+async function loadForecast(){
+  const el=document.getElementById('forecastlist');
+  el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ RUNNING FORECAST ENGINE...</div>`;
+  el.innerHTML='';
+  await renderPredictions(el);
+  await renderGlobalForecast(el);
+  await renderRiskMatrix(el);
+  await renderAiScenarios(el);
+}
+
+// ═══════════════════════════════════
+// SCENARIO SIMULATOR (⚔ SIMULATE tab) — the killer feature a
+// community-voting predictions site lacks: a structured, on-demand AI
+// war-game between two real countries, or a "what if" cascade breakdown.
+// Both modes hit api/intelligence.js's ?type=simulate, cached 1hr per
+// unique request server-side, so repeat clicks on the same matchup/
+// scenario don't re-spend a Groq call. Never run at boot — only on click.
+// ═══════════════════════════════════
+const SIM_COUNTRIES=[
+  {code:'US',name:'United States'},{code:'RU',name:'Russia'},{code:'CN',name:'China'},
+  {code:'UA',name:'Ukraine'},{code:'IL',name:'Israel'},{code:'IR',name:'Iran'},
+  {code:'TW',name:'Taiwan'},{code:'KP',name:'North Korea'},{code:'KR',name:'South Korea'},
+  {code:'IN',name:'India'},{code:'PK',name:'Pakistan'},{code:'SA',name:'Saudi Arabia'},
+  {code:'TR',name:'Turkey'},{code:'GB',name:'United Kingdom'},{code:'FR',name:'France'},
+  {code:'DE',name:'Germany'},{code:'JP',name:'Japan'},{code:'SY',name:'Syria'},
+  {code:'YE',name:'Yemen'},{code:'EG',name:'Egypt'},{code:'SD',name:'Sudan'},
+  {code:'ET',name:'Ethiopia'},{code:'SO',name:'Somalia'},{code:'ML',name:'Mali'},
+  {code:'MM',name:'Myanmar'},{code:'VE',name:'Venezuela'},{code:'BR',name:'Brazil'},
+  {code:'AU',name:'Australia'},{code:'NG',name:'Nigeria'},{code:'ZA',name:'South Africa'},
+  {code:'LB',name:'Lebanon'},{code:'IQ',name:'Iraq'},{code:'PL',name:'Poland'},
+  {code:'VN',name:'Vietnam'},{code:'PH',name:'Philippines'},
+];
+
+function flagEmojiFor(code){
+  if(!/^[A-Za-z]{2}$/.test(code)) return '🏳';
+  return code.toUpperCase().replace(/./g,c=>String.fromCodePoint(127397+c.charCodeAt(0)));
+}
+
+function populateSimCountrySelects(){
+  const optsHtml=SIM_COUNTRIES.map(c=>`<option value="${c.code}">${flagEmojiFor(c.code)} ${c.name}</option>`).join('');
+  document.getElementById('sim-country-a').innerHTML=optsHtml;
+  document.getElementById('sim-country-b').innerHTML=optsHtml;
+  document.getElementById('sim-country-a').value='US';
+  document.getElementById('sim-country-b').value='CN';
+}
+
+async function runConflictSimulation(){
+  const a=document.getElementById('sim-country-a').value;
+  const b=document.getElementById('sim-country-b').value;
+  const btn=document.getElementById('sim-go-conflict');
+  const result=document.getElementById('sim-result');
+  if(a===b){
+    result.innerHTML='<div style="padding:14px;color:var(--nr);font-family:\'Share Tech Mono\',monospace;font-size:.7rem">Pick two different countries.</div>';
+    return;
+  }
+  btn.disabled=true; btn.textContent='SIMULATING...';
+  result.innerHTML='<div style="padding:14px;font-family:\'Share Tech Mono\',monospace;font-size:.7rem;color:var(--nb)">⟳ Running AI war-game simulation...</div>';
+  try{
+    const d=await apiPost('/intelligence',{type:'simulate',mode:'conflict',countryA:a,countryB:b});
+    if(d.error){
+      result.innerHTML=`<div style="padding:14px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.7rem">${d.error}</div>`;
+      return;
+    }
+    const probA=d.probabilityOfEachSidePrevailing?.[a]??50;
+    const probB=d.probabilityOfEachSidePrevailing?.[b]??(100-probA);
+    const mc=d.militaryComparison||{};
+    const wildcardsHtml=(d.wildcards||[]).map(w=>`<li>${w}</li>`).join('');
+    result.innerHTML=`
+      <div class="sim-card">
+        <div class="sim-card-title">⚔ ${d.countryA} vs ${d.countryB}</div>
+        <div class="sim-vsbar">
+          <div class="sim-vsbar-a" style="width:${probA}%">${d.countryA} ${probA}%</div>
+          <div class="sim-vsbar-b" style="width:${probB}%">${d.countryB} ${probB}%</div>
+        </div>
+        ${d.overview?`<div class="sim-row"><b>OVERVIEW</b>${d.overview}</div>`:''}
+        ${d.likelyTrigger?`<div class="sim-row"><b>LIKELY TRIGGER</b>${d.likelyTrigger}</div>`:''}
+        ${(mc[a]||mc[b])?`<div class="sim-row"><b>MILITARY COMPARISON</b>${d.countryA}: ${mc[a]||'—'}<br>${d.countryB}: ${mc[b]||'—'}</div>`:''}
+        ${d.likelyOutcome?`<div class="sim-row"><b>LIKELY OUTCOME</b>${d.likelyOutcome}</div>`:''}
+        ${d.escalationRisk?`<div class="sim-row"><b>ESCALATION RISK</b> <span class="sim-risk-${d.escalationRisk}">${d.escalationRisk}</span></div>`:''}
+        ${wildcardsHtml?`<div class="sim-row"><b>WILDCARDS</b><ul class="sim-cascade-list">${wildcardsHtml}</ul></div>`:''}
+        ${d.regionalImpact?`<div class="sim-row"><b>REGIONAL IMPACT</b>${d.regionalImpact}</div>`:''}
+        <div class="pred-footnote">⚠ AI simulation for analysis — not a prediction of real events.</div>
+      </div>
+    `;
+  }catch(e){
+    result.innerHTML=`<div style="padding:14px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.7rem">Simulation failed: ${e.message}</div>`;
+  }finally{
+    btn.disabled=false; btn.textContent='SIMULATE';
+  }
+}
+
+async function runWhatIfSimulation(){
+  const scenario=document.getElementById('sim-whatif-input').value.trim();
+  const btn=document.getElementById('sim-go-whatif');
+  const result=document.getElementById('sim-result');
+  if(!scenario){
+    result.innerHTML='<div style="padding:14px;color:var(--nr);font-family:\'Share Tech Mono\',monospace;font-size:.7rem">Describe a scenario first.</div>';
+    return;
+  }
+  btn.disabled=true; btn.textContent='SIMULATING...';
+  result.innerHTML='<div style="padding:14px;font-family:\'Share Tech Mono\',monospace;font-size:.7rem;color:var(--nb)">⟳ Running AI cascade analysis...</div>';
+  try{
+    const d=await apiPost('/intelligence',{type:'simulate',mode:'whatif',scenario});
+    if(d.error){
+      result.innerHTML=`<div style="padding:14px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.7rem">${d.error}</div>`;
+      return;
+    }
+    const effectsHtml=(d.immediateEffects||[]).map(x=>`<li>${x}</li>`).join('');
+    const responsesHtml=(d.likelyResponses||[]).map(x=>`<li>${x}</li>`).join('');
+    const pathsHtml=(d.escalationPaths||[]).map(x=>`<li>${x}</li>`).join('');
+    result.innerHTML=`
+      <div class="sim-card">
+        <div class="sim-card-title">❓ ${d.scenario}</div>
+        ${effectsHtml?`<div class="sim-row"><b>IMMEDIATE EFFECTS</b><ul class="sim-cascade-list">${effectsHtml}</ul></div>`:''}
+        ${d.economicImpact?`<div class="sim-row"><b>ECONOMIC IMPACT</b>${d.economicImpact}</div>`:''}
+        ${responsesHtml?`<div class="sim-row"><b>LIKELY RESPONSES</b><ul class="sim-cascade-list">${responsesHtml}</ul></div>`:''}
+        ${pathsHtml?`<div class="sim-row"><b>ESCALATION PATHS</b><ul class="sim-cascade-list">${pathsHtml}</ul></div>`:''}
+        ${d.timeline?`<div class="sim-row"><b>TIMELINE</b>${d.timeline}</div>`:''}
+        <div class="pred-footnote">⚠ AI simulation for analysis — not a prediction of real events.</div>
+      </div>
+    `;
+  }catch(e){
+    result.innerHTML=`<div style="padding:14px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.7rem">Simulation failed: ${e.message}</div>`;
+  }finally{
+    btn.disabled=false; btn.textContent='SIMULATE';
   }
 }
 
@@ -1930,6 +2215,19 @@ document.getElementById('analyst-input').addEventListener('keydown', e=>{ if(e.k
 document.querySelectorAll('.aq-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>sendAnalystMessage(btn.dataset.q));
 });
+populateSimCountrySelects();
+document.querySelectorAll('.sim-mode-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.sim-mode-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const mode=btn.dataset.simmode;
+    document.getElementById('sim-form-conflict').style.display=mode==='conflict'?'flex':'none';
+    document.getElementById('sim-form-whatif').style.display=mode==='whatif'?'flex':'none';
+  });
+});
+document.getElementById('sim-go-conflict').addEventListener('click',runConflictSimulation);
+document.getElementById('sim-go-whatif').addEventListener('click',runWhatIfSimulation);
+document.getElementById('sim-whatif-input').addEventListener('keydown', e=>{ if(e.key==='Enter') runWhatIfSimulation(); });
 let alertOn=false;
 document.getElementById('alertbtn').addEventListener('click',()=>{
   alertOn=!alertOn;

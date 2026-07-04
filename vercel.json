@@ -15,6 +15,7 @@
   "functions": {
     "api/analyst.js": { "maxDuration": 30 },
     "api/country.js": { "maxDuration": 30 },
+    "api/intelligence.js": { "maxDuration": 30 },
     "api/naval.js": { "maxDuration": 30 },
     "api/tts.js": { "maxDuration": 30 }
   },

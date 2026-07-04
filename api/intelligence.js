@@ -9,6 +9,10 @@
 //   POST {type:'brief', articles}             -> AI intel brief + local fallback (was analyze.js)
 //   POST {type:'correlations'|'warnings'|'actors', articles} -> same, other analyze.js behaviors
 //   POST {type:'entities', articles, text}    -> entity + relationship extraction (was entities.js)
+//   POST {type:'predictions', articles}       -> AI-assessed probability questions per live situation
+//   POST {type:'simulate', mode:'conflict', countryA, countryB} -> AI conflict-scenario briefing
+//   POST {type:'simulate', mode:'whatif', scenario}             -> AI cascade-effect breakdown
+//   POST {type:'forecast', articles}          -> AI "next 30-90 days" global outlook
 //
 // Note: analyze.js used to have its own internal `type:'entities'` behavior
 // (a simpler ACTOR_DB-based extractor with no relationships) that was never
@@ -16,7 +20,7 @@
 // used implementation under the same `type:'entities'` name. No live feature
 // was dropped; that branch was dead code even before this merge.
 const { askAI, isConfigured } = require('../lib/ai');
-const { getCache, setCache } = require('../lib/cache');
+const { getCache, setCache, hashKey } = require('../lib/cache');
 
 // ─── shared by brief/correlations/warnings/actors (was analyze.js) ───
 
@@ -63,7 +67,18 @@ function cleanArticles(input) {
       publishedAt: a.publishedAt || new Date().toISOString(),
       summary: a.summary || '',
       source: a.source || 'Unknown',
+      url: a.url || null, // kept so predictions/forecast can cite real, clickable sources
     }));
+}
+
+async function fetchWithTimeout(url, opts = {}, timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function timeAgoLabel(dateLike) {
@@ -586,6 +601,232 @@ function handleAcled(req, res) {
   return res.status(200).json({ conflicts: enriched, stats });
 }
 
+// ─── predictions: AI-assessed probability questions per live situation ───
+//
+// "Situations" (Ukraine, Middle East, Taiwan, Sudan, ...) are derived from
+// whatever the CURRENT live feed actually contains, not a fixed list —
+// LOCATION_DB (already used above for warnings/correlations/brief) is only a
+// location-name recognizer for grouping real headlines together; it doesn't
+// decide which situations are "active" or what their probabilities are, and
+// a situation with no live articles this cycle simply won't appear.
+
+function groupArticlesBySituation(articles, maxSituations = 5) {
+  const groups = new Map();
+  for (const a of articles) {
+    const loc = inferLocation(`${a.title} ${a.summary || ''}`);
+    if (loc.name === 'Global') continue; // too vague to forecast on
+    if (!groups.has(loc.name)) groups.set(loc.name, { name: loc.name, country: loc.country, articles: [] });
+    groups.get(loc.name).articles.push(a);
+  }
+  return [...groups.values()]
+    .sort((a, b) => b.articles.length - a.articles.length)
+    .slice(0, maxSituations);
+}
+
+function articleSources(articles, limit = 3) {
+  return articles.slice(0, limit).map((a) => ({ title: a.title, url: a.url, source: a.source }));
+}
+
+async function computePredictions(req) {
+  const { articles } = req.body || {};
+  const clean = cleanArticles(articles);
+  const situations = groupArticlesBySituation(clean);
+  const updatedAt = new Date().toISOString();
+
+  if (!situations.length) return { predictions: [], fallback: true, updatedAt };
+
+  if (isConfigured()) {
+    try {
+      const prompt = `For each SITUATION below, assess the probability of near-term escalation or resolution, grounded ONLY in the headlines given for that situation — never invent facts not implied by them.\n\nReturn ONLY a JSON array, one object per situation, in the SAME ORDER given:\n[{"question":"a specific forecasting question, e.g. 'Ceasefire in Ukraine within 90 days?'","probability":0-100,"trend":"rising|falling|stable","reasoning":"2-3 sentence justification","keyIndicators":["what would raise this probability","what would lower it"]}]\n\n` +
+        situations.map((s, i) => `SITUATION ${i + 1}: ${s.name}\n${s.articles.slice(0, 6).map((a) => `- [${a.tag}] ${a.title}`).join('\n')}`).join('\n\n');
+
+      const text = await askAI({ messages: [{ role: 'user', content: prompt }], maxTokens: 1400 });
+      const aiItems = JSON.parse(text.replace(/```json|```/g, '').trim());
+
+      const predictions = situations.map((s, i) => {
+        const ai = aiItems[i] || {};
+        return {
+          situation: s.name,
+          question: ai.question || `Escalation in ${s.name} within 90 days?`,
+          probability: Math.max(0, Math.min(100, Math.round(Number(ai.probability) || 50))),
+          trend: ['rising', 'falling', 'stable'].includes(ai.trend) ? ai.trend : 'stable',
+          reasoning: ai.reasoning || 'Insufficient data for detailed reasoning.',
+          keyIndicators: Array.isArray(ai.keyIndicators) ? ai.keyIndicators.slice(0, 2) : [],
+          sources: articleSources(s.articles),
+        };
+      });
+      return { predictions, fallback: false, updatedAt };
+    } catch (e) {
+      // Fall through to the heuristic fallback below
+    }
+  }
+
+  // No Groq / Groq failed — deterministic heuristic, clearly labeled
+  // fallback:true so the frontend never presents a guess as an AI
+  // assessment (see index.html's prediction card rendering).
+  const predictions = situations.map((s) => {
+    const avgScore = Math.round(s.articles.reduce((sum, a) => sum + a.threatScore, 0) / s.articles.length);
+    return {
+      situation: s.name,
+      question: `Escalation in ${s.name} within 90 days?`,
+      probability: Math.max(10, Math.min(90, avgScore)),
+      trend: 'stable',
+      reasoning: 'AI assessment unavailable — showing a static estimate based on current headline volume and severity only.',
+      keyIndicators: [],
+      sources: articleSources(s.articles),
+    };
+  });
+  return { predictions, fallback: true, updatedAt };
+}
+
+// ─── simulate: conflict simulator + "what if" scenario cascade ───
+
+async function fetchCountrySummary(baseUrl, code) {
+  try {
+    const r = await fetchWithTimeout(`${baseUrl}/api/country?code=${encodeURIComponent(code)}`, {}, 15000);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+function countryProfileLine(c, code) {
+  if (!c) return `${code}: (live profile data unavailable)`;
+  return `${c.name || code} (${code}): population ${c.population ? c.population.toLocaleString() : 'unknown'}, ` +
+    `income level ${c.incomeLevel || 'unknown'}, government type ${c.governmentType || 'unknown'}, ` +
+    `leader ${c.leader || 'unknown'}, key allies ${c.keyAllies || 'unknown'}, primary rivals ${c.primaryRivals || 'unknown'}, ` +
+    `political leaning ${c.politicalLeaning || 'unknown'}`;
+}
+
+async function computeSimulateConflict(req) {
+  const { countryA, countryB } = req.body || {};
+  const codeA = String(countryA || '').toUpperCase().trim();
+  const codeB = String(countryB || '').toUpperCase().trim();
+  if (!/^[A-Z]{2}$/.test(codeA) || !/^[A-Z]{2}$/.test(codeB) || codeA === codeB) {
+    return { error: 'Provide two different 2-letter country codes' };
+  }
+
+  // Check before spending a self-fetch round-trip on country data that
+  // would just go unused — same "don't do the expensive part if the AI
+  // isn't even configured" pattern as api/search.js's synthesize().
+  if (!isConfigured()) {
+    return {
+      countryA: codeA, countryB: codeB, overview: null, likelyTrigger: null,
+      militaryComparison: null, likelyOutcome: null, escalationRisk: null,
+      wildcards: [], regionalImpact: null, probabilityOfEachSidePrevailing: null,
+      error: 'AI simulation requires GROQ_API_KEY', fallback: true,
+    };
+  }
+
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  const baseUrl = `${proto}://${req.headers.host}`;
+  const [dataA, dataB] = await Promise.all([
+    fetchCountrySummary(baseUrl, codeA),
+    fetchCountrySummary(baseUrl, codeB),
+  ]);
+  const nameA = dataA?.name || codeA;
+  const nameB = dataB?.name || codeB;
+
+  const empty = {
+    countryA: nameA, countryB: nameB, overview: null, likelyTrigger: null,
+    militaryComparison: null, likelyOutcome: null, escalationRisk: null,
+    wildcards: [], regionalImpact: null, probabilityOfEachSidePrevailing: null,
+  };
+
+  try {
+    // Grounded in each country's real, live profile (population, income
+    // level, government type, leader, allies, rivals — all from
+    // api/country.js's own live World Bank/Wikidata/Groq-filled data);
+    // Groq supplies the higher-level military/outcome narrative itself,
+    // clearly labeled a simulation, never presented as verified capability.
+    const prompt = `Simulate a structured, analytical conflict assessment between two countries for WAR-GAMING / ANALYSIS PURPOSES ONLY — this is NOT a prediction of real events. Ground it in their real profile data below; reason plausibly about military posture from their population/income/alliance profile.\n\n${countryProfileLine(dataA, codeA)}\n${countryProfileLine(dataB, codeB)}\n\nReturn ONLY JSON:\n{"overview":"2-3 sentence scenario overview","likelyTrigger":"the most plausible trigger event","militaryComparison":{"${codeA}":"1-2 sentences on strengths/weaknesses","${codeB}":"1-2 sentences on strengths/weaknesses"},"likelyOutcome":"2-3 sentence assessment","escalationRisk":"HIGH|MEDIUM|LOW","wildcards":["a factor that could change everything","another"],"regionalImpact":"2-3 sentences","probabilityOfEachSidePrevailing":{"${codeA}":0-100,"${codeB}":0-100}}`;
+
+    const text = await askAI({ messages: [{ role: 'user', content: prompt }], maxTokens: 900 });
+    const ai = JSON.parse(text.replace(/```json|```/g, '').trim());
+
+    return {
+      countryA: nameA, countryB: nameB,
+      overview: ai.overview || null,
+      likelyTrigger: ai.likelyTrigger || null,
+      militaryComparison: ai.militaryComparison || null,
+      likelyOutcome: ai.likelyOutcome || null,
+      escalationRisk: ai.escalationRisk || null,
+      wildcards: Array.isArray(ai.wildcards) ? ai.wildcards.slice(0, 4) : [],
+      regionalImpact: ai.regionalImpact || null,
+      probabilityOfEachSidePrevailing: ai.probabilityOfEachSidePrevailing || null,
+      fallback: false,
+    };
+  } catch (e) {
+    return { ...empty, error: 'AI simulation temporarily unavailable', fallback: true };
+  }
+}
+
+async function computeSimulateWhatIf(req) {
+  const { scenario } = req.body || {};
+  const clean = String(scenario || '').trim().slice(0, 300);
+  const empty = { scenario: clean, immediateEffects: [], economicImpact: null, likelyResponses: [], escalationPaths: [], timeline: null };
+
+  if (!clean) return { error: 'Provide a scenario, e.g. "Iran closes the Strait of Hormuz"' };
+  if (!isConfigured()) return { ...empty, error: 'AI simulation requires GROQ_API_KEY', fallback: true };
+
+  try {
+    const prompt = `Assess the plausible cascade effects of this hypothetical geopolitical scenario, for ANALYSIS PURPOSES ONLY — this is NOT a prediction of real events: "${clean}"\n\nReturn ONLY JSON:\n{"immediateEffects":["effect 1","effect 2","effect 3"],"economicImpact":"2-3 sentences","likelyResponses":["response 1","response 2"],"escalationPaths":["path 1","path 2"],"timeline":"e.g. 'Hours: ... Days: ... Weeks: ... Months: ...'"}`;
+
+    const text = await askAI({ messages: [{ role: 'user', content: prompt }], maxTokens: 700 });
+    const ai = JSON.parse(text.replace(/```json|```/g, '').trim());
+
+    return {
+      scenario: clean,
+      immediateEffects: Array.isArray(ai.immediateEffects) ? ai.immediateEffects.slice(0, 5) : [],
+      economicImpact: ai.economicImpact || null,
+      likelyResponses: Array.isArray(ai.likelyResponses) ? ai.likelyResponses.slice(0, 5) : [],
+      escalationPaths: Array.isArray(ai.escalationPaths) ? ai.escalationPaths.slice(0, 5) : [],
+      timeline: ai.timeline || null,
+      fallback: false,
+    };
+  } catch (e) {
+    return { ...empty, error: 'AI simulation temporarily unavailable', fallback: true };
+  }
+}
+
+// ─── global forecast: "next 30-90 days" outlook (was nothing before) ───
+
+async function computeGlobalForecast(req) {
+  const { articles } = req.body || {};
+  const clean = cleanArticles(articles);
+  const updatedAt = new Date().toISOString();
+
+  if (!isConfigured() || !clean.length) return { outlook: null, items: [], fallback: true, updatedAt };
+
+  try {
+    const headlines = clean.slice(0, 20).map((a, i) => `[A${i + 1}] [${a.tag}] ${a.title}`).join('\n');
+    const text = await askAI({
+      messages: [{
+        role: 'user',
+        content: `Based on these live headlines, identify the TOP 3-5 situations most likely to escalate significantly in the next 30-90 days. Ground every item in the headlines given — cite which ones informed it.\n\nReturn ONLY JSON:\n{"outlook":"1-2 sentence overall global summary","items":[{"situation":"...","probability":0-100,"reasoning":"1-2 sentences","citedArticles":[1,2]}]}\n\n"citedArticles" are the plain [A#] numbers below that informed that item.\n\n${headlines}`,
+      }],
+      maxTokens: 900,
+    });
+    const ai = JSON.parse(text.replace(/```json|```/g, '').trim());
+
+    const items = (Array.isArray(ai.items) ? ai.items : []).slice(0, 5).map((it) => ({
+      situation: it.situation || 'Unspecified',
+      probability: Math.max(0, Math.min(100, Math.round(Number(it.probability) || 50))),
+      reasoning: it.reasoning || '',
+      sources: (Array.isArray(it.citedArticles) ? it.citedArticles : [])
+        .map((n) => clean[Number(n) - 1])
+        .filter(Boolean)
+        .slice(0, 3)
+        .map((a) => ({ title: a.title, url: a.url, source: a.source })),
+    }));
+
+    return { outlook: ai.outlook || null, items, fallback: false, updatedAt };
+  } catch (e) {
+    return { outlook: null, items: [], fallback: true, updatedAt };
+  }
+}
+
 // ─── router ───
 
 // Redis-cached types, per PROGRESS.md's tiered-caching design (with a
@@ -596,24 +837,52 @@ function handleAcled(req, res) {
 // rather than needing per-caller precision. `acled` (pure static data, no
 // live/AI call — caching it saves nothing) and `correlations`/`warnings`/
 // `actors` (confirmed unreachable from the frontend, see gotchas) are
-// intentionally left uncached.
+// intentionally left uncached. `simulate` is handled separately below since
+// its cache key varies per request (which two countries, or which
+// "what if" text) rather than being one shared key.
 const CACHE_CONFIG = {
   risk_matrix: { key: 'forecast:risk_matrix', ttl: 1800, fn: (req) => computeRiskMatrix(req) },
   scenarios: { key: 'forecast:scenarios', ttl: 1800, fn: (req) => computeScenarios(req) },
   entities: { key: 'entities:latest', ttl: 1800, fn: (req) => computeEntities(req) },
   brief: { key: 'brief:daily', ttl: 3600, fn: (req) => computeAnalyzeType('brief', req) },
+  predictions: { key: 'predictions:latest', ttl: 1800, fn: (req) => computePredictions(req) },
+  forecast: { key: 'global:forecast', ttl: 3600, fn: (req) => computeGlobalForecast(req) },
 };
+const SIMULATE_TTL = 3600; // "cache identical requests 1hr" — same TTL as brief/global forecast
 const memCache = new Map();
 
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const type = req.method === 'POST' ? (req.body || {}).type : req.query.type;
-  if (!type) return res.status(400).json({ error: 'Provide a ?type= (risk_matrix, acled, scenarios, brief, correlations, warnings, actors, entities)' });
+  if (!type) {
+    return res.status(400).json({
+      error: 'Provide a ?type= (risk_matrix, acled, scenarios, brief, correlations, warnings, actors, entities, predictions, simulate, forecast)',
+    });
+  }
 
   if (type === 'acled') return handleAcled(req, res);
   if (['correlations', 'warnings', 'actors'].includes(type)) {
     return res.status(200).json(await computeAnalyzeType(type, req));
+  }
+
+  if (type === 'simulate') {
+    const body = req.body || {};
+    const mode = body.mode === 'whatif' ? 'whatif' : 'conflict';
+    const cacheKey = mode === 'conflict'
+      ? `simulate:conflict:${[String(body.countryA || '').toUpperCase(), String(body.countryB || '').toUpperCase()].sort().join('-')}`
+      : `simulate:whatif:${hashKey(String(body.scenario || '').trim().toLowerCase())}`;
+
+    const fromRedis = await getCache(cacheKey);
+    if (fromRedis) return res.status(200).json(fromRedis);
+
+    const memHit = memCache.get(cacheKey);
+    if (memHit && Date.now() - memHit.ts < SIMULATE_TTL * 1000) return res.status(200).json(memHit.data);
+
+    const result = mode === 'conflict' ? await computeSimulateConflict(req) : await computeSimulateWhatIf(req);
+    memCache.set(cacheKey, { ts: Date.now(), data: result });
+    await setCache(cacheKey, result, SIMULATE_TTL);
+    return res.status(200).json(result);
   }
 
   const cached = CACHE_CONFIG[type];
