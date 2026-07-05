@@ -8,9 +8,15 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap');
 :root{
-  --bg:#030912;--panel:#05101e;--panel2:#060d1a;--border:#0d1e36;
+  --bg:#030912;--panel:#05101e;--panel2:#060d1a;--border:#0d1e36;--border2:#1a3050;
   --nb:#00d4ff;--nr:#ff2244;--no:#ff7700;--ng:#00ff88;--np:#cc44ff;
-  --text:#b8d0ef;--muted:#2a4a6a;--dim:#1a3050;
+  /* Contrast floor per design pass: labels/muted text never darker than
+     #6a8aaa on this dark background, body text never darker than #a8c8e8,
+     data values near-white. --dim sits exactly at the muted floor (for the
+     most de-emphasized text that's still real, readable content — never
+     used for anything darker than that); --muted sits a step brighter so
+     labels stay legibly above hint/footnote text. */
+  --text:#b8d0ef;--muted:#7a9ac0;--dim:#6a8aaa;--data:#d0e4f8;
   --gb:0 0 16px #00d4ff55;--gr:0 0 16px #ff224455;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -21,21 +27,24 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 #loader h1{font-family:'Rajdhani',sans-serif;font-size:3rem;font-weight:700;letter-spacing:.45em;color:var(--nb);text-shadow:var(--gb);animation:pulse 1.4s ease-in-out infinite;}
 .lbar{width:320px;height:2px;background:var(--border);border-radius:2px;overflow:hidden;}
 .lfill{height:100%;width:0;background:linear-gradient(90deg,#0044ff,var(--nb));animation:fill 2.8s ease-in-out forwards;}
-.lstatus{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--nb);letter-spacing:.12em;min-height:16px;}
+.lstatus{font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--nb);letter-spacing:.12em;min-height:16px;}
 @keyframes fill{to{width:100%;}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
 
 /* APP LAYOUT */
-#app{display:none;width:100vw;height:100vh;grid-template-columns:1fr 390px;grid-template-rows:52px 1fr 155px;grid-template-areas:"tb tb" "gl sb" "st sb";}
+#app{display:none;width:100vw;height:100vh;grid-template-columns:1fr 390px;grid-template-rows:56px 1fr;grid-template-areas:"tb tb" "gl sb";}
 
 /* TOPBAR */
-#tb{grid-area:tb;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#040a1699;border-bottom:1px solid var(--border);backdrop-filter:blur(10px);z-index:100;}
-.logo{font-family:'Rajdhani',sans-serif;font-size:1.25rem;font-weight:700;letter-spacing:.3em;color:var(--nb);text-shadow:var(--gb);}
+#tb{grid-area:tb;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#040a1699;border-bottom:1px solid var(--border);backdrop-filter:blur(10px);z-index:350;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:1.375rem;font-weight:700;letter-spacing:.3em;color:var(--nb);text-shadow:var(--gb);}
 .logo em{color:var(--nr);font-style:normal;}
-.tmeta{display:flex;gap:20px;font-family:'Share Tech Mono',monospace;font-size:.63rem;color:var(--muted);}
+.tmeta{display:flex;gap:20px;font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--muted);}
 .tmeta b{color:var(--nb);}
 #tclock{color:var(--ng);}
-.tbns{display:flex;gap:8px;}
-.btn{font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:700;letter-spacing:.08em;padding:5px 13px;border:1px solid currentColor;background:transparent;cursor:pointer;transition:all .2s;color:var(--nb);}
+.tbns{display:flex;gap:8px;align-items:center;}
+.tbns-more{display:flex;gap:8px;}
+#tb-more-toggle{display:none;}
+#sb-fab{display:none;}
+.btn{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.08em;padding:5px 13px;border:1px solid currentColor;background:transparent;cursor:pointer;transition:all .2s;color:var(--nb);}
 .btn:hover{background:#00d4ff12;box-shadow:var(--gb);}
 .btn.red{color:var(--nr);}
 .btn.red:hover{background:#ff224412;box-shadow:var(--gr);}
@@ -45,24 +54,24 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 /* MAP */
 #gl{grid-area:gl;position:relative;overflow:hidden;background:#030912;}
 #map{width:100%;height:100%;}
-.maplibregl-ctrl-attrib{background:#040a16aa!important;font-size:.55rem!important;}
+.maplibregl-ctrl-attrib{background:#040a16aa!important;font-size:1rem!important;}
 .maplibregl-ctrl-attrib a{color:var(--muted)!important;}
 .maplibregl-popup-content{background:#04091aee!important;border:1px solid var(--nb);box-shadow:var(--gb);padding:0!important;backdrop-filter:blur(10px);border-radius:0!important;}
 .maplibregl-popup-tip{border-top-color:#04091aee!important;border-bottom-color:#04091aee!important;}
 .maplibregl-popup{z-index:75;}
-.maplibregl-popup-close-button{color:var(--muted)!important;font-size:1.1rem!important;padding:2px 6px!important;}
+.maplibregl-popup-close-button{color:var(--muted)!important;font-size:1.375rem!important;padding:2px 6px!important;}
 .maplibregl-popup-close-button:hover{color:var(--nb)!important;background:none!important;}
 .maplibregl-ctrl-group{background:#040a16cc!important;border:1px solid var(--border)!important;}
 .maplibregl-ctrl-group button{filter:invert(1) hue-rotate(180deg);}
 
-#ghud{position:absolute;bottom:12px;left:12px;font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--dim);line-height:1.9;pointer-events:none;z-index:55;background:#04070fbb;padding:8px 10px;border:1px solid var(--border);backdrop-filter:blur(4px);}
-.rbadge{display:inline-block;font-family:'Rajdhani',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.1em;padding:2px 9px;border:1px solid var(--nr);color:var(--nr);text-shadow:var(--gr);box-shadow:var(--gr);margin-top:3px;}
+#ghud{position:absolute;bottom:12px;left:12px;font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--dim);line-height:1.9;pointer-events:none;z-index:55;background:#04070fbb;padding:11px 13px;border:1px solid var(--border);backdrop-filter:blur(4px);}
+.rbadge{display:inline-block;font-family:'Rajdhani',sans-serif;font-size:1.0625rem;font-weight:700;letter-spacing:.1em;padding:2px 9px;border:1px solid var(--nr);color:var(--nr);text-shadow:var(--gr);box-shadow:var(--gr);margin-top:3px;}
 
 /* TICKER */
 #ticker{position:absolute;top:0;left:0;right:0;height:26px;background:#04060fdd;border-bottom:1px solid var(--border);overflow:hidden;z-index:70;display:flex;align-items:center;}
 #ticker-track{display:flex;white-space:nowrap;animation:ticker-scroll 60s linear infinite;}
 #ticker:hover #ticker-track{animation-play-state:paused;}
-.ticker-item{display:inline-flex;align-items:center;padding:0 20px;font-family:'Share Tech Mono',monospace;font-size:.63rem;color:var(--text);cursor:pointer;border-right:1px solid var(--border);flex-shrink:0;}
+.ticker-item{display:inline-flex;align-items:center;padding:0 20px;font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--text);cursor:pointer;border-right:1px solid var(--border);flex-shrink:0;}
 .ticker-item:hover{color:var(--nb);}
 .ticker-item.critical{color:var(--nr);font-weight:700;}
 .ticker-item .tk-tag{color:var(--nb);margin-right:6px;}
@@ -72,21 +81,21 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 /* LAYER PANEL */
 #layer-panel{position:absolute;top:38px;left:12px;z-index:56;width:206px;max-width:calc(100vw - 24px);background:#050e1ce3;border:1px solid var(--border);padding:9px 11px;backdrop-filter:blur(6px);font-family:'Share Tech Mono',monospace;transition:width .18s ease,height .18s ease,padding .18s ease;}
 #layer-panel.collapsed{width:32px;height:32px;padding:0;display:flex;align-items:center;justify-content:center;cursor:pointer;}
-.lp-title{font-size:.7rem;letter-spacing:.08em;color:var(--muted);cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;}
-.lp-icon{font-size:.85rem;flex-shrink:0;}
+.lp-title{font-size:.9375rem;letter-spacing:.08em;color:var(--muted);cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;}
+.lp-icon{font-size:1.0625rem;flex-shrink:0;}
 .lp-label{flex:1;}
 #layer-panel.collapsed .lp-label,#layer-panel.collapsed .lp-chevron{display:none;}
-.lp-chevron{font-size:.6rem;transition:transform .18s;flex-shrink:0;}
+.lp-chevron{font-size:.8125rem;transition:transform .18s;flex-shrink:0;}
 #layer-panel.collapsed .lp-chevron{transform:rotate(-90deg);}
 .lp-body{display:flex;flex-direction:column;overflow:hidden;max-height:260px;margin-top:8px;opacity:1;transition:max-height .18s ease,opacity .12s ease,margin-top .18s ease;}
 #layer-panel.collapsed .lp-body{max-height:0;opacity:0;margin-top:0;}
-.lp-row{display:flex;align-items:center;gap:7px;font-size:.72rem;line-height:1.4;color:var(--text);padding:4px 0;cursor:pointer;user-select:none;}
+.lp-row{display:flex;align-items:center;gap:7px;font-size:.9375rem;line-height:1.55;color:var(--text);padding:4px 0;cursor:pointer;user-select:none;}
 .lp-row input{accent-color:var(--nb);cursor:pointer;flex-shrink:0;width:13px;height:13px;}
 
 /* COUNTRY TOOLTIP + PANEL */
-#country-tooltip{position:absolute;background:#04091aee;border:1px solid var(--nb);box-shadow:var(--gb);padding:5px 10px;font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:700;color:var(--nb);pointer-events:none;display:none;z-index:90;backdrop-filter:blur(8px);}
-#country-panel{position:absolute;right:12px;top:38px;width:270px;background:#040c18;border:1px solid var(--nb);padding:14px;display:none;z-index:200;backdrop-filter:blur(8px);font-size:.75rem;line-height:1.6;}
-#naval-panel{position:absolute;right:12px;top:38px;width:300px;max-height:calc(100% - 76px);overflow-y:auto;background:#040c18;border:1px solid var(--nb);box-shadow:var(--gb);padding:0;display:none;z-index:200;backdrop-filter:blur(8px);font-size:.75rem;line-height:1.6;}
+#country-tooltip{position:absolute;background:#04091aee;border:1px solid var(--nb);box-shadow:var(--gb);padding:5px 10px;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:var(--nb);pointer-events:none;display:none;z-index:90;backdrop-filter:blur(8px);}
+#country-panel{position:absolute;right:12px;top:38px;width:270px;background:#040c18;border:1px solid var(--nb);padding:14px;display:none;z-index:200;backdrop-filter:blur(8px);font-size:1rem;line-height:1.6;}
+#naval-panel{position:absolute;right:12px;top:38px;width:300px;max-height:calc(100% - 76px);overflow-y:auto;background:#040c18;border:1px solid var(--nb);box-shadow:var(--gb);padding:0;display:none;z-index:200;backdrop-filter:blur(8px);font-size:1rem;line-height:1.6;}
 #naval-panel::-webkit-scrollbar{width:3px;}
 #naval-panel::-webkit-scrollbar-thumb{background:var(--border);}
 
@@ -104,7 +113,7 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .threat-marker.LOW .tm-pulse{width:9px;height:9px;background:#00d4ff;}
 @keyframes tm-pulse-anim{0%{transform:scale(1);opacity:.7;}100%{transform:scale(2.6);opacity:0;}}
 
-.cluster-marker{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-weight:700;font-size:.68rem;color:#fff;border:2px solid #fff;cursor:pointer;}
+.cluster-marker{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-weight:700;font-size:.875rem;color:#fff;border:2px solid #fff;cursor:pointer;}
 .cluster-marker.CRITICAL{background:#ff0022dd;box-shadow:0 0 10px #ff0022aa;}
 .cluster-marker.HIGH{background:#ff6600dd;box-shadow:0 0 10px #ff6600aa;}
 .cluster-marker.MEDIUM{background:#ffcc00dd;color:#161200;box-shadow:0 0 10px #ffcc00aa;}
@@ -116,26 +125,26 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .mil-marker.aff-russia{box-shadow:0 0 7px #ff2244aa;border-color:#ff2244;}
 .mil-marker.aff-china{box-shadow:0 0 7px #ff7700aa;border-color:#ff7700;}
 .mil-marker.aff-other{box-shadow:0 0 7px #88889977;border-color:#888;}
-.mil-tip{font-family:'Share Tech Mono',monospace;font-size:.68rem;line-height:1.5;}
-.mil-tip b{color:var(--nb);display:block;font-family:'Rajdhani',sans-serif;font-size:.85rem;}
+.mil-tip{font-family:'Share Tech Mono',monospace;font-size:.875rem;line-height:1.5;}
+.mil-tip b{color:var(--nb);display:block;font-family:'Rajdhani',sans-serif;font-size:1.0625rem;}
 
 /* NAVAL MARKERS (positions inferred from live news — see api/naval.js) */
 .naval-marker{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;border:1.5px solid #fff8;background:#0a1424cc;}
 .nv-photo{width:100%;height:150px;object-fit:cover;display:block;border-bottom:1px solid var(--border);}
 .nv-body{padding:14px;}
 .nv-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
-.nv-title{font-family:'Rajdhani',sans-serif;font-size:1.05rem;font-weight:700;color:var(--nb);}
-.nv-class{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:2px;}
+.nv-title{font-family:'Rajdhani',sans-serif;font-size:1.375rem;font-weight:700;color:var(--nb);}
+.nv-class{font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--muted);margin-top:2px;}
 .nv-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;flex-shrink:0;line-height:1;}
 .nv-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
-.nv-badge{font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:2px 7px;border:1px solid var(--border);color:var(--muted);}
+.nv-badge{font-family:'Share Tech Mono',monospace;font-size:1rem;padding:2px 7px;border:1px solid var(--border);color:var(--muted);}
 .nv-badge.status-deployed{border-color:var(--ng);color:var(--ng);}
 .nv-badge.status-inport{border-color:var(--muted);color:var(--muted);}
-.nv-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:.68rem;margin-bottom:10px;}
-.nv-source{font-size:.64rem;color:var(--nb);text-decoration:none;display:block;margin-bottom:10px;padding:7px 8px;border:1px solid var(--border);background:#00d4ff08;line-height:1.4;}
+.nv-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:.875rem;margin-bottom:10px;}
+.nv-source{font-size:.8125rem;color:var(--nb);text-decoration:none;display:block;margin-bottom:10px;padding:7px 8px;border:1px solid var(--border);background:#00d4ff08;line-height:1.55;}
 .nv-source:hover{border-color:var(--nb);}
-.nv-desc{font-size:.7rem;color:var(--text);line-height:1.55;margin-bottom:8px;}
-.nv-note{font-size:.56rem;color:var(--dim);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;line-height:1.5;}
+.nv-desc{font-size:.9375rem;color:var(--text);line-height:1.55;margin-bottom:8px;}
+.nv-note{font-size:1rem;color:var(--dim);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;line-height:1.5;}
 
 /* AIRCRAFT MARKERS */
 .aircraft-marker{width:14px;height:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;line-height:1;}
@@ -143,60 +152,64 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .aircraft-marker.mil{color:#ff2244;text-shadow:0 0 6px #ff2244cc;}
 .ac-tip{font-family:'Share Tech Mono',monospace;}
 .ac-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
-.ac-title{font-family:'Rajdhani',sans-serif;font-size:1.05rem;font-weight:700;color:var(--nb);}
+.ac-title{font-family:'Rajdhani',sans-serif;font-size:1.375rem;font-weight:700;color:var(--nb);}
 .ac-tip.mil .ac-title{color:var(--nr);}
-.ac-live{font-size:.52rem;letter-spacing:.06em;color:var(--ng);border:1px solid var(--ng);padding:1px 6px;flex-shrink:0;white-space:nowrap;}
-.ac-grid{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.7rem;line-height:1.6;}
+.ac-live{font-size:1rem;letter-spacing:.06em;color:var(--ng);border:1px solid var(--ng);padding:1px 6px;flex-shrink:0;white-space:nowrap;}
+.ac-grid{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.9375rem;line-height:1.6;}
 .ac-grid .k{color:var(--muted);}
-.ac-grid .v{color:var(--text);white-space:nowrap;}
-.ac-mil-flag{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);color:var(--nr);font-size:.65rem;line-height:1.4;}
+.ac-grid .v{color:var(--data);white-space:nowrap;}
+.ac-mil-flag{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);color:var(--nr);font-size:.875rem;line-height:1.55;}
 .pop-wrap.ac-tip{max-width:260px;}
 .popup-mil .maplibregl-popup-content{border-color:var(--nr)!important;box-shadow:var(--gr)!important;}
-.lp-note{font-size:.6rem;color:var(--dim);line-height:1.5;margin-top:7px;padding-top:7px;border-top:1px solid var(--border);}
+.lp-note{font-size:.8125rem;color:var(--dim);line-height:1.5;margin-top:7px;padding-top:7px;border-top:1px solid var(--border);}
 
 /* POPUP CONTENT (threats + generic) */
 .pop-wrap{padding:11px 13px;max-width:230px;}
-.pop-title{font-family:'Rajdhani',sans-serif;font-size:.95rem;font-weight:700;color:var(--nb);margin-bottom:5px;}
-.pop-desc{font-size:.73rem;color:var(--text);margin-bottom:5px;line-height:1.4;}
-.pop-meta{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);display:flex;flex-direction:column;gap:2px;}
+.pop-title{font-family:'Rajdhani',sans-serif;font-size:1.125rem;font-weight:700;color:var(--nb);margin-bottom:5px;}
+.pop-desc{font-size:.9375rem;color:var(--text);margin-bottom:5px;line-height:1.55;}
+.pop-meta{font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--muted);display:flex;flex-direction:column;gap:2px;}
 .pop-meta a{color:var(--nb);}
-.pop-score{font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--np);margin-top:3px;}
+.pop-score{font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--np);margin-top:3px;}
 
-/* STATS */
-#st{grid-area:st;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);border-right:1px solid var(--border);}
-.sc{background:var(--panel);padding:12px 14px;display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden;}
-.sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;}
-.sc.cb::before{background:var(--nb);box-shadow:var(--gb);}
-.sc.cr::before{background:var(--nr);box-shadow:var(--gr);}
-.sc.co::before{background:var(--no);}
-.sc.cg::before{background:var(--ng);}
-.slb{font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
-.sv{font-family:'Rajdhani',sans-serif;font-size:1.55rem;font-weight:700;line-height:1;transition:color .3s;}
-.sc.cb .sv{color:var(--nb);text-shadow:var(--gb);}
-.sc.cr .sv{color:var(--nr);text-shadow:var(--gr);}
-.sc.co .sv{color:var(--no);}
-.sc.cg .sv{color:var(--ng);}
-.sv.pulse-critical{animation:sv-pulse 1.1s ease-in-out infinite;}
+/* HEADER STATS — compact inline "LABEL NUMBER" stats that used to live in a
+   full-width bottom panel (deleted; the map now extends into that space).
+   Small label + colored number per the design pass, e.g. "HIGH 5" in red. */
+.hstat{display:flex;align-items:baseline;gap:4px;font-family:'Share Tech Mono',monospace;}
+.hstat-lbl{font-size:.8125rem;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;}
+.hstat-val{font-family:'Rajdhani',sans-serif;font-size:1.0625rem;font-weight:700;line-height:1;transition:color .3s;}
+.hstat-hi .hstat-val{color:var(--nr);text-shadow:var(--gr);}
+.hstat-me .hstat-val{color:var(--no);}
+.hstat-cy .hstat-val{color:var(--nb);text-shadow:var(--gb);}
+.hstat-gn .hstat-val{color:var(--ng);}
+.hstat-val.pulse-critical{animation:sv-pulse 1.1s ease-in-out infinite;}
 @keyframes sv-pulse{0%,100%{opacity:1;text-shadow:0 0 6px #ff2244;}50%{opacity:.55;text-shadow:0 0 18px #ff2244;}}
-.ss{font-size:.6rem;color:var(--muted);}
 
 /* SIDEBAR */
 #sb{grid-area:sb;background:var(--panel2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
-.tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--border);flex-shrink:0;}
-.tab{padding:7px 4px;font-family:'Rajdhani',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.02em;background:transparent;border:none;border-bottom:2px solid transparent;color:#5a7a9a;cursor:pointer;transition:all .2s;text-align:center;white-space:nowrap;}
-.tab.active{color:var(--nb);border-bottom-color:var(--nb);background:#00d4ff08;}
+/* Single scrollable row rather than a 3-column grid — 10 tabs wrapped into
+   a 3-col grid meant ~4 rows eating a big chunk of the sidebar's height
+   before a single list item was visible. Scrolling keeps it to one row at
+   a comfortable, readable size, with a clear active state (bottom border +
+   tinted background + brighter text) instead of crushing every label. */
+.tabs{display:flex;overflow-x:auto;overflow-y:hidden;border-bottom:1px solid var(--border);flex-shrink:0;-webkit-overflow-scrolling:touch;}
+.tabs::-webkit-scrollbar{height:4px;}
+.tabs::-webkit-scrollbar-thumb{background:var(--border);}
+.tab{flex:0 0 auto;min-height:44px;padding:10px 16px;display:flex;align-items:center;font-family:'Rajdhani',sans-serif;font-size:.9375rem;font-weight:700;letter-spacing:.02em;background:transparent;border:none;border-bottom:3px solid transparent;color:var(--muted);cursor:pointer;transition:all .2s;text-align:center;white-space:nowrap;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--nb);border-bottom-color:var(--nb);background:#00d4ff10;}
 .tabp{display:none;flex:1;overflow:hidden;flex-direction:column;}
 .tabp.active{display:flex;}
-.ph{padding:7px 12px;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);letter-spacing:.1em;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;justify-content:space-between;align-items:center;}
-.ph .pfeed{color:var(--ng);font-size:.56rem;}
-.scroll{flex:1;overflow-y:auto;padding:5px;}
+.ph{padding:10px 14px;font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--muted);letter-spacing:.1em;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.ph>span:first-child{white-space:nowrap;flex-shrink:0;}
+.ph .pfeed{color:var(--ng);font-size:.9375rem;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;}
+.scroll{flex:1;overflow-y:auto;padding:8px;}
 .scroll::-webkit-scrollbar{width:3px;}
 .scroll::-webkit-scrollbar-thumb{background:var(--border);}
 
 /* NEWS */
-.ni{padding:8px 10px;border-bottom:1px solid #0d1e3630;cursor:pointer;transition:background .12s;}
+.ni{padding:11px 13px;border-bottom:1px solid #0d1e3630;cursor:pointer;transition:background .12s;}
 .ni:hover{background:#00d4ff07;}
-.ntag{font-family:'Share Tech Mono',monospace;font-size:.57rem;letter-spacing:.06em;margin-bottom:3px;}
+.ntag{font-family:'Share Tech Mono',monospace;font-size:1rem;letter-spacing:.06em;margin-bottom:3px;}
 .ntag.CONFLICT{color:var(--nr);}
 .ntag.MILITARY{color:#ff6600;}
 .ntag.NUCLEAR{color:var(--np);}
@@ -204,55 +217,55 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .ntag.GEOPOLITICS{color:var(--no);}
 .ntag.DISASTER{color:#ffaa00;}
 .ntag.INTEL{color:var(--nb);}
-.nh{font-size:.79rem;line-height:1.4;color:var(--text);}
-.nm{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px;}
-.nsrc{padding:1px 5px;border:1px solid var(--border);font-size:.54rem;}
-.nsc{font-family:'Share Tech Mono',monospace;font-size:.56rem;}
+.nh{font-size:1rem;line-height:1.55;color:var(--data);}
+.nm{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px;}
+.nsrc{padding:1px 5px;border:1px solid var(--border);font-size:1rem;}
+.nsc{font-family:'Share Tech Mono',monospace;font-size:1rem;}
 .nsc.hi{color:var(--nr);}
 .nsc.me{color:var(--no);}
 .nsc.lo{color:var(--nb);}
 
 /* WARNINGS */
-.wi{padding:8px 10px;border:1px solid var(--border);margin-bottom:4px;cursor:pointer;transition:border-color .2s;position:relative;}
+.wi{padding:11px 13px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:border-color .2s;position:relative;}
 .wi:hover{border-color:var(--nb);}
 .witp{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
-.witn{font-family:'Rajdhani',sans-serif;font-size:.86rem;font-weight:600;}
-.wisv{font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:1px 5px;}
-.wd{font-size:.7rem;color:var(--muted);line-height:1.4;}
-.wsc{font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--np);margin-top:2px;}
+.witn{font-family:'Rajdhani',sans-serif;font-size:1.0625rem;font-weight:600;color:var(--data);}
+.wisv{font-family:'Share Tech Mono',monospace;font-size:1rem;padding:1px 5px;}
+.wd{font-size:.9375rem;color:var(--muted);line-height:1.55;}
+.wsc{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--np);margin-top:2px;}
 .wdot{position:absolute;right:7px;bottom:7px;width:5px;height:5px;border-radius:50%;animation:blink 1.6s ease-in-out infinite;}
 .dH{background:var(--nr);box-shadow:0 0 6px var(--nr);}
 .dM{background:var(--no);box-shadow:0 0 6px var(--no);}
 .dL{background:var(--nb);box-shadow:0 0 6px var(--nb);}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.1}}
-.sC{background:#ff003333;color:#ff3366;border:1px solid #ff3366;font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;font-weight:700;}
-.sH{background:#ff224422;color:var(--nr);border:1px solid var(--nr);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;}
-.sM{background:#ff770022;color:var(--no);border:1px solid var(--no);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;}
-.sL{background:#00d4ff15;color:var(--nb);border:1px solid var(--nb);font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:1px 6px;display:inline-block;}
+.sC{background:#ff003333;color:#ff3366;border:1px solid #ff3366;font-family:'Share Tech Mono',monospace;font-size:1rem;padding:1px 6px;display:inline-block;font-weight:700;}
+.sH{background:#ff224422;color:var(--nr);border:1px solid var(--nr);font-family:'Share Tech Mono',monospace;font-size:1rem;padding:1px 6px;display:inline-block;}
+.sM{background:#ff770022;color:var(--no);border:1px solid var(--no);font-family:'Share Tech Mono',monospace;font-size:1rem;padding:1px 6px;display:inline-block;}
+.sL{background:#00d4ff15;color:var(--nb);border:1px solid var(--nb);font-family:'Share Tech Mono',monospace;font-size:1rem;padding:1px 6px;display:inline-block;}
 
 /* AI ANALYST CHAT */
 #analyst-quick{display:flex;gap:5px;padding:6px 10px;flex-wrap:wrap;border-bottom:1px solid var(--border);flex-shrink:0;}
-.aq-btn{font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:4px 8px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;}
+.aq-btn{font-family:'Share Tech Mono',monospace;font-size:1rem;padding:4px 8px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;}
 .aq-btn:hover{border-color:var(--nb);color:var(--nb);}
 .aq-btn:disabled{opacity:.4;cursor:not-allowed;}
-.am-welcome{padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--dim);line-height:1.6;}
-.am-msg{padding:8px 10px;margin:6px 8px;max-width:88%;font-size:.75rem;line-height:1.55;}
+.am-welcome{padding:14px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--dim);line-height:1.6;}
+.am-msg{padding:11px 13px;margin:6px 8px;max-width:88%;font-size:1rem;line-height:1.55;}
 .am-msg.user{margin-left:auto;background:#00d4ff10;border:1px solid #00d4ff33;color:var(--text);}
 .am-msg.ai{margin-right:auto;background:#05101ecc;border:1px solid var(--border);color:var(--text);}
 .am-msg.ai.unconfigured{border-color:var(--no);}
-.am-role{font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--muted);letter-spacing:.08em;margin-bottom:4px;}
+.am-role{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--muted);letter-spacing:.08em;margin-bottom:4px;}
 .am-sources{margin-top:8px;padding-top:6px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:3px;}
-.am-source{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--nb);cursor:pointer;text-decoration:none;display:block;}
+.am-source{font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--nb);cursor:pointer;text-decoration:none;display:block;}
 .am-source:hover{text-decoration:underline;}
-.am-typing{padding:8px 10px;margin:6px 8px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--muted);}
+.am-typing{padding:11px 13px;margin:6px 8px;font-family:'Share Tech Mono',monospace;font-size:.9375rem;color:var(--muted);}
 .am-typing span{animation:am-blink 1.2s infinite;}
 .am-typing span:nth-child(2){animation-delay:.2s;}
 .am-typing span:nth-child(3){animation-delay:.4s;}
 @keyframes am-blink{0%,100%{opacity:.2;}50%{opacity:1;}}
-#analyst-input-row{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--border);flex-shrink:0;}
-#analyst-input-row input{flex:1;background:var(--panel);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-family:'Share Tech Mono',monospace;font-size:.7rem;}
+#analyst-input-row{display:flex;gap:6px;padding:11px 13px;border-top:1px solid var(--border);flex-shrink:0;}
+#analyst-input-row input{flex:1;background:var(--panel);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-family:'Share Tech Mono',monospace;font-size:.9375rem;}
 #analyst-input-row input:focus{outline:none;border-color:var(--nb);}
-#analyst-input-row button{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.7rem;padding:6px 12px;background:transparent;border:1px solid var(--nb);color:var(--nb);cursor:pointer;}
+#analyst-input-row button{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.9375rem;padding:6px 12px;background:transparent;border:1px solid var(--nb);color:var(--nb);cursor:pointer;}
 #analyst-input-row button:hover{background:#00d4ff15;}
 #analyst-input-row button:disabled{opacity:.4;cursor:not-allowed;}
 
@@ -261,50 +274,50 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .wiki-card img{width:60px;height:60px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;}
 .wiki-card-body{flex:1;min-width:0;}
 .wiki-title{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:var(--nb);margin-bottom:4px;}
-.wiki-extract{font-size:.72rem;color:var(--text);line-height:1.5;}
-.wiki-link{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:4px;display:inline-block;}
+.wiki-extract{font-size:.9375rem;color:var(--text);line-height:1.5;}
+.wiki-link{font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--muted);margin-top:4px;display:inline-block;}
 .ai-synth{margin:10px;padding:10px 12px;border:1px solid var(--np);background:#cc44ff0c;}
-.ai-synth-title{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--np);letter-spacing:.08em;margin-bottom:5px;}
-.ai-synth-text{font-size:.75rem;color:var(--text);line-height:1.5;}
-.si{padding:8px 10px;border-bottom:1px solid #0d1e3630;cursor:pointer;transition:background .12s;}
+.ai-synth-title{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--np);letter-spacing:.08em;margin-bottom:5px;}
+.ai-synth-text{font-size:1rem;color:var(--text);line-height:1.5;}
+.si{padding:11px 13px;border-bottom:1px solid #0d1e3630;cursor:pointer;transition:background .12s;}
 .si:hover{background:#00d4ff07;}
-.si-title{font-size:.79rem;line-height:1.4;color:var(--text);}
-.si-meta{font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--muted);margin-top:3px;display:flex;gap:8px;}
+.si-title{font-size:1rem;line-height:1.55;color:var(--data);}
+.si-meta{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--muted);margin-top:3px;display:flex;gap:8px;}
 
 /* POLITICIANS */
-.pi{padding:8px 10px;border:1px solid var(--border);margin-bottom:4px;}
+.pi{padding:11px 13px;border:1px solid var(--border);margin-bottom:8px;}
 .pitp{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
 .pifg{font-size:1rem;}
-.pinm{font-family:'Rajdhani',sans-serif;font-size:.88rem;font-weight:700;color:var(--nb);}
-.piti{font-size:.65rem;color:var(--no);font-family:'Share Tech Mono',monospace;}
-.piinf{font-size:.7rem;color:var(--muted);line-height:1.5;}
-.pitg{display:inline-block;font-size:.56rem;padding:1px 5px;border:1px solid var(--border);margin-right:3px;margin-top:3px;}
+.pinm{font-family:'Rajdhani',sans-serif;font-size:1.0625rem;font-weight:700;color:var(--nb);}
+.piti{font-size:.875rem;color:var(--no);font-family:'Share Tech Mono',monospace;}
+.piinf{font-size:.9375rem;color:var(--muted);line-height:1.5;}
+.pitg{display:inline-block;font-size:1rem;padding:1px 5px;border:1px solid var(--border);margin-right:3px;margin-top:3px;}
 .pitg.right{border-color:var(--nr);color:var(--nr);}
 .pitg.left{border-color:#4488ff;color:#4488ff;}
 .pitg.center{border-color:var(--no);color:var(--no);}
 .pitg.auth{border-color:var(--np);color:var(--np);}
 
 /* MIDDLE EAST */
-.mec{border:1px solid var(--border);margin-bottom:5px;}
+.mec{border:1px solid var(--border);margin-bottom:8px;}
 .meh{padding:7px 9px;background:#040a16;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;cursor:pointer;}
 .meh:hover{background:#05101e;}
-.mefg{font-size:.95rem;}
-.mecn{font-family:'Rajdhani',sans-serif;font-size:.86rem;font-weight:700;color:var(--nb);}
-.mest{font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:1px 6px;margin-left:auto;}
+.mefg{font-size:1.125rem;}
+.mecn{font-family:'Rajdhani',sans-serif;font-size:1.0625rem;font-weight:700;color:var(--nb);}
+.mest{font-family:'Share Tech Mono',monospace;font-size:1rem;padding:1px 6px;margin-left:auto;}
 .mest.war{background:#ff224415;color:var(--nr);border:1px solid var(--nr);}
 .mest.tension{background:#ff770015;color:var(--no);border:1px solid var(--no);}
 .mest.stable{background:#00ff8815;color:var(--ng);border:1px solid var(--ng);}
-.meb{padding:8px 10px;font-size:.7rem;color:var(--muted);line-height:1.6;display:none;}
+.meb{padding:11px 13px;font-size:.9375rem;color:var(--muted);line-height:1.6;display:none;}
 .meb.open{display:block;}
 
 /* BRIEF BOX */
-#briefbox{padding:9px 12px;border-top:1px solid var(--border);flex-shrink:0;font-size:.71rem;line-height:1.7;color:var(--muted);font-family:'Share Tech Mono',monospace;max-height:105px;overflow-y:auto;display:none;}
+#briefbox{padding:9px 12px;border-top:1px solid var(--border);flex-shrink:0;font-size:.9375rem;line-height:1.7;color:var(--muted);font-family:'Share Tech Mono',monospace;max-height:105px;overflow-y:auto;display:none;}
 #briefbox.show{display:block;}
 #briefbox b{color:var(--nb);}
 
 /* ENTITIES PANEL */
 .etags{display:flex;flex-wrap:wrap;gap:3px;padding:6px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
-.etag{font-family:'Share Tech Mono',monospace;font-size:.58rem;padding:2px 6px;border:1px solid var(--border);cursor:pointer;transition:border-color .15s;}
+.etag{font-family:'Share Tech Mono',monospace;font-size:1rem;padding:2px 6px;border:1px solid var(--border);cursor:pointer;transition:border-color .15s;}
 .etag:hover{border-color:var(--nb);}
 .etag.person{border-color:#cc44ff44;color:var(--np);}
 .etag.org{border-color:#00d4ff44;color:var(--nb);}
@@ -312,90 +325,90 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .etag.HIGH{border-color:var(--nr)!important;color:var(--nr)!important;}
 
 /* CONFLICT ITEMS */
-.cfi{padding:9px 10px;border:1px solid var(--border);margin-bottom:5px;cursor:pointer;transition:border-color .2s;position:relative;}
+.cfi{padding:11px 13px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:border-color .2s;position:relative;}
 .cfi:hover{border-color:var(--nr);}
 .cfi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
-.cfi-country{font-family:'Rajdhani',sans-serif;font-size:.9rem;font-weight:700;color:var(--nb);}
-.cfi-type{font-family:'Share Tech Mono',monospace;font-size:.57rem;padding:1px 5px;}
-.cfi-region{font-size:.68rem;color:var(--no);margin-bottom:3px;font-family:'Share Tech Mono',monospace;}
-.cfi-notes{font-size:.7rem;color:var(--muted);line-height:1.4;}
-.cfi-stats{display:flex;gap:10px;margin-top:4px;font-family:'Share Tech Mono',monospace;font-size:.6rem;}
+.cfi-country{font-family:'Rajdhani',sans-serif;font-size:1.125rem;font-weight:700;color:var(--nb);}
+.cfi-type{font-family:'Share Tech Mono',monospace;font-size:1rem;padding:1px 5px;}
+.cfi-region{font-size:.875rem;color:var(--no);margin-bottom:3px;font-family:'Share Tech Mono',monospace;}
+.cfi-notes{font-size:.9375rem;color:var(--muted);line-height:1.55;}
+.cfi-stats{display:flex;gap:10px;margin-top:4px;font-family:'Share Tech Mono',monospace;font-size:.8125rem;}
 .cfi-fatal{color:var(--nr);}
 .cfi-score{color:var(--np);}
 .cfi-date{color:var(--muted);}
 
 /* FORECAST CARDS */
 .fci{border:1px solid var(--border);padding:10px;margin-bottom:7px;}
-.fci-title{font-family:'Rajdhani',sans-serif;font-size:.92rem;font-weight:700;color:var(--nr);margin-bottom:5px;}
+.fci-title{font-family:'Rajdhani',sans-serif;font-size:1.125rem;font-weight:700;color:var(--nr);margin-bottom:5px;}
 .fci-meta{display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
-.fci-prob{font-family:'Share Tech Mono',monospace;font-size:.62rem;padding:2px 8px;background:#ff224418;border:1px solid var(--nr);color:var(--nr);}
-.fci-time{font-family:'Share Tech Mono',monospace;font-size:.62rem;padding:2px 8px;background:#ff770018;border:1px solid var(--no);color:var(--no);}
-.fci-sev{font-family:'Share Tech Mono',monospace;font-size:.62rem;padding:2px 8px;}
-.fci-trigger{font-size:.72rem;color:var(--text);margin-bottom:5px;}
+.fci-prob{font-family:'Share Tech Mono',monospace;font-size:.8125rem;padding:2px 8px;background:#ff224418;border:1px solid var(--nr);color:var(--nr);}
+.fci-time{font-family:'Share Tech Mono',monospace;font-size:.8125rem;padding:2px 8px;background:#ff770018;border:1px solid var(--no);color:var(--no);}
+.fci-sev{font-family:'Share Tech Mono',monospace;font-size:.8125rem;padding:2px 8px;}
+.fci-trigger{font-size:.9375rem;color:var(--text);margin-bottom:5px;}
 .fci-trigger b{color:var(--no);}
 .fci-cascade{margin-top:5px;padding-top:5px;border-top:1px solid var(--border);}
-.fci-cascade-item{font-size:.68rem;color:var(--muted);padding:1px 0;display:flex;align-items:flex-start;gap:5px;}
+.fci-cascade-item{font-size:.875rem;color:var(--muted);padding:1px 0;display:flex;align-items:flex-start;gap:5px;}
 .fci-cascade-item::before{content:'→';color:var(--nr);flex-shrink:0;}
 
 /* RISK MATRIX */
 .rmi{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid #0d1e3625;}
-.rmi-flag{font-size:.9rem;}
-.rmi-name{font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:600;width:80px;}
+.rmi-flag{font-size:1.125rem;}
+.rmi-name{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:600;width:80px;}
 .rmi-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
 .rmi-bar{height:100%;border-radius:3px;transition:width .4s;}
-.rmi-score{font-family:'Share Tech Mono',monospace;font-size:.6rem;width:35px;text-align:right;}
-.rmi-trend{font-size:.65rem;width:20px;text-align:center;}
+.rmi-score{font-family:'Share Tech Mono',monospace;font-size:.8125rem;width:35px;text-align:right;}
+.rmi-trend{font-size:.875rem;width:20px;text-align:center;}
 
 /* PREDICTIONS */
 .pred-card{border:1px solid var(--border);padding:10px;margin-bottom:8px;}
-.pred-q{font-family:'Rajdhani',sans-serif;font-size:.92rem;font-weight:700;color:var(--text);margin-bottom:8px;}
+.pred-q{font-family:'Rajdhani',sans-serif;font-size:1.125rem;font-weight:700;color:var(--data);margin-bottom:8px;}
 .pred-splitbar{display:flex;height:22px;border-radius:3px;overflow:hidden;margin-bottom:6px;border:1px solid var(--border);}
-.pred-yes{background:linear-gradient(90deg,var(--nr),#ff5566);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.62rem;color:#fff;font-weight:700;min-width:0;overflow:hidden;white-space:nowrap;}
-.pred-no{background:var(--panel2);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--muted);min-width:0;overflow:hidden;white-space:nowrap;}
-.pred-meta{display:flex;justify-content:space-between;align-items:center;font-size:.62rem;color:var(--muted);margin-bottom:4px;}
+.pred-yes{background:linear-gradient(90deg,var(--nr),#ff5566);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:#fff;font-weight:700;min-width:0;overflow:hidden;white-space:nowrap;}
+.pred-no{background:var(--panel2);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--muted);min-width:0;overflow:hidden;white-space:nowrap;}
+.pred-meta{display:flex;justify-content:space-between;align-items:center;font-size:.8125rem;color:var(--muted);margin-bottom:4px;}
 .pred-trend{font-weight:700;}
 .pred-trend-rising{color:var(--nr);}
 .pred-trend-falling{color:var(--ng);}
 .pred-trend-stable{color:var(--no);}
-.pred-reasoning-toggle{font-size:.65rem;color:var(--nb);cursor:pointer;padding-top:4px;user-select:none;}
-.pred-reasoning-body{display:none;font-size:.7rem;color:var(--text);padding-top:6px;margin-top:4px;border-top:1px solid var(--border);}
+.pred-reasoning-toggle{font-size:.875rem;color:var(--nb);cursor:pointer;padding-top:4px;user-select:none;}
+.pred-reasoning-body{display:none;font-size:.9375rem;color:var(--text);padding-top:6px;margin-top:4px;border-top:1px solid var(--border);}
 .pred-reasoning-body.open{display:block;}
-.pred-indicators{margin-top:6px;font-size:.65rem;color:var(--muted);}
+.pred-indicators{margin-top:6px;font-size:.875rem;color:var(--muted);}
 .pred-indicators b{color:var(--text);}
-.pred-sources{margin-top:6px;font-size:.6rem;display:flex;flex-wrap:wrap;gap:6px;}
+.pred-sources{margin-top:6px;font-size:.8125rem;display:flex;flex-wrap:wrap;gap:6px;}
 .pred-sources a{color:var(--nb);text-decoration:none;border:1px solid var(--border);padding:1px 6px;}
 .pred-sources a:hover{border-color:var(--nb);}
-.pred-footnote{font-size:.58rem;color:var(--dim);margin:2px 0 10px;}
+.pred-footnote{font-size:1rem;color:var(--dim);margin:2px 0 10px;}
 
 /* GLOBAL FORECAST OUTLOOK */
-.gfc-outlook{font-size:.75rem;color:var(--text);padding:8px 10px;border:1px solid var(--np);background:#cc44ff0c;margin-bottom:8px;}
+.gfc-outlook{font-size:1rem;color:var(--text);padding:11px 13px;border:1px solid var(--np);background:#cc44ff0c;margin-bottom:8px;}
 .gfc-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid #0d1e3625;}
-.gfc-item-name{font-family:'Rajdhani',sans-serif;font-size:.8rem;font-weight:600;flex:1;}
-.gfc-item-prob{font-family:'Share Tech Mono',monospace;font-size:.62rem;width:36px;text-align:right;}
+.gfc-item-name{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:600;flex:1;}
+.gfc-item-prob{font-family:'Share Tech Mono',monospace;font-size:.8125rem;width:36px;text-align:right;}
 
 /* SIMULATE TAB */
-.sim-modes{display:flex;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);}
-.sim-mode-btn{flex:1;background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:6px;font-family:'Share Tech Mono',monospace;font-size:.65rem;cursor:pointer;}
+.sim-modes{display:flex;gap:6px;padding:11px 13px;border-bottom:1px solid var(--border);}
+.sim-mode-btn{flex:1;background:var(--panel);border:1px solid var(--border);color:var(--muted);padding:6px;font-family:'Share Tech Mono',monospace;font-size:.875rem;cursor:pointer;}
 .sim-mode-btn.active{color:var(--nb);border-color:var(--nb);background:#00d4ff0c;}
 .sim-form{padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border);}
-.sim-form select,.sim-form input[type=text]{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-family:'Share Tech Mono',monospace;font-size:.7rem;}
+.sim-form select,.sim-form input[type=text]{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-family:'Share Tech Mono',monospace;font-size:.9375rem;}
 .sim-form select{flex:1;min-width:120px;}
 .sim-form input[type=text]{flex:1;min-width:200px;}
 .sim-vs{font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--nr);}
-.sim-go{background:var(--nr);border:none;color:#fff;padding:6px 16px;font-family:'Share Tech Mono',monospace;font-size:.7rem;cursor:pointer;font-weight:700;}
+.sim-go{background:var(--nr);border:none;color:#fff;padding:6px 16px;font-family:'Share Tech Mono',monospace;font-size:.9375rem;cursor:pointer;font-weight:700;}
 .sim-go:disabled{background:var(--muted);cursor:not-allowed;}
 .sim-card{border:1px solid var(--border);padding:12px;margin:10px;}
-.sim-card-title{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:var(--text);margin-bottom:8px;}
-.sim-row{margin-bottom:8px;font-size:.72rem;color:var(--text);}
-.sim-row b{color:var(--no);display:block;margin-bottom:2px;font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;}
+.sim-card-title{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;color:var(--data);margin-bottom:8px;}
+.sim-row{margin-bottom:8px;font-size:.9375rem;color:var(--text);}
+.sim-row b{color:var(--no);display:block;margin-bottom:2px;font-size:.875rem;text-transform:uppercase;letter-spacing:.5px;}
 .sim-vsbar{display:flex;height:26px;border-radius:3px;overflow:hidden;margin:8px 0;border:1px solid var(--border);}
-.sim-vsbar-a{background:linear-gradient(90deg,var(--nb),#4ae8ff);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.65rem;color:#03202e;font-weight:700;}
-.sim-vsbar-b{background:linear-gradient(90deg,#ff5566,var(--nr));display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.65rem;color:#fff;font-weight:700;}
+.sim-vsbar-a{background:linear-gradient(90deg,var(--nb),#4ae8ff);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:#03202e;font-weight:700;}
+.sim-vsbar-b{background:linear-gradient(90deg,#ff5566,var(--nr));display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:#fff;font-weight:700;}
 .sim-risk-HIGH{color:var(--nr);}
 .sim-risk-MEDIUM{color:var(--no);}
 .sim-risk-LOW{color:var(--ng);}
 .sim-cascade-list{list-style:none;padding:0;margin:0;}
-.sim-cascade-list li{font-size:.7rem;color:var(--text);padding:2px 0;padding-left:14px;position:relative;}
+.sim-cascade-list li{font-size:.9375rem;color:var(--text);padding:2px 0;padding-left:14px;position:relative;}
 .sim-cascade-list li::before{content:'→';color:var(--nr);position:absolute;left:0;}
 
 /* ALERT MODE */
@@ -406,31 +419,31 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .alert-banner.dismissing{animation:alertSlideOut .3s ease-in forwards;}
 @keyframes alertSlideIn{from{transform:translateY(-140%);opacity:0}to{transform:translateY(0);opacity:1}}
 @keyframes alertSlideOut{from{transform:translateY(0);opacity:1}to{transform:translateY(-140%);opacity:0}}
-.alert-banner-head{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.76rem;margin-bottom:4px;letter-spacing:.5px;}
-.alert-banner-sev{background:rgba(255,255,255,.28);padding:1px 7px;border-radius:2px;font-size:.6rem;}
-.alert-banner-title{font-size:.74rem;line-height:1.35;}
-.alert-banner-meta{font-size:.6rem;opacity:.85;margin-top:4px;}
-.alert-log-panel{position:fixed;top:46px;right:16px;width:280px;max-height:340px;overflow-y:auto;background:var(--panel);border:1px solid var(--border);z-index:500;font-family:'Share Tech Mono',monospace;font-size:.66rem;box-shadow:0 6px 24px rgba(0,0,0,.5);}
-.alert-log-item{padding:8px 10px;border-bottom:1px solid var(--border);}
+.alert-banner-head{display:flex;align-items:center;gap:8px;font-weight:700;font-size:1rem;margin-bottom:4px;letter-spacing:.5px;}
+.alert-banner-sev{background:rgba(255,255,255,.28);padding:1px 7px;border-radius:2px;font-size:.8125rem;}
+.alert-banner-title{font-size:.9375rem;line-height:1.35;}
+.alert-banner-meta{font-size:.8125rem;opacity:.85;margin-top:4px;}
+.alert-log-panel{position:fixed;top:46px;right:16px;width:280px;max-height:340px;overflow-y:auto;background:var(--panel);border:1px solid var(--border);z-index:500;font-family:'Share Tech Mono',monospace;font-size:.875rem;box-shadow:0 6px 24px rgba(0,0,0,.5);}
+.alert-log-item{padding:11px 13px;border-bottom:1px solid var(--border);}
 .alert-log-item:last-child{border-bottom:none;}
 .alert-log-empty{padding:14px;color:var(--muted);text-align:center;}
 
 /* WEATHER */
-.wx-search{display:flex;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
-.wx-search input{flex:1;background:var(--panel);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-family:'Share Tech Mono',monospace;font-size:.7rem;}
+.wx-search{display:flex;gap:6px;padding:11px 13px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.wx-search input{flex:1;background:var(--panel);border:1px solid var(--border);color:var(--text);padding:6px 8px;font-family:'Share Tech Mono',monospace;font-size:.9375rem;}
 .wx-search input:focus{outline:none;border-color:var(--nb);}
-.wx-search button{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.7rem;padding:6px 12px;background:transparent;border:1px solid var(--nb);color:var(--nb);cursor:pointer;}
+.wx-search button{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.9375rem;padding:6px 12px;background:transparent;border:1px solid var(--nb);color:var(--nb);cursor:pointer;}
 .wx-search button:hover{background:#00d4ff15;}
 .wx-current{padding:12px;border-bottom:1px solid var(--border);}
-.wx-city{font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:var(--nb);}
-.wx-cond{font-size:.7rem;color:var(--muted);margin-bottom:6px;}
-.wx-temp{font-family:'Rajdhani',sans-serif;font-size:2.2rem;font-weight:700;color:var(--text);line-height:1;}
-.wx-stats{display:flex;gap:14px;margin-top:6px;font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--muted);}
+.wx-city{font-family:'Rajdhani',sans-serif;font-size:1.375rem;font-weight:700;color:var(--nb);}
+.wx-cond{font-size:.9375rem;color:var(--muted);margin-bottom:6px;}
+.wx-temp{font-family:'Rajdhani',sans-serif;font-size:2.4rem;font-weight:700;color:var(--text);line-height:1;}
+.wx-stats{display:flex;gap:14px;margin-top:6px;font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--muted);}
 .wx-days{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px;}
 .wx-day{border:1px solid var(--border);padding:7px 4px;text-align:center;}
-.wx-day .wd-lbl{font-family:'Share Tech Mono',monospace;font-size:.56rem;color:var(--muted);}
-.wx-day .wd-ic{font-size:1.1rem;margin:3px 0;}
-.wx-day .wd-t{font-family:'Rajdhani',sans-serif;font-size:.72rem;font-weight:700;color:var(--text);}
+.wx-day .wd-lbl{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--muted);}
+.wx-day .wd-ic{font-size:1.375rem;margin:3px 0;}
+.wx-day .wd-t{font-family:'Rajdhani',sans-serif;font-size:.9375rem;font-weight:700;color:var(--text);}
 .wx-day .wd-t span{color:var(--muted);font-weight:400;}
 
 body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,#00000010 2px,#00000010 4px);pointer-events:none;z-index:9990;}
@@ -439,30 +452,88 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
    MOBILE (<=768px) — desktop layout above is untouched
    ═══════════════════════════════════ */
 @media (max-width: 768px){
-  html{font-size:19px;}
+  /* Bump the root size so every rem-based text in this file scales UP on
+     mobile rather than shrinking — the design pass explicitly wants
+     mobile text BIGGER/clearer than desktop, not a cramped-down copy of
+     it. Smallest tier (.75rem) lands at 15px here, comfortably over the
+     14px mobile-body-text floor. */
+  html{font-size:20px;}
 
-  #app{grid-template-columns:1fr;grid-template-rows:52px 1fr 132px;grid-template-areas:"tb" "gl" "st";}
+  /* Map fills the full screen below the header by default; the sidebar
+     is no longer part of the grid at all (it becomes a fixed-position
+     bottom sheet, see #sb below), and there's no bottom stat row anymore. */
+  #app{grid-template-columns:1fr;grid-template-rows:56px 1fr;grid-template-areas:"tb" "gl";}
 
-  #tb{padding:0 10px;gap:6px;}
-  .logo{font-size:.9rem;letter-spacing:.14em;}
+  /* HEADER — compact: logo, just THREATS + RISK (the two most critical
+     numbers), and two menu buttons (☰ for the sidebar sheet, ⋯ for
+     everything else). HIGH/MED/STATUS/SOURCES/clock are real numbers a
+     user can still get to inside the sidebar's WARNINGS tab — hiding them
+     here is about header real estate, not hiding the data entirely. */
+  #tb{padding:0 8px;gap:6px;}
+  .logo{font-size:1rem;letter-spacing:.08em;}
   .logo em,.logo-sub{display:none;}
-  .tmeta{gap:10px;font-size:.56rem;}
-  .tm-status,.tm-sources,#tclock{display:none;}
+  .tmeta{gap:8px;}
+  .tm-status,.tm-sources,#tclock,.hstat-hi,.hstat-me{display:none;}
+  .hstat-lbl{display:none;}
+  .hstat-cy .hstat-val::before{content:'⚠ ';}
+  .hstat-gn .hstat-val::before{content:'📈 ';}
   .tbns{gap:6px;}
-  .btn{font-size:.6rem;padding:6px 8px;white-space:nowrap;}
+  .btn{font-size:.9375rem;padding:8px;white-space:nowrap;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;}
   .btn-label{display:none;}
-  #sb-toggle{display:inline-flex;align-items:center;}
+  #sb-toggle{display:inline-flex;}
+  #tb-more-toggle{display:inline-flex;}
+  /* The secondary action buttons (Brief Me / Alert Mode / Alert Log)
+     become a dropdown off the ⋯ button instead of crowding the header. */
+  .tbns-more{position:fixed;top:60px;right:8px;flex-direction:column;background:var(--panel);border:1px solid var(--border);padding:8px;z-index:400;display:none;box-shadow:0 6px 24px rgba(0,0,0,.5);gap:8px;}
+  .tbns-more.open{display:flex;}
+  .tbns-more .btn{width:100%;justify-content:flex-start;gap:8px;}
+  .tbns-more .btn-label{display:inline;}
 
-  #st{grid-template-columns:repeat(2,1fr);}
-  .sc{padding:7px 10px;gap:2px;}
-  .sv{font-size:1.15rem;}
+  #ticker{height:38px;}
+  .ticker-item{padding:0 16px;font-size:.9375rem;}
 
-  #ticker{height:30px;}
-  .ticker-item{padding:0 16px;}
+  /* Floating action button — a genuine "tap a floating button" trigger
+     for the bottom sheet (Google Maps mobile pattern), in addition to the
+     header's ☰ button so either is reachable one-handed regardless of
+     where the thumb naturally rests. */
+  #sb-fab{position:fixed;right:16px;bottom:20px;z-index:250;width:56px;height:56px;border-radius:50%;background:var(--nb);color:#03202e;border:none;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.5rem;box-shadow:0 4px 20px #00d4ff88;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  #sb-fab.open{background:var(--nr);box-shadow:0 4px 20px #ff224488;}
 
-  /* sidebar becomes a full-screen overlay sheet, opened via #sb-toggle */
-  #sb{position:fixed;left:0;right:0;top:52px;bottom:0;z-index:300;border-left:none;border-top:1px solid var(--nb);box-shadow:0 -10px 30px #000c;transform:translateY(101%);transition:transform .28s ease;}
+  /* Map layers panel collapses to a single floating icon button by
+     default on mobile (JS sets this at boot — see wireLayerPanel), and
+     expands to the full checklist on tap, same interaction as desktop's
+     collapse toggle just defaulted the other way. */
+  #layer-panel{top:8px;left:8px;}
+
+  /* The map is the hero on mobile more than anywhere else — this HUD box
+     was sized for a spare desktop corner; on a 360-390px screen its old
+     size ate a large chunk of the map. Mouse-only instructions ("CLICK
+     COUNTRY", "DRAG PAN") don't apply to touch anyway. */
+  #ghud{bottom:8px;left:8px;padding:8px 10px;font-size:.75rem;line-height:1.5;}
+  .ghud-mouse-hint{display:none;}
+  #layer-panel.collapsed{width:44px;height:44px;}
+
+  /* Country/naval detail panels: full-width cards instead of a fixed
+     270-300px column that would otherwise overflow a 360-390px screen. */
+  #country-panel,#naval-panel{left:8px;right:8px;width:auto;top:56px;}
+
+  /* SIDEBAR → bottom sheet. Slides up from off-screen, opened via either
+     #sb-toggle (header) or #sb-fab (floating button over the map). Tabs
+     inside already scroll horizontally (shared rule, not mobile-only) —
+     that's this design's answer to "10 tabs won't fit": one scrollable
+     row instead of a dropdown, so the active tab is always visible
+     without an extra tap to open a picker. */
+  #sb{position:fixed;left:0;right:0;top:15%;bottom:0;z-index:300;border-left:none;border-top:1px solid var(--nb);border-radius:14px 14px 0 0;box-shadow:0 -10px 40px #000d;transform:translateY(101%);transition:transform .28s ease;}
   #sb.open{transform:translateY(0);}
+  #sb::before{content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);width:40px;height:4px;border-radius:2px;background:var(--border);}
+  .tabs{padding-top:6px;}
+
+  /* Touch targets — every interactive control at least 44x44px. */
+  .tab{min-width:44px;}
+  .lp-row{min-height:44px;}
+  .lp-row input{width:20px;height:20px;}
+  .aq-btn,.sim-mode-btn{min-height:44px;}
+  #analyst-input-row input,#analyst-input-row button,.wx-search input,.wx-search button,.sim-form input,.sim-go,#search-input,#search-btn{min-height:44px;}
 }
 </style>
 </head>
@@ -478,17 +549,22 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     <div class="logo">SENTINEL <em>//</em> <span class="logo-sub">GLOBAL INTELLIGENCE</span></div>
     <div class="tmeta">
       <span class="tm-status">STATUS: <b>ACTIVE</b></span>
-      <span>THREATS: <b id="tct">—</b></span>
-      <span>RISK: <b id="tri">—</b></span>
+      <span class="hstat hstat-hi"><span class="hstat-lbl">HIGH</span><span class="hstat-val" id="sh">—</span></span>
+      <span class="hstat hstat-me"><span class="hstat-lbl">MED</span><span class="hstat-val" id="sm">—</span></span>
+      <span class="hstat hstat-cy"><span class="hstat-lbl">THREATS</span><span class="hstat-val" id="tct">—</span></span>
+      <span class="hstat hstat-gn"><span class="hstat-lbl">RISK</span><span class="hstat-val" id="tri">—</span></span>
       <span class="tm-sources">SOURCES: <b id="tsrc">LOADING</b></span>
       <span id="tclock">00:00:00 UTC</span>
     </div>
     <div class="tbns">
       <button class="btn" id="sb-toggle">☰ INTEL</button>
-      <button class="btn" id="briefbtn">🔊 <span class="btn-label">BRIEF ME</span></button>
-      <button class="btn red" id="brief-stop" style="display:none">⏹ <span class="btn-label">STOP</span></button>
-      <button class="btn red" id="alertbtn">⚠ <span class="btn-label">ALERT MODE</span></button>
-      <button class="btn" id="alertlogbtn" title="Alert log">📋</button>
+      <button class="btn" id="tb-more-toggle" title="More actions">⋯</button>
+      <div class="tbns-more" id="tb-more-actions">
+        <button class="btn" id="briefbtn">🔊 <span class="btn-label">BRIEF ME</span></button>
+        <button class="btn red" id="brief-stop" style="display:none">⏹ <span class="btn-label">STOP</span></button>
+        <button class="btn red" id="alertbtn">⚠ <span class="btn-label">ALERT MODE</span></button>
+        <button class="btn" id="alertlogbtn" title="Alert log">📋</button>
+      </div>
     </div>
   </div>
   <div id="alert-log-panel" class="alert-log-panel" style="display:none"></div>
@@ -514,18 +590,12 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <div>MARKERS: <span id="mct">0</span></div>
       <div>FEED: MULTI-SOURCE LIVE</div>
       <div class="rbadge" id="rbadge">RISK: —</div>
-      <div style="margin-top:6px;font-size:.56rem;color:#0f2535">CLICK COUNTRY → INTEL CARD<br>CLICK MARKER → DETAILS · DRAG PAN · SCROLL ZOOM</div>
+      <div class="ghud-mouse-hint" style="margin-top:6px;font-size:.75rem;color:var(--dim)">CLICK COUNTRY → INTEL CARD<br>CLICK MARKER → DETAILS · DRAG PAN · SCROLL ZOOM</div>
     </div>
     <div id="country-tooltip"></div>
     <div id="country-panel"></div>
     <div id="naval-panel"></div>
-  </div>
-
-  <div id="st">
-    <div class="sc cr"><div class="slb">HIGH SEVERITY</div><div class="sv" id="sh">—</div><div class="ss">Active conflicts</div></div>
-    <div class="sc co"><div class="slb">MEDIUM SEVERITY</div><div class="sv" id="sm">—</div><div class="ss">Developing</div></div>
-    <div class="sc cb"><div class="slb">TOTAL MONITORED</div><div class="sv" id="st2">—</div><div class="ss">Events tracked</div></div>
-    <div class="sc cg"><div class="slb">GLOBAL RISK INDEX</div><div class="sv" id="sri">—</div><div class="ss">Updated live</div></div>
+    <button id="sb-fab" title="Open intel sidebar">☰</button>
   </div>
 
   <div id="sb">
@@ -543,7 +613,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     </div>
 
     <div class="tabp active" id="tab-news">
-      <div class="ph">// LIVE INTELLIGENCE FEED<span class="pfeed" id="feedstatus">● CONNECTING</span></div>
+      <div class="ph"><span>// LIVE INTEL FEED</span><span class="pfeed" id="feedstatus">● CONNECTING</span></div>
       <div class="scroll" id="newslist"></div>
       <div id="briefbox"></div>
     </div>
@@ -573,7 +643,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
         <button id="search-btn">SEARCH</button>
       </div>
       <div class="scroll" id="search-result">
-        <div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--dim)">Search live news (GDELT + The Guardian) and Wikipedia context for any topic — this is what beats a static actor graph.</div>
+        <div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--dim)">Search live news (GDELT + The Guardian) and Wikipedia context for any topic — this is what beats a static actor graph.</div>
       </div>
     </div>
     <div class="tabp" id="tab-leaders">
@@ -606,7 +676,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
         <button class="sim-go" id="sim-go-whatif">SIMULATE</button>
       </div>
       <div class="scroll" id="sim-result">
-        <div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--dim)">Pick two countries for an AI conflict war-game, or describe a hypothetical scenario for a cascade-effect breakdown. Every result is an AI simulation for analysis — not a prediction of real events.</div>
+        <div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--dim)">Pick two countries for an AI conflict war-game, or describe a hypothetical scenario for a cascade-effect breakdown. Every result is an AI simulation for analysis — not a prediction of real events.</div>
       </div>
     </div>
     <div class="tabp" id="tab-weather">
@@ -616,7 +686,7 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
         <button id="wx-btn">SEARCH</button>
       </div>
       <div class="scroll" id="wx-result">
-        <div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--dim)">Search a city to see current conditions and 7-day forecast.</div>
+        <div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--dim)">Search a city to see current conditions and 7-day forecast.</div>
       </div>
     </div>
     <div class="tabp" id="tab-mideast">
@@ -777,10 +847,10 @@ async function showCountryIntel(code, x, y) {
     const aiFields = new Set(d.aiFields||[]);
     panel.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-family:Rajdhani,sans-serif;font-size:1.1rem;font-weight:700;color:var(--nb)">${d.flag||'🏳'} ${d.name||code}</div>
+        <div style="font-family:Rajdhani,sans-serif;font-size:1.25rem;font-weight:700;color:var(--nb)">${d.flag||'🏳'} ${d.name||code}</div>
         <button onclick="hideCountryPanel()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem">✕</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:.7rem;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:.9375rem;">
         ${row('Head of State', d.leader)}
         ${row('Head of Govt.', d.headOfGovernment)}
         ${row('Capital', d.capital)}
@@ -795,17 +865,17 @@ async function showCountryIntel(code, x, y) {
         ${row('Key Allies', d.keyAllies, aiFields.has('keyAllies'))}
         ${row('Primary Rivals', d.primaryRivals, aiFields.has('primaryRivals'))}
       </div>
-      ${aiFields.size ? '<div style="margin-top:8px;font-size:.6rem;color:var(--muted);opacity:.75">* AI-assessed — not from a live source</div>' : ''}`;
+      ${aiFields.size ? '<div style="margin-top:8px;font-size:.8125rem;color:var(--muted);opacity:.75">* AI-assessed — not from a live source</div>' : ''}`;
   }catch(e){
     // apiGet throws on non-2xx — api/country.js only 400/404s an invalid or
     // genuinely-unrecognized code, so this is the one case that's truly "no data".
-    panel.innerHTML = '<div style="color:var(--muted);font-size:.7rem">No data available</div>';
+    panel.innerHTML = '<div style="color:var(--muted);font-size:.9375rem">No data available</div>';
   }
 }
 
 function row(k, v, isAI) {
   const label = isAI && v ? k+' *' : k;
-  const valueColor = isAI && v ? 'var(--muted)' : 'var(--text)';
+  const valueColor = isAI && v ? 'var(--muted)' : 'var(--data)';
   return `<div style="color:var(--muted)">${label}</div><div style="color:${valueColor}">${v||'—'}</div>`;
 }
 
@@ -1351,13 +1421,15 @@ async function loadThreats(){
     const {threats,meta}=d;
     document.getElementById('sh').textContent=meta.highSeverity;
     document.getElementById('sm').textContent=meta.mediumSeverity;
-    document.getElementById('st2').textContent=meta.total;
-    document.getElementById('sri').textContent=meta.globalRiskIndex;
     document.getElementById('tct').textContent=meta.total;
-    document.getElementById('tri').textContent=meta.globalRiskIndex+'/100';
+    const triEl=document.getElementById('tri');
+    triEl.textContent=meta.globalRiskIndex;
+    // Colored by actual severity (critical/elevated/moderate), not a fixed
+    // "always green" — a RISK number in the 80s is bad news, it shouldn't
+    // read as a green "all clear" in the header.
+    triEl.style.color=meta.globalRiskIndex>70?'var(--nr)':meta.globalRiskIndex>40?'var(--no)':'var(--ng)';
     document.getElementById('rbadge').textContent='RISK: '+(meta.globalRiskIndex>70?'CRITICAL':meta.globalRiskIndex>40?'ELEVATED':'MODERATE');
-    const sriEl = document.getElementById('sri');
-    sriEl.classList.toggle('pulse-critical', meta.globalRiskIndex > 70);
+    triEl.classList.toggle('pulse-critical', meta.globalRiskIndex > 70);
 
     liveThreats = threats;
     await mapReady;
@@ -1380,7 +1452,7 @@ async function loadNews(){
   document.getElementById('feedstatus').textContent='● FETCHING...';
   document.getElementById('feedstatus').style.color='var(--no)';
   const nl=document.getElementById('newslist');
-  nl.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.67rem;color:var(--dim)">⟳ Connecting to intelligence network...</div>`;
+  nl.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--dim)">⟳ Connecting to intelligence network...</div>`;
   try{
     const d=await apiGet('/news?type=world');
     liveArticles=d.articles||[];
@@ -1402,7 +1474,7 @@ async function loadNews(){
   }catch(e){
     document.getElementById('feedstatus').textContent='● ERROR';
     document.getElementById('feedstatus').style.color='var(--nr)';
-    nl.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--nr)">⚠ Feed error: ${e.message}</div>`;
+    nl.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.9375rem;color:var(--nr)">⚠ Feed error: ${e.message}</div>`;
   }
 }
 
@@ -1510,7 +1582,7 @@ async function loadMideast(){
   }catch(e){}
   ME.forEach(mc=>{
     const div=document.createElement('div'); div.className='mec';
-    div.innerHTML=`<div class="meh" onclick="this.nextElementSibling.classList.toggle('open')"><span class="mefg">${mc.flag}</span><span class="mecn">${mc.name}</span><span class="mest ${mc.status}">${mc.st}</span></div><div class="meb"><div style="margin-bottom:5px">${mc.info}</div><div style="font-size:.65rem;color:var(--dim);border-top:1px solid var(--border);padding-top:4px;margin-top:4px">${mc.rels}</div></div>`;
+    div.innerHTML=`<div class="meh" onclick="this.nextElementSibling.classList.toggle('open')"><span class="mefg">${mc.flag}</span><span class="mecn">${mc.name}</span><span class="mest ${mc.status}">${mc.st}</span></div><div class="meb"><div style="margin-bottom:5px">${mc.info}</div><div style="font-size:.875rem;color:var(--dim);border-top:1px solid var(--border);padding-top:4px;margin-top:4px">${mc.rels}</div></div>`;
     mel.appendChild(div);
   });
 }
@@ -1534,7 +1606,7 @@ function loadLeaders(){
   POLS.forEach(p=>{
     const div=document.createElement('div'); div.className='pi';
     const ic=p.inf==='CRITICAL'?'var(--nr)':p.inf==='HIGH'?'var(--no)':'var(--nb)';
-    div.innerHTML=`<div class="pitp"><span class="pifg">${p.flag}</span><div><div class="pinm">${p.name}</div><div class="piti">${p.title}</div></div><span style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.56rem;padding:2px 6px;border:1px solid ${ic};color:${ic}">${p.inf}</span></div><div class="piinf">${p.desc}</div><div>${p.tags.map(t=>`<span class="pitg ${t}">${t.toUpperCase()}</span>`).join('')}</div>`;
+    div.innerHTML=`<div class="pitp"><span class="pifg">${p.flag}</span><div><div class="pinm">${p.name}</div><div class="piti">${p.title}</div></div><span style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.75rem;padding:2px 6px;border:1px solid ${ic};color:${ic}">${p.inf}</span></div><div class="piinf">${p.desc}</div><div>${p.tags.map(t=>`<span class="pitg ${t}">${t.toUpperCase()}</span>`).join('')}</div>`;
     el.appendChild(div);
   });
 }
@@ -1546,7 +1618,7 @@ async function runIntelSearch(q){
   q=(q||'').trim();
   if(!q) return;
   const el=document.getElementById('search-result');
-  el.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ SEARCHING LIVE SOURCES...</div>`;
+  el.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--nb)">⟳ SEARCHING LIVE SOURCES...</div>`;
   tryFlyToSearchResult(q); // fire-and-forget, don't block results on this
 
   try{
@@ -1578,7 +1650,7 @@ async function runIntelSearch(q){
           <div class="si-meta"><span>${a.source}</span><span>${timeAgo(a.publishedAt)}</span></div>
         </div>`).join('');
     } else if(!d.wikipedia){
-      html+=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--muted)">No results found for "${q}".</div>`;
+      html+=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.9375rem;color:var(--muted)">No results found for "${q}".</div>`;
     }
 
     el.innerHTML=html;
@@ -1587,7 +1659,7 @@ async function runIntelSearch(q){
       item.onclick=()=>window.open(a.url,'_blank');
     });
   }catch(e){
-    el.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--nr)">⚠ Search error: ${e.message}</div>`;
+    el.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.9375rem;color:var(--nr)">⚠ Search error: ${e.message}</div>`;
   }
 }
 
@@ -1741,9 +1813,9 @@ async function briefMe(){
 
     const d=await apiPost('/intelligence',{type:'brief',articles:fresh.slice(0,10)});
     text=typeof d.result==='string'?d.result:'Brief unavailable';
-    const ri=document.getElementById('sri').textContent;
+    const ri=document.getElementById('tri').textContent;
     bb.innerHTML=`<b>// SENTINEL BRIEF — ${new Date().toUTCString()}</b><br><br>${text}<br><br><b style="color:var(--nr)">RISK: ${ri}/100</b>`;
-    if(d.fallback) bb.innerHTML+=`<br><span style="color:var(--dim);font-size:.6rem">⚠ Fallback mode — add GROQ_API_KEY in Vercel settings for AI briefs</span>`;
+    if(d.fallback) bb.innerHTML+=`<br><span style="color:var(--dim);font-size:.8125rem">⚠ Fallback mode — add GROQ_API_KEY in Vercel settings for AI briefs</span>`;
   }catch(e){
     bb.innerHTML=`<b>// BRIEF ERROR</b><br><br>${e.message}`;
   }
@@ -1756,24 +1828,17 @@ async function briefMe(){
 // ═══════════════════════════════════
 async function loadConflicts(){
   const el=document.getElementById('conflictlist');
-  el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ LOADING CONFLICT DATA...</div>`;
+  el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--nb)">⟳ LOADING CONFLICT DATA...</div>`;
   try{
     const d=await apiGet('/intelligence?type=acled');
     const {conflicts,stats}=d;
-
-    // Update stats bar
-    if(stats){
-      document.getElementById('sh').textContent=stats.highSeverity;
-      document.getElementById('sm').textContent=conflicts.filter(c=>c.severity==='MEDIUM').length;
-      document.getElementById('st2').textContent=stats.totalEvents;
-    }
 
     el.innerHTML='';
 
     // Stats header
     if(stats){
       const sh=document.createElement('div');
-      sh.style.cssText=`padding:8px 10px;background:#040a16;border-bottom:1px solid var(--border);display:flex;gap:14px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:.6rem;`;
+      sh.style.cssText=`padding:11px 13px;background:#040a16;border-bottom:1px solid var(--border);display:flex;gap:14px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:.8125rem;`;
       sh.innerHTML=`<span style="color:var(--nr)">☠ ${stats.totalFatalities} FATALITIES</span><span style="color:var(--no)">${stats.totalEvents} EVENTS</span><span style="color:var(--nb)">${stats.countriesAffected} COUNTRIES</span><span style="color:var(--np)">AVG INTENSITY: ${stats.avgIntensity}/100</span>`;
       el.appendChild(sh);
     }
@@ -1801,7 +1866,7 @@ async function loadConflicts(){
       el.appendChild(div);
     });
   }catch(e){
-    el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Conflict data unavailable: ${e.message}</div>`;
+    el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--muted)">Conflict data unavailable: ${e.message}</div>`;
   }
 }
 
@@ -1821,7 +1886,7 @@ async function renderPredictions(el){
     const pd=await apiPost('/intelligence',{type:'predictions',articles:liveArticles.slice(0,20)});
     const predictions=pd.predictions||[];
     if(!predictions.length){
-      section.innerHTML+='<div style="padding:8px 10px;font-family:\'Share Tech Mono\',monospace;font-size:.66rem;color:var(--muted)">No active situations detected in the current feed.</div>';
+      section.innerHTML+='<div style="padding:11px 13px;font-family:\'Share Tech Mono\',monospace;font-size:.875rem;color:var(--muted)">No active situations detected in the current feed.</div>';
       return;
     }
     predictions.forEach((p,i)=>{
@@ -1861,7 +1926,7 @@ async function renderPredictions(el){
       : '* AI-assessed from live reporting — a probability estimate, not a guarantee of real-world outcomes.';
     section.appendChild(footnote);
   }catch(e){
-    section.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Predictions unavailable: ${e.message}</div>`;
+    section.innerHTML+=`<div style="padding:11px 13px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--muted)">Predictions unavailable: ${e.message}</div>`;
   }
 }
 
@@ -1883,7 +1948,7 @@ async function renderGlobalForecast(el){
       section.appendChild(row);
     });
     if(!gf.outlook && !(gf.items||[]).length){
-      section.innerHTML+='<div style="padding:8px 10px;font-family:\'Share Tech Mono\',monospace;font-size:.66rem;color:var(--muted)">Global outlook requires GROQ_API_KEY.</div>';
+      section.innerHTML+='<div style="padding:11px 13px;font-family:\'Share Tech Mono\',monospace;font-size:.875rem;color:var(--muted)">Global outlook requires GROQ_API_KEY.</div>';
     }else{
       const footnote=document.createElement('div');
       footnote.className='pred-footnote';
@@ -1891,7 +1956,7 @@ async function renderGlobalForecast(el){
       section.appendChild(footnote);
     }
   }catch(e){
-    section.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Global outlook unavailable: ${e.message}</div>`;
+    section.innerHTML+=`<div style="padding:11px 13px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--muted)">Global outlook unavailable: ${e.message}</div>`;
   }
 }
 
@@ -1925,7 +1990,7 @@ async function renderRiskMatrix(el){
       section.appendChild(row);
     });
   }catch(e){
-    section.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Risk matrix unavailable: ${e.message}</div>`;
+    section.innerHTML+=`<div style="padding:11px 13px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--muted)">Risk matrix unavailable: ${e.message}</div>`;
   }
 }
 
@@ -1942,7 +2007,7 @@ async function renderScenarios(el){
     const sd=await apiPost('/intelligence',{type:'scenarios',articles:liveArticles.slice(0,20)});
     const scenarios=sd.scenarios||[];
     if(!scenarios.length){
-      section.innerHTML+='<div style="padding:8px 10px;font-family:\'Share Tech Mono\',monospace;font-size:.66rem;color:var(--muted)">No active situations detected in the current feed.</div>';
+      section.innerHTML+='<div style="padding:11px 13px;font-family:\'Share Tech Mono\',monospace;font-size:.875rem;color:var(--muted)">No active situations detected in the current feed.</div>';
       return;
     }
     scenarios.forEach(s=>{
@@ -1985,13 +2050,13 @@ async function renderScenarios(el){
       : '* AI-generated scenarios from current intelligence — analytical projections, not predictions.';
     section.appendChild(footnote);
   }catch(e){
-    section.innerHTML+=`<div style="padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--muted)">Scenarios unavailable: ${e.message}</div>`;
+    section.innerHTML+=`<div style="padding:11px 13px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--muted)">Scenarios unavailable: ${e.message}</div>`;
   }
 }
 
 async function loadForecast(){
   const el=document.getElementById('forecastlist');
-  el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ RUNNING FORECAST ENGINE...</div>`;
+  el.innerHTML=`<div style="padding:12px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--nb)">⟳ RUNNING FORECAST ENGINE...</div>`;
   el.innerHTML='';
   await renderPredictions(el);
   await renderGlobalForecast(el);
@@ -2122,19 +2187,19 @@ async function runConflictSimulation(){
   const btn=document.getElementById('sim-go-conflict');
   const result=document.getElementById('sim-result');
   if(!a||!b){
-    result.innerHTML='<div style="padding:14px;color:var(--nr);font-family:\'Share Tech Mono\',monospace;font-size:.7rem">Pick a valid country from the list for both sides.</div>';
+    result.innerHTML='<div style="padding:14px;color:var(--nr);font-family:\'Share Tech Mono\',monospace;font-size:.9375rem">Pick a valid country from the list for both sides.</div>';
     return;
   }
   if(a===b){
-    result.innerHTML='<div style="padding:14px;color:var(--nr);font-family:\'Share Tech Mono\',monospace;font-size:.7rem">Pick two different countries.</div>';
+    result.innerHTML='<div style="padding:14px;color:var(--nr);font-family:\'Share Tech Mono\',monospace;font-size:.9375rem">Pick two different countries.</div>';
     return;
   }
   btn.disabled=true; btn.textContent='SIMULATING...';
-  result.innerHTML='<div style="padding:14px;font-family:\'Share Tech Mono\',monospace;font-size:.7rem;color:var(--nb)">⟳ Running AI war-game simulation...</div>';
+  result.innerHTML='<div style="padding:14px;font-family:\'Share Tech Mono\',monospace;font-size:.9375rem;color:var(--nb)">⟳ Running AI war-game simulation...</div>';
   try{
     const d=await apiPost('/intelligence',{type:'simulate',mode:'conflict',countryA:a,countryB:b});
     if(d.error){
-      result.innerHTML=`<div style="padding:14px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.7rem">${d.error}</div>`;
+      result.innerHTML=`<div style="padding:14px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.9375rem">${d.error}</div>`;
       return;
     }
     const probA=d.probabilityOfEachSidePrevailing?.[a]??50;
@@ -2159,7 +2224,7 @@ async function runConflictSimulation(){
       </div>
     `;
   }catch(e){
-    result.innerHTML=`<div style="padding:14px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.7rem">Simulation failed: ${e.message}</div>`;
+    result.innerHTML=`<div style="padding:14px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.9375rem">Simulation failed: ${e.message}</div>`;
   }finally{
     btn.disabled=false; btn.textContent='SIMULATE';
   }
@@ -2170,15 +2235,15 @@ async function runWhatIfSimulation(){
   const btn=document.getElementById('sim-go-whatif');
   const result=document.getElementById('sim-result');
   if(!scenario){
-    result.innerHTML='<div style="padding:14px;color:var(--nr);font-family:\'Share Tech Mono\',monospace;font-size:.7rem">Describe a scenario first.</div>';
+    result.innerHTML='<div style="padding:14px;color:var(--nr);font-family:\'Share Tech Mono\',monospace;font-size:.9375rem">Describe a scenario first.</div>';
     return;
   }
   btn.disabled=true; btn.textContent='SIMULATING...';
-  result.innerHTML='<div style="padding:14px;font-family:\'Share Tech Mono\',monospace;font-size:.7rem;color:var(--nb)">⟳ Running AI cascade analysis...</div>';
+  result.innerHTML='<div style="padding:14px;font-family:\'Share Tech Mono\',monospace;font-size:.9375rem;color:var(--nb)">⟳ Running AI cascade analysis...</div>';
   try{
     const d=await apiPost('/intelligence',{type:'simulate',mode:'whatif',scenario});
     if(d.error){
-      result.innerHTML=`<div style="padding:14px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.7rem">${d.error}</div>`;
+      result.innerHTML=`<div style="padding:14px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.9375rem">${d.error}</div>`;
       return;
     }
     const effectsHtml=(d.immediateEffects||[]).map(x=>`<li>${x}</li>`).join('');
@@ -2196,7 +2261,7 @@ async function runWhatIfSimulation(){
       </div>
     `;
   }catch(e){
-    result.innerHTML=`<div style="padding:14px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.7rem">Simulation failed: ${e.message}</div>`;
+    result.innerHTML=`<div style="padding:14px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.9375rem">Simulation failed: ${e.message}</div>`;
   }finally{
     btn.disabled=false; btn.textContent='SIMULATE';
   }
@@ -2461,11 +2526,11 @@ const DOW = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
 async function searchWeather(city){
   const el = document.getElementById('wx-result');
   if(!city || !city.trim()){ return; }
-  el.innerHTML = `<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.66rem;color:var(--nb)">⟳ SEARCHING...</div>`;
+  el.innerHTML = `<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.875rem;color:var(--nb)">⟳ SEARCHING...</div>`;
   try{
     const geo = await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(city)+'&count=1').then(r=>r.json());
     const loc = geo.results?.[0];
-    if(!loc){ el.innerHTML = `<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--nr)">City not found</div>`; return; }
+    if(!loc){ el.innerHTML = `<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.9375rem;color:var(--nr)">City not found</div>`; return; }
 
     const wx = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`).then(r=>r.json());
 
@@ -2500,7 +2565,7 @@ async function searchWeather(city){
 
     flyTo(loc.latitude, loc.longitude, 5.5);
   }catch(e){
-    el.innerHTML = `<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--nr)">⚠ Weather error: ${e.message}</div>`;
+    el.innerHTML = `<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.9375rem;color:var(--nr)">⚠ Weather error: ${e.message}</div>`;
   }
 }
 
@@ -2514,9 +2579,28 @@ const lsi=setInterval(()=>{
 },390);
 
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>activateTab(b.dataset.tab)));
-document.getElementById('sb-toggle').addEventListener('click',()=>{
+function toggleSidebar(){
   const open = document.getElementById('sb').classList.toggle('open');
   document.getElementById('sb-toggle').textContent = open ? '✕ CLOSE' : '☰ INTEL';
+  const fab = document.getElementById('sb-fab');
+  fab.textContent = open ? '✕' : '☰';
+  fab.classList.toggle('open', open);
+}
+document.getElementById('sb-toggle').addEventListener('click', toggleSidebar);
+document.getElementById('sb-fab').addEventListener('click', toggleSidebar);
+// Mobile-only "more actions" menu (Brief Me / Alert Mode / Alert Log) —
+// on desktop these buttons are already inline in the header and this
+// toggle button is hidden via CSS, so this listener is harmless there.
+document.getElementById('tb-more-toggle').addEventListener('click',(ev)=>{
+  ev.stopPropagation();
+  document.getElementById('tb-more-actions').classList.toggle('open');
+});
+document.addEventListener('click',(ev)=>{
+  const panel=document.getElementById('tb-more-actions');
+  const toggle=document.getElementById('tb-more-toggle');
+  if(panel.classList.contains('open') && !panel.contains(ev.target) && ev.target!==toggle){
+    panel.classList.remove('open');
+  }
 });
 document.getElementById('briefbtn').addEventListener('click',briefMe);
 document.getElementById('brief-stop').addEventListener('click',stopBriefPlayback);
@@ -2570,7 +2654,15 @@ async function boot(){
   addConflictZoneLayers();
   initMilitaryAssets();
   loadThreats();
-  loadNews();
+  // loadForecast() (Predictions/Global Outlook/Scenarios) reads the
+  // `liveArticles` global that loadNews() populates — awaiting it here is
+  // the actual fix for those sections rendering empty/"no active
+  // situations": loadForecast() used to fire in the same tick as loadNews()
+  // (both un-awaited), so it always read `liveArticles` while it was still
+  // its initial `[]`, sent that empty array to the backend, and got back a
+  // correctly-empty (but useless) result — not a backend bug, a frontend
+  // race condition.
+  await loadNews();
   loadLeaders();
   loadMideast();
   loadConflicts();

@@ -486,6 +486,26 @@ below for the full tiered-TTL table and the fallback guarantee.
   model retry), the 5 fields simply stay `null` and render as `—`, same as
   before this feature existed — no error surfaces to the panel.
 
+- A `position:fixed` element's z-index is only compared against *its own
+  stacking context's siblings* — not globally — the moment any ancestor
+  establishes a stacking context of its own (non-`static` position with a
+  z-index, `opacity<1`, `transform`, `filter`, `backdrop-filter`, etc.).
+  Hit this for real: the mobile "⋯ more actions" dropdown (`.tbns-more`,
+  `z-index:400`) lives inside `#tb` (the header), which has
+  `backdrop-filter:blur(10px)` and its own `z-index:100` — so the dropdown's
+  400 only ever wins against other children of `#tb`; from outside, the
+  whole header subtree stacks at `#tb`'s own 100. `#sb` (the mobile bottom
+  sheet, a sibling of `#tb`, `z-index:300`) beat it every time the sheet
+  was open, silently covering the bottom two of the dropdown's three
+  buttons. `getBoundingClientRect()`/`getComputedStyle()` on the buttons
+  showed nothing wrong (`display:flex`, `opacity:1`, correct in-viewport
+  rects) — this class of bug is invisible to computed-style checks and
+  only shows up in an actual rendered screenshot, which is what caught it.
+  Fixed by raising `#tb`'s own `z-index` to 350 (above `#sb`'s 300) so the
+  comparison that actually matters — the two siblings' stacking contexts —
+  resolves the right way; bumping the dropdown's already-plenty-high 400
+  would have done nothing.
+
 ### Testing approach
 No Vercel account access has been available in any session — nothing has
 been verified against a real deployment. Instead: `node --check` for
@@ -508,6 +528,49 @@ None queued — each session has worked from its own task list rather than a
 standing backlog.
 
 ## Changelog
+- 2026-07-05 (23): Full UI/layout design pass, desktop and mobile, from a
+  5-point spec. (1) Forecast tab's Predictions/Global Outlook/Risk Matrix/
+  Scenarios were rendering empty — root cause was a frontend race, not a
+  backend bug: `boot()` fired `loadForecast()` in the same tick as
+  `loadNews()` without awaiting it, so `renderPredictions()`/
+  `renderGlobalForecast()`/`renderScenarios()` always read the `liveArticles`
+  global while it was still its initial `[]` (guaranteed, not flaky, since
+  JS runs synchronously until the first `await`); fixed with a single
+  `await loadNews()` before the forecast calls. (2) Deleted the full-width
+  bottom stat panel (`#st`, ~4 large boxes eating ~25% of the viewport);
+  High/Medium severity now live as compact `HIGH`/`MED` inline stats next
+  to the existing `THREATS`/`RISK` in the header (new `.hstat` styling,
+  small muted label + bold colored number), and `#app`'s grid dropped its
+  third row entirely so the map fills that reclaimed space. (3) Contrast
+  audit — replaced `--muted:#2a4a6a`/`--dim:#1a3050` (both failed against
+  the dark background) with `--muted:#7a9ac0`/`--dim:#6a8aaa`, added a new
+  `--data:#d0e4f8` tier for headline/value text, and remapped the entire
+  file's font-size scale (both the `<style>` block and inline JS template
+  literals) off a 9-tier `rem` scale bottoming out at `.75rem` — nothing
+  under 12px remains anywhere. (4) Sidebar tab bar changed from a 3-column
+  CSS grid (10 tabs wrapped into ~4 cramped rows) to a single horizontally-
+  scrollable row with a clear active state (bottom border + tinted
+  background); bulk-increased card/list-item padding (8-9px → 11-13px) and
+  line-height (1.4 → 1.55) across news/warnings/politicians/conflict/
+  Middle East items. (5) Mobile (verified at both 390px and 360px):
+  header collapses to logo + icon-style THREATS/RISK + a ☰ sidebar toggle
+  + a ⋯ "more actions" toggle (Brief Me/Alert Mode/Alert Log tucked behind
+  it); sidebar becomes a Google-Maps-style bottom sheet (slides up from
+  `top:15%`, drag-handle pill, opened via either the header ☰ or a new
+  floating `#sb-fab` button over the map); map layer panel already
+  defaulted to its collapsed single-icon state on mobile (no change
+  needed); root font-size bumps to 20px so mobile text is bigger than
+  desktop, not smaller; every interactive control got a 44×44px minimum.
+  Screenshot-testing (Playwright, both widths) caught three real bugs
+  invisible from code review alone: the header RISK number was hardcoded
+  green regardless of actual severity; the Briefing tab's header text and
+  live-status indicator were visually overlapping (missing wrap/ellipsis
+  handling on a flex row); and — the subtlest one — 2 of the mobile
+  dropdown's 3 buttons were being silently painted over by the bottom
+  sheet due to a stacking-context bug (see gotcha above) that no amount of
+  `getComputedStyle()` inspection would have revealed, only an actual
+  rendered screenshot did. All fixed; both 390px and 360px verified
+  overflow-free with no console errors.
 - 2026-07-04 (22): Made the header's ALERT MODE button actually functional
   — it was a pure UI stub (toggled a boolean, changed its own label/color,
   did nothing else). Now: while ON, polls the existing `/api/news` feed
