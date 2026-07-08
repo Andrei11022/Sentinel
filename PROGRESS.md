@@ -4,18 +4,23 @@
 
 **Frontend**: single-file `index.html` — MapLibre GL JS 2D tactical map
 (CARTO dark-matter basemap). No build step, vanilla JS in one `<script>`
-block. **Desktop and mobile (`<=768px`) are two separate layout
+block. **Desktop and mobile (`<=767px`) are two separate layout
 structures**: desktop uses `#tb` header + `#sb` sidebar (two-row, 5-per-row
-tab grid); mobile uses its own `#m-*` elements (compact header,
-breaking-alert bar, search+quick-stat chips, floating map stat strip, fixed
-5-icon bottom nav) and repurposes `#sb` as a full-screen section panel
-opened by the bottom nav/MORE sheet. `#m-*` elements are `display:none`
-outside the `<=768px` query; desktop-only chrome (`#tb`, `#ticker`,
-`#layer-panel`, `#ghud`, `.tabs-wrap`) is switched off inside it. Layer
-toggles (threats/conflict/military/risk/aircraft/naval) share one
-`data-layer="..."` attribute across desktop checkboxes, the mobile
-bottom-sheet, and the quick-stat chips — `setLayer()` is the single place
-that updates state, keeping every control in sync across both layouts.
+tab grid). Mobile reuses the compact `#tb` header (font/height overridden,
+not a separate header element) plus its own `#m-nav` bottom nav (5 icons:
+Briefing/Forecast/Analyst-center/Search/More), `#m-panel` full-screen
+overlay, and `#m-layers-fab` + `#m-layers-sheet`. Mobile panels don't
+re-render content — `mOpenPanel()` physically **moves the real desktop
+`#tab-*` DOM node** into `#m-panel-body` and moves it back to `#sb` on
+close, so all existing live-data JS keeps working unchanged against the
+same nodes. `#m-nav`/`#m-panel`/`#m-layers-fab`/`#m-layers-sheet` are
+`display:none` outside the `<=767px` query; desktop-only chrome (`#sb`,
+`#layer-panel`, `#ghud`) is switched off inside it. Layer toggles
+(threats/conflict/military/risk/aircraft/naval) share one
+`data-layer="..."` attribute on desktop checkboxes — `setLayer()` is the
+one place that updates state; the mobile layers sheet just `.click()`s the
+matching real desktop checkbox, so both stay in sync without duplicating
+state.
 
 **Backend**: Vercel serverless functions in `api/*.js`. `vercel.json` uses
 an **explicit `routes` array** — every new `api/*.js` file needs its own
@@ -63,6 +68,15 @@ every AI feature has a defined no-key fallback, never a hard error.
 - Don't trust a touch-target/font-size floor without measuring it —
   `getBoundingClientRect()`/`getComputedStyle()` caught a 44px-vs-48px and
   an 11.9px-vs-13px shortfall this session that looked fine by eye.
+- **A synchronous inline `<script>` that queries the DOM for elements
+  defined LATER in the same HTML file (e.g. `document.querySelectorAll()`
+  at top level, not inside a `load`/`DOMContentLoaded` handler) silently
+  wires nothing** — the parser hasn't reached those elements yet, so the
+  query returns an empty NodeList with no error. Only bit us because a
+  provided mobile-nav markup block was placed after the main `<script>`
+  tag per its own integration instructions; fixed by deferring just that
+  one wiring call to `load`, matching the pattern the rest of the file
+  already used for its own init function.
 - REST Countries deprecated (unused). World Bank has no Taiwan/Vatican City
   (Wikidata fallback). GDELT rate-limits ~1 req/5s. OpenSky anon quota
   ~100/day (`/api/aircraft` caches 30s, normalizes adsb.lol's units).
@@ -87,19 +101,23 @@ ElevenLabs success paths (no live keys in any dev session, only their
 no-key/failure fallback behavior has been exercised).
 
 ## Recent changes
-- 2026-07-08: Rebuilt mobile (`<=768px`) as a fully separate layout modeled
-  on Conflictly's mobile app — compact header, breaking-alert bar,
-  search+quick-stat chips, floating map stat strip with a live sparkline,
-  fixed 5-icon bottom nav (BRIEFING/FEED/ANALYST/FORECAST/MORE) opening
-  sections as full-screen panels, MORE sheet for the remaining 6 sections,
-  map-layers FAB + bottom sheet. Desktop's tab bar is now two fixed rows of
-  5 (was single-row scroll). Same day: fixed sidebar-tab/layer-panel/ghud
-  regressions + header 1366px wrap from the prior redesign. Found/fixed 5
-  real bugs via Playwright (see gotchas): panel z-index vs fixed siblings,
-  a CSS Grid min-width overflow, a FAB/stat-strip overlap, touch-target/
-  label-size shortfalls. Verified at 1920/1366/390/360px across 3+
-  render-inspect-fix cycles: zero overflow, layer controls sync across
-  both layouts, every nav item and MORE row opens its panel.
+- 2026-07-08 (b): Replaced that morning's custom mobile build (below) with
+  a provided reference implementation (`mobile-layout` in repo root, node-
+  relocation technique — see Architecture), integrated verbatim per
+  instructions — only fixed real ID/selector mismatches (`#layers`→
+  `#layer-panel`, `conflicts`→`conflict`), added `#ghud` to the "kill
+  desktop chrome" list (real chrome not in the provided list, overlapped
+  the new stat strip), and fixed a genuine script-execution-order bug (see
+  gotchas) that would have left the bottom nav unclickable. `M_TABS`/`#sb`/
+  `#gl`/`#tb`/header-stat IDs were already correct, no change needed.
+  Verified at 390px (bottom nav, FEED/ANALYST/MORE panels, layers sheet
+  with synced checkboxes, close-via-X, 16/17/13px text floors) and 1920px
+  (desktop pixel-identical, zero mobile elements, zero console errors).
+- 2026-07-08 (a): Custom-built mobile (`<=768px`) as its own layout —
+  Conflictly-style compact header, breaking-alert bar, search+chips,
+  floating stat strip, 5-icon bottom nav, MORE sheet, layers FAB. Desktop
+  tab bar became two fixed rows of 5. Superseded same day by (b) above;
+  full detail in git log if ever needed.
 - 2026-07-05: Header stat redesign, contrast audit (superseded above).
 - 2026-07-04: Migrated AI features to Groq; added Redis caching,
   Predictions + Scenario Simulator; made ALERT MODE functional.
