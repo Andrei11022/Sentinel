@@ -42,14 +42,24 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 #tclock{color:var(--ng);}
 .tbns{display:flex;gap:8px;align-items:center;flex-shrink:0;}
 .tbns-more{display:flex;gap:8px;}
-#tb-more-toggle{display:none;}
-#sb-fab{display:none;}
 .btn{font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.08em;padding:5px 13px;border:1px solid currentColor;background:transparent;cursor:pointer;transition:all .2s;color:var(--nb);}
 .btn:hover{background:#00d4ff12;box-shadow:var(--gb);}
 .btn.red{color:var(--nr);}
 .btn.red:hover{background:#ff224412;box-shadow:var(--gr);}
 .btn:disabled{opacity:.5;cursor:not-allowed;}
-#sb-toggle{display:none;}
+
+/* MOBILE-ONLY ELEMENTS — a completely separate layout from desktop's #tb/
+   #layer-panel/#ghud/.tabs-wrap, not a shrunk copy of them. All hidden by
+   default; the <=768px media query at the bottom of this stylesheet is the
+   only place that turns them on (and turns the desktop-only pieces off).
+   See that block for full layout/sizing. */
+#m-header,#m-alertbar,#m-searchrow,#m-statstrip,#m-layers-fab,
+#m-bottomnav{display:none;}
+/* .m-sheet/.m-actions-sheet are hidden here by CLASS (not ID) on purpose:
+   the mobile media query re-declares `display` on these same classes to
+   show them, and needs equal selector specificity to win via source
+   order — an ID-based hide here would out-rank that override. */
+.m-sheet,.m-sheet-backdrop,.m-actions-sheet{display:none;}
 
 /* MAP */
 #gl{grid-area:gl;position:relative;overflow:hidden;background:#030912;}
@@ -197,30 +207,22 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .hstat-val.pulse-critical{animation:sv-pulse 1.1s ease-in-out infinite;}
 @keyframes sv-pulse{0%,100%{opacity:1;text-shadow:0 0 6px #ff2244;}50%{opacity:.55;text-shadow:0 0 18px #ff2244;}}
 
-/* SIDEBAR */
+/* SIDEBAR — desktop only. Mobile uses a completely separate layout (see
+   the MOBILE LAYOUT section below); on mobile #sb is repurposed as the
+   full-screen section panel opened by the bottom nav, and this tab strip
+   is hidden entirely (navigation is the bottom nav + MORE sheet instead). */
 #sb{grid-area:sb;background:var(--panel2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
-/* Single scrollable row rather than a 3-column grid — 10 tabs wrapped into
-   a 3-col grid meant ~4 rows eating a big chunk of the sidebar's height
-   before a single list item was visible. Scrolling keeps it to one row at
-   a comfortable, readable size, with a clear active state (bottom border +
-   tinted background + brighter text) instead of crushing every label.
-   The row alone silently clipped 7 of 10 tabs with zero indication there
-   was more to scroll to — confirmed live via screenshot, not just reading
-   the CSS. `.tabs-wrap` adds two edge-fade+chevron hints (`#tabFadeL/R`)
-   that JS toggles based on actual scroll position (see updateTabFades()),
-   so "more tabs this way" is always visible whenever it's true and gone
-   once you've scrolled all the way to that edge. */
-.tabs-wrap{position:relative;flex-shrink:0;border-bottom:1px solid var(--border);}
-.tabs{display:flex;overflow-x:auto;overflow-y:hidden;flex-shrink:0;-webkit-overflow-scrolling:touch;}
-.tabs::-webkit-scrollbar{height:4px;}
-.tabs::-webkit-scrollbar-thumb{background:var(--border);}
-.tab{flex:0 0 auto;min-height:44px;padding:10px 16px;display:flex;align-items:center;font-family:'Rajdhani',sans-serif;font-size:.9375rem;font-weight:700;letter-spacing:.02em;background:transparent;border:none;border-bottom:3px solid transparent;color:var(--muted);cursor:pointer;transition:all .2s;text-align:center;white-space:nowrap;}
+.tabs-wrap{flex-shrink:0;border-bottom:1px solid var(--border);}
+/* Two fixed rows of 5 via grid auto-wrap — replaces the old single
+   horizontally-scrollable row (which needed edge-fade hints to signal
+   there was more to scroll to). Every tab is now reachable with one
+   click, nothing to discover by scrolling. */
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);}
+.tab{min-height:46px;padding:6px 4px;display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.02em;line-height:1.2;background:transparent;border:none;border-bottom:3px solid transparent;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .2s;text-align:center;white-space:normal;}
+.tab:nth-child(5n){border-right:none;}
+.tab:nth-child(n+6){border-top:1px solid var(--border);}
 .tab:hover{color:var(--text);}
 .tab.active{color:var(--nb);border-bottom-color:var(--nb);background:#00d4ff10;}
-.tabs-fade{position:absolute;top:0;bottom:0;width:30px;display:flex;align-items:center;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.9rem;color:var(--nb);pointer-events:none;opacity:0;transition:opacity .2s;z-index:2;}
-.tabs-fade.show{opacity:1;}
-.tabs-fade-l{left:0;background:linear-gradient(90deg,var(--panel2) 40%,transparent);justify-content:flex-start;padding-left:2px;}
-.tabs-fade-r{right:0;background:linear-gradient(270deg,var(--panel2) 40%,transparent);justify-content:flex-end;padding-right:2px;}
 .tabp{display:none;flex:1;overflow:hidden;flex-direction:column;}
 .tabp.active{display:flex;}
 .ph{padding:10px 14px;font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--muted);letter-spacing:.1em;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;justify-content:space-between;align-items:center;gap:10px;}
@@ -488,92 +490,150 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 }
 
 /* ═══════════════════════════════════
-   MOBILE (<=768px) — desktop layout above is untouched
+   MOBILE (<=768px) — a SEPARATE layout from desktop, modeled on
+   Conflictly's mobile app structure: compact header → breaking-alert bar
+   → search+chips → map (hero) → fixed bottom nav. Desktop's #tb, its
+   header stats, .tabs-wrap, #layer-panel and #ghud are switched off here;
+   the #m-* elements (display:none by default, see near the top of this
+   stylesheet) are switched on. Two structures, not one shrunk to fit.
    ═══════════════════════════════════ */
 @media (max-width: 768px){
   /* Bump the root size so every rem-based text in this file scales UP on
-     mobile rather than shrinking — the design pass explicitly wants
-     mobile text BIGGER/clearer than desktop, not a cramped-down copy of
-     it. Smallest tier (.75rem) lands at 15px here, comfortably over the
-     14px mobile-body-text floor. */
-  html{font-size:20px;}
+     mobile rather than shrinking. Body text floor is 16px, feed headlines
+     17-18px, labels never under 13px — see .m-* rules below for the exact
+     px sizes those map to at this root size. */
+  html{font-size:19px;}
 
-  /* Map fills the full screen below the header by default; the sidebar
-     is no longer part of the grid at all (it becomes a fixed-position
-     bottom sheet, see #sb below), and there's no bottom stat row anymore. */
-  #app{grid-template-columns:1fr;grid-template-rows:56px 1fr;grid-template-areas:"tb" "gl";}
+  /* ---- desktop-only chrome switched off ---- */
+  #tb,#ticker,#layer-panel,#ghud,.tabs-wrap{display:none;}
 
-  /* HEADER — compact: logo, just THREATS + RISK (the two most critical
-     numbers), and two menu buttons (☰ for the sidebar sheet, ⋯ for
-     everything else). HIGH/MED/STATUS/SOURCES/clock are real numbers a
-     user can still get to inside the sidebar's WARNINGS tab — hiding them
-     here is about header real estate, not hiding the data entirely. */
-  #tb{padding:0 8px;gap:6px;}
-  .logo{font-size:1rem;letter-spacing:.08em;}
-  .logo em,.logo-sub{display:none;}
-  .tmeta{gap:8px;}
-  .tm-status,.tm-sources,#tclock,.hstat-hi,.hstat-me{display:none;}
-  .hstat-lbl{display:none;}
-  .hstat-cy .hstat-val::before{content:'⚠ ';}
-  .hstat-gn .hstat-val::before{content:'📈 ';}
-  .tbns{gap:6px;}
-  .btn{font-size:.9375rem;padding:8px;white-space:nowrap;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;}
-  .btn-label{display:none;}
-  #sb-toggle{display:inline-flex;}
-  #tb-more-toggle{display:inline-flex;}
-  /* The secondary action buttons (Brief Me / Alert Mode / Alert Log)
-     become a dropdown off the ⋯ button instead of crowding the header. */
-  .tbns-more{position:fixed;top:60px;right:8px;flex-direction:column;background:var(--panel);border:1px solid var(--border);padding:8px;z-index:400;display:none;box-shadow:0 6px 24px rgba(0,0,0,.5);gap:8px;}
-  .tbns-more.open{display:flex;}
-  .tbns-more .btn{width:100%;justify-content:flex-start;gap:8px;}
-  .tbns-more .btn-label{display:inline;}
+  /* ---- grid: header / alert bar / search+chips / map ----
+     min-width:0 on every grid item is load-bearing here: a CSS Grid `1fr`
+     track still won't shrink below the largest MIN-CONTENT width of any
+     item placed in it (default min-width:auto on grid items) — and a
+     plain <input> inside #m-searchrow has enough intrinsic min-content
+     width on its own to blow the whole column out past the viewport,
+     dragging every row (header/alertbar/map) out to match. Confirmed live:
+     without this, #m-searchrow measured 462px wide at a 390px viewport
+     with zero scrollbar (body has overflow:hidden, so it silently clipped
+     instead of scrolling) — every row after it inherited the same width. */
+  #app{grid-template-columns:1fr;grid-template-rows:56px 32px 60px 1fr;grid-template-areas:"mtb" "malert" "msearch" "gl";}
+  #m-header,#m-alertbar,#m-searchrow,#gl{min-width:0;}
 
-  #ticker{height:38px;}
-  .ticker-item{padding:0 16px;font-size:.9375rem;}
+  /* ---- MOBILE HEADER — logo, LIVE pulse, one action icon. One line. ---- */
+  #m-header{grid-area:mtb;display:flex;align-items:center;gap:10px;padding:0 12px;background:#040a16e6;border-bottom:1px solid var(--border);z-index:350;}
+  .m-logo{font-family:'Rajdhani',sans-serif;font-size:1.05rem;font-weight:700;letter-spacing:.18em;color:var(--nb);text-shadow:var(--gb);white-space:nowrap;}
+  .m-live{display:flex;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:.75rem;letter-spacing:.1em;color:var(--ng);margin-right:auto;}
+  .m-live-dot{width:7px;height:7px;border-radius:50%;background:var(--ng);box-shadow:0 0 6px var(--ng);animation:blink 1.6s ease-in-out infinite;}
+  /* 48px minimum touch target (this task's spec, stricter than the 44px
+     floor used elsewhere) — confirmed via computed getBoundingClientRect
+     that 44px controls actually failed this on a real render. */
+  .m-icon-btn{width:48px;height:48px;flex-shrink:0;background:transparent;border:1px solid var(--border);color:var(--text);font-size:1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:4px;}
+  .m-icon-btn:hover,.m-icon-btn.open{border-color:var(--nb);color:var(--nb);}
 
-  /* Floating action button — a genuine "tap a floating button" trigger
-     for the bottom sheet (Google Maps mobile pattern), in addition to the
-     header's ☰ button so either is reachable one-handed regardless of
-     where the thumb naturally rests. */
-  #sb-fab{position:fixed;right:16px;bottom:20px;z-index:250;width:56px;height:56px;border-radius:50%;background:var(--nb);color:#03202e;border:none;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.5rem;box-shadow:0 4px 20px #00d4ff88;display:flex;align-items:center;justify-content:center;cursor:pointer;}
-  #sb-fab.open{background:var(--nr);box-shadow:0 4px 20px #ff224488;}
+  /* Brief Me / Alert Mode / Alert Log — dropdown off the header's ⋯ icon. */
+  .m-actions-sheet{position:fixed;top:56px;right:8px;flex-direction:column;background:var(--panel);border:1px solid var(--border);padding:8px;z-index:400;box-shadow:0 6px 24px rgba(0,0,0,.5);gap:8px;}
+  .m-actions-sheet.open{display:flex;}
+  .m-actions-sheet .btn{width:100%;min-height:48px;justify-content:flex-start;gap:8px;font-size:1rem;}
+  .m-actions-sheet .btn-label{display:inline;}
 
-  /* Map layers panel collapses to a single floating icon button by
-     default on mobile (JS sets this at boot — see wireLayerPanel), and
-     expands to the full checklist on tap, same interaction as desktop's
-     collapse toggle just defaulted the other way. */
-  #layer-panel{top:8px;left:8px;}
+  /* ---- BREAKING-ALERT BAR — red icon, scrolling headline, time. One line. ---- */
+  #m-alertbar{grid-area:malert;display:flex;align-items:center;gap:8px;padding:0 12px;background:#1a0408e6;border-bottom:1px solid #4a1018;overflow:hidden;z-index:340;}
+  .m-alertbar-icon{color:var(--nr);font-size:.9rem;flex-shrink:0;}
+  .m-alertbar-track-wrap{flex:1;min-width:0;overflow:hidden;white-space:nowrap;}
+  .m-alertbar-track{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:#ff8899;white-space:nowrap;animation:m-alertbar-scroll 26s linear infinite;padding-left:100%;}
+  @keyframes m-alertbar-scroll{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+  .m-alertbar-time{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--dim);flex-shrink:0;}
 
-  /* The map is the hero on mobile more than anywhere else — this HUD box
-     was sized for a spare desktop corner; on a 360-390px screen its old
-     size ate a large chunk of the map. Mouse-only instructions ("CLICK
-     COUNTRY", "DRAG PAN") don't apply to touch anyway. */
-  #ghud{bottom:8px;left:8px;padding:8px 10px;font-size:.75rem;gap:8px;}
-  .ghud-help{width:44px;height:44px;font-size:1rem;}
-  .ghud-tip{white-space:normal;max-width:220px;}
-  #layer-panel.collapsed{width:44px;height:44px;}
+  /* ---- SEARCH BAR + QUICK-STAT CHIPS ---- */
+  #m-searchrow{grid-area:msearch;display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--panel2);border-bottom:1px solid var(--border);z-index:330;}
+  .m-search-wrap{flex:1;display:flex;min-width:0;border:1px solid var(--border);background:var(--panel);}
+  .m-search-wrap input{flex:1;min-width:0;background:transparent;border:none;color:var(--text);padding:0 10px;font-family:'Share Tech Mono',monospace;font-size:1rem;height:48px;}
+  .m-search-wrap input:focus{outline:none;}
+  .m-search-wrap button{width:48px;height:48px;flex-shrink:0;background:transparent;border:none;border-left:1px solid var(--border);color:var(--nb);font-size:1rem;cursor:pointer;}
+  .m-chips{display:flex;gap:6px;flex-shrink:0;}
+  .m-chip{display:flex;align-items:center;justify-content:center;gap:4px;height:48px;min-width:48px;padding:0 8px;background:var(--panel);border:1px solid var(--border);color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.8125rem;cursor:pointer;border-radius:3px;}
+  .m-chip.active{border-color:var(--nb);color:var(--nb);background:#00d4ff14;}
+  .m-chip-ic{font-size:.9375rem;}
 
-  /* Country/naval detail panels: full-width cards instead of a fixed
-     270-300px column that would otherwise overflow a 360-390px screen. */
-  #country-panel,#naval-panel{left:8px;right:8px;width:auto;top:56px;}
+  /* ---- MAP STAT STRIP — overlaid at the bottom of the map area, just
+     above the fixed bottom nav. Sparkline is a real rolling history of
+     this session's live threat-count polls, not decorative fake data. ---- */
+  /* right:68px (not 8px) leaves room for #m-layers-fab (48px wide,
+     right:12px) to sit beside it at the same bottom offset instead of
+     stacking on top of it — confirmed live these two overlapped when the
+     strip ran the full width underneath the fab. */
+  #m-statstrip{display:flex;align-items:center;gap:7px;position:absolute;left:8px;right:68px;bottom:76px;z-index:60;background:#04070fcc;border:1px solid var(--border);padding:8px 10px;font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--muted);backdrop-filter:blur(4px);border-radius:4px;}
+  .m-ss-risk{color:var(--data);font-weight:700;white-space:nowrap;}
+  .m-ss-sep{opacity:.5;}
+  #m-ss-threats,#m-ss-high{white-space:nowrap;}
+  .m-ss-spark{width:56px;height:18px;flex-shrink:0;margin-left:auto;}
+  .m-ss-spark polyline{fill:none;stroke:var(--nb);stroke-width:1.5;}
 
-  /* SIDEBAR → bottom sheet. Slides up from off-screen, opened via either
-     #sb-toggle (header) or #sb-fab (floating button over the map). Tabs
-     inside already scroll horizontally (shared rule, not mobile-only) —
-     that's this design's answer to "10 tabs won't fit": one scrollable
-     row instead of a dropdown, so the active tab is always visible
-     without an extra tap to open a picker. */
-  #sb{position:fixed;left:0;right:0;top:15%;bottom:0;z-index:300;border-left:none;border-top:1px solid var(--nb);border-radius:14px 14px 0 0;box-shadow:0 -10px 40px #000d;transform:translateY(101%);transition:transform .28s ease;}
-  #sb.open{transform:translateY(0);}
-  #sb::before{content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);width:40px;height:4px;border-radius:2px;background:var(--border);}
-  .tabs{padding-top:6px;}
+  /* ---- MAP LAYERS FAB + bottom sheet ---- */
+  #m-layers-fab{display:flex;position:absolute;right:12px;bottom:76px;z-index:70;width:48px;height:48px;border-radius:50%;align-items:center;justify-content:center;background:var(--panel);border:1px solid var(--nb);color:var(--nb);font-size:1.25rem;box-shadow:0 4px 16px #000a;cursor:pointer;}
 
-  /* Touch targets — every interactive control at least 44x44px. */
-  .tab{min-width:44px;}
-  .lp-row{min-height:44px;}
-  .lp-row input{width:20px;height:20px;}
-  .aq-btn,.sim-mode-btn{min-height:44px;}
-  #analyst-input-row input,#analyst-input-row button,.wx-search input,.wx-search button,.sim-form input,.sim-go,#search-input,#search-btn{min-height:44px;}
+  /* ---- shared bottom-sheet pattern (layers sheet + MORE sheet) ---- */
+  .m-sheet-backdrop{position:fixed;inset:0;background:#000a;z-index:490;opacity:0;pointer-events:none;transition:opacity .2s;}
+  .m-sheet-backdrop.show{display:block;opacity:1;pointer-events:auto;}
+  .m-sheet{display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:0;z-index:500;background:var(--panel);border-top:1px solid var(--nb);border-radius:14px 14px 0 0;box-shadow:0 -10px 40px #000d;padding:10px 4px 14px;transform:translateY(101%);transition:transform .25s ease;max-height:70vh;overflow-y:auto;}
+  .m-sheet.show{display:flex;transform:translateY(0);}
+  .m-sheet-handle{width:40px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 10px;flex-shrink:0;}
+  .m-sheet-title{font-family:'Share Tech Mono',monospace;font-size:.875rem;letter-spacing:.1em;color:var(--muted);padding:0 16px 8px;}
+  .m-sheet-row{display:flex;align-items:center;gap:10px;min-height:56px;padding:0 16px;font-size:1rem;color:var(--text);cursor:pointer;}
+  .m-sheet-row input{width:22px;height:22px;accent-color:var(--nb);flex-shrink:0;}
+  .m-sr-ic{font-size:1.125rem;}
+  .m-more-row{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;background:transparent;border:none;border-top:1px solid #0d1e3640;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:1.0625rem;font-weight:700;letter-spacing:.02em;text-align:left;width:100%;cursor:pointer;}
+  .m-more-row:first-of-type{border-top:none;}
+  .m-more-row:active,.m-sheet-row:active{background:#00d4ff0c;}
+  .m-more-row .m-nav-ic{font-size:1.25rem;width:26px;text-align:center;}
+
+  /* ---- Country/naval detail panels: full-width, clear the header. ---- */
+  #country-panel,#naval-panel{left:8px;right:8px;width:auto;top:60px;max-height:calc(100% - 150px);}
+
+  /* ---- SIDEBAR (#sb) REPURPOSED AS MOBILE'S FULL-SCREEN SECTION PANEL —
+     opened over the map by the bottom nav / MORE sheet, never a side
+     column. Sits below the mobile header and above the bottom nav (not
+     full viewport height), with its own back-control header. ---- */
+  /* z-index 345: must beat #m-alertbar (340) and #m-searchrow (330) since
+     the open panel spatially overlaps them (both start at the same
+     top:52px) and needs to visually + interactively cover them — but stay
+     under #m-header (350) so the header remains on top. #m-bottomnav (320)
+     doesn't need to out-rank this: #sb stops at bottom:64px, so it never
+     spatially overlaps the nav bar regardless of z-index. */
+  #sb{position:fixed;left:0;right:0;top:52px;bottom:64px;z-index:345;border-left:none;transform:translateX(101%);transition:transform .22s ease;}
+  #sb.open{transform:translateX(0);}
+  .m-panel-header{display:flex;align-items:center;gap:10px;padding:0 6px;min-height:52px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--panel2);}
+  .m-panel-back{min-height:48px;padding:0 14px;background:transparent;border:1px solid var(--border);color:var(--nb);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.9375rem;cursor:pointer;border-radius:4px;}
+  .m-panel-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.0625rem;letter-spacing:.06em;color:var(--data);}
+
+  /* ---- FIXED BOTTOM NAV — 5 icons + labels, ~64px, always visible
+     (even while a section panel is open, so switching sections never
+     needs a trip back to the map first). Center ANALYST button styled
+     prominent like Conflictly's Operator button. ---- */
+  #m-bottomnav{display:flex;position:fixed;left:0;right:0;bottom:0;height:64px;z-index:320;background:#04070fee;border-top:1px solid var(--border);backdrop-filter:blur(8px);padding:0 4px;}
+  .m-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:48px;background:transparent;border:none;color:var(--muted);cursor:pointer;}
+  .m-nav-btn .m-nav-ic{font-size:1.375rem;line-height:1;}
+  /* .75rem, not the smaller size this started at — confirmed live via
+     getComputedStyle that anything under .75rem here renders under the
+     13px label floor at this root font-size. */
+  .m-nav-btn .m-nav-lbl{font-family:'Share Tech Mono',monospace;font-size:.75rem;letter-spacing:.03em;}
+  .m-nav-btn.active{color:var(--nb);}
+  .m-nav-btn.active .m-nav-lbl{color:var(--nb);}
+  .m-nav-center{margin-top:-22px;}
+  .m-nav-center-circle{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--nb),#0066cc);box-shadow:0 4px 16px #00d4ff66,0 0 0 4px #04070fee;}
+  .m-nav-center-circle .m-nav-ic{font-size:1.5rem;}
+  .m-nav-center .m-nav-lbl{color:var(--nb);margin-top:1px;}
+  .m-nav-center.active .m-nav-center-circle{background:linear-gradient(160deg,#ff5566,var(--nr));box-shadow:0 4px 16px #ff224466,0 0 0 4px #04070fee;}
+
+  /* ---- Touch targets & type floor — 48px controls, 16px body text,
+     17-18px feed headlines, 13px minimum labels. Wrap/ellipsis, never
+     shrink further. Every individual mobile control also sets its own
+     explicit width/height above; this is the shared floor/backstop. ---- */
+  .m-sheet-row,.m-more-row,.m-chip,.m-nav-btn,.m-icon-btn,.m-panel-back,.m-search-wrap button,.m-search-wrap input{min-height:48px;}
+  .ni .nh,.si-title{font-size:1.0625rem;line-height:1.5;}
+  .ph{font-size:.8125rem;}
+  #analyst-input-row input,#analyst-input-row button,.wx-search input,.wx-search button,.sim-form input,.sim-go,#search-input,#search-btn{min-height:48px;}
 }
 </style>
 </head>
@@ -597,16 +657,53 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <span id="tclock">00:00:00 UTC</span>
     </div>
     <div class="tbns">
-      <button class="btn" id="sb-toggle">☰ INTEL</button>
-      <button class="btn" id="tb-more-toggle" title="More actions">⋯</button>
       <div class="tbns-more" id="tb-more-actions">
-        <button class="btn" id="briefbtn">🔊 <span class="btn-label">BRIEF ME</span></button>
-        <button class="btn red" id="brief-stop" style="display:none">⏹ <span class="btn-label">STOP</span></button>
-        <button class="btn red" id="alertbtn">⚠ <span class="btn-label">ALERT MODE</span></button>
-        <button class="btn" id="alertlogbtn" title="Alert log">📋</button>
+        <button class="btn js-briefbtn" id="briefbtn">🔊 <span class="btn-label">BRIEF ME</span></button>
+        <button class="btn red js-brief-stop" id="brief-stop" style="display:none">⏹ <span class="btn-label">STOP</span></button>
+        <button class="btn red js-alertbtn" id="alertbtn">⚠ <span class="btn-label">ALERT MODE</span></button>
+        <button class="btn js-alertlogbtn" id="alertlogbtn" title="Alert log">📋</button>
       </div>
     </div>
   </div>
+
+  <!-- ═══════════════════════════════════
+       MOBILE LAYOUT (<=768px) — a separate structure from #tb/#sb above,
+       modeled on Conflictly's mobile app: compact header, breaking-alert
+       bar, search+quick-stat chips, map, floating stat strip, fixed bottom
+       nav. Hidden entirely on desktop (see the display:none base rules
+       near the top of <style>); the <=768px media query turns these on and
+       turns #tb/#layer-panel/#ghud/.tabs-wrap off. Never shown/laid out
+       together with the desktop chrome. ═══════════════════════════════════ -->
+  <div id="m-header">
+    <div class="m-logo">SENTINEL</div>
+    <div class="m-live"><span class="m-live-dot"></span>LIVE</div>
+    <button class="m-icon-btn" id="m-actions-toggle" title="More actions">⋯</button>
+  </div>
+  <div class="m-actions-sheet" id="m-actions-sheet">
+    <button class="btn js-briefbtn" id="m-briefbtn">🔊 <span class="btn-label">BRIEF ME</span></button>
+    <button class="btn red js-brief-stop" id="m-brief-stop" style="display:none">⏹ <span class="btn-label">STOP</span></button>
+    <button class="btn red js-alertbtn" id="m-alertbtn">⚠ <span class="btn-label">ALERT MODE</span></button>
+    <button class="btn js-alertlogbtn" id="m-alertlogbtn">📋 <span class="btn-label">ALERT LOG</span></button>
+  </div>
+
+  <div id="m-alertbar">
+    <span class="m-alertbar-icon">⚠</span>
+    <div class="m-alertbar-track-wrap"><div class="m-alertbar-track" id="m-alertbar-track">CONNECTING LIVE FEED…</div></div>
+    <span class="m-alertbar-time" id="m-alertbar-time">--:--</span>
+  </div>
+
+  <div id="m-searchrow">
+    <div class="m-search-wrap">
+      <input type="text" id="m-search-input" placeholder="Search intel..." />
+      <button id="m-search-go" title="Search">🔍</button>
+    </div>
+    <div class="m-chips">
+      <button class="m-chip" data-layer="threats" title="Threats"><span class="m-chip-ic">⚠</span><span id="m-chip-threats-n">0</span></button>
+      <button class="m-chip" data-layer="aircraft" title="Aircraft"><span class="m-chip-ic">✈</span><span id="m-chip-aircraft-n">0</span></button>
+      <button class="m-chip" data-layer="naval" title="Naval"><span class="m-chip-ic">🚢</span><span id="m-chip-naval-n">0</span></button>
+    </div>
+  </div>
+
   <div id="alert-log-panel" class="alert-log-panel" style="display:none"></div>
   <div id="alert-banner-container"></div>
   <audio id="brief-audio" style="display:none"></audio>
@@ -617,12 +714,12 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     <div id="layer-panel">
       <div class="lp-title" id="lp-header"><span class="lp-icon">🗺</span><span class="lp-label">// MAP LAYERS</span><span class="lp-chevron">▾</span></div>
       <div class="lp-body" id="lp-body">
-        <label class="lp-row"><input type="checkbox" id="lp-threats" checked> ⚠ Threats</label>
-        <label class="lp-row"><input type="checkbox" id="lp-conflict" checked> ⚔ Conflict Zones</label>
-        <label class="lp-row"><input type="checkbox" id="lp-military"> 🎖 Military Assets (known positions)</label>
-        <label class="lp-row"><input type="checkbox" id="lp-risk" checked> 🗺 Country Risk</label>
-        <label class="lp-row"><input type="checkbox" id="lp-aircraft"> ✈ Aircraft (live)</label>
-        <label class="lp-row"><input type="checkbox" id="lp-naval"> 🚢 Naval (OSINT-estimated)</label>
+        <label class="lp-row"><input type="checkbox" data-layer="threats" checked> ⚠ Threats</label>
+        <label class="lp-row"><input type="checkbox" data-layer="conflict" checked> ⚔ Conflict Zones</label>
+        <label class="lp-row"><input type="checkbox" data-layer="military"> 🎖 Military Assets (known positions)</label>
+        <label class="lp-row"><input type="checkbox" data-layer="risk" checked> 🗺 Country Risk</label>
+        <label class="lp-row"><input type="checkbox" data-layer="aircraft"> ✈ Aircraft (live)</label>
+        <label class="lp-row"><input type="checkbox" data-layer="naval"> 🚢 Naval (OSINT-estimated)</label>
         <div class="lp-note">Military: known positions, not live. Aircraft: live (30s). Naval: OSINT-estimated.</div>
       </div>
     </div>
@@ -635,10 +732,35 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     <div id="country-tooltip"></div>
     <div id="country-panel"></div>
     <div id="naval-panel"></div>
-    <button id="sb-fab" title="Open intel sidebar">☰</button>
+
+    <div id="m-statstrip">
+      <span class="m-ss-risk" id="m-ss-risk">RISK: —</span>
+      <span class="m-ss-sep">·</span>
+      <span id="m-ss-threats">— ACTIVE</span>
+      <span class="m-ss-sep">·</span>
+      <span id="m-ss-high">— HIGH</span>
+      <svg id="m-ss-spark" class="m-ss-spark" viewBox="0 0 60 20" preserveAspectRatio="none"><polyline id="m-ss-spark-line" points="0,20 60,20"></polyline></svg>
+    </div>
+    <button id="m-layers-fab" title="Map layers">🗺</button>
+  </div>
+
+  <div class="m-sheet-backdrop" id="m-layers-backdrop"></div>
+  <div class="m-sheet" id="m-layers-sheet">
+    <div class="m-sheet-handle"></div>
+    <div class="m-sheet-title">// MAP LAYERS</div>
+    <label class="m-sheet-row"><input type="checkbox" data-layer="threats" checked><span class="m-sr-ic">⚠</span> Threats</label>
+    <label class="m-sheet-row"><input type="checkbox" data-layer="conflict" checked><span class="m-sr-ic">⚔</span> Conflict Zones</label>
+    <label class="m-sheet-row"><input type="checkbox" data-layer="military"><span class="m-sr-ic">🎖</span> Military Assets (known positions)</label>
+    <label class="m-sheet-row"><input type="checkbox" data-layer="risk" checked><span class="m-sr-ic">🗺</span> Country Risk</label>
+    <label class="m-sheet-row"><input type="checkbox" data-layer="aircraft"><span class="m-sr-ic">✈</span> Aircraft (live)</label>
+    <label class="m-sheet-row"><input type="checkbox" data-layer="naval"><span class="m-sr-ic">🚢</span> Naval (OSINT-estimated)</label>
   </div>
 
   <div id="sb">
+    <div class="m-panel-header" id="m-panel-header">
+      <button class="m-panel-back" id="m-panel-back">‹ MAP</button>
+      <span class="m-panel-title" id="m-panel-title">BRIEFING</span>
+    </div>
     <div class="tabs-wrap">
       <div class="tabs" id="tabsrow">
         <button class="tab active" data-tab="news">📡 BRIEFING</button>
@@ -652,8 +774,6 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
         <button class="tab" data-tab="weather">🌤 WEATHER</button>
         <button class="tab" data-tab="mideast">🌙 MIDEAST</button>
       </div>
-      <div class="tabs-fade tabs-fade-l" id="tabFadeL">‹</div>
-      <div class="tabs-fade tabs-fade-r" id="tabFadeR">›</div>
     </div>
 
     <div class="tabp active" id="tab-news">
@@ -737,6 +857,26 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       <div class="ph">// MIDDLE EAST INTELLIGENCE</div>
       <div class="scroll" id="mideast"></div>
     </div>
+  </div>
+
+  <nav id="m-bottomnav">
+    <button class="m-nav-btn" data-tab="news"><span class="m-nav-ic">📡</span><span class="m-nav-lbl">BRIEFING</span></button>
+    <button class="m-nav-btn" data-tab="warnings"><span class="m-nav-ic">⚠</span><span class="m-nav-lbl">FEED</span></button>
+    <button class="m-nav-btn m-nav-center" data-tab="analyst"><span class="m-nav-center-circle"><span class="m-nav-ic">🤖</span></span><span class="m-nav-lbl">ANALYST</span></button>
+    <button class="m-nav-btn" data-tab="forecast"><span class="m-nav-ic">🎯</span><span class="m-nav-lbl">FORECAST</span></button>
+    <button class="m-nav-btn" id="m-nav-more"><span class="m-nav-ic">☰</span><span class="m-nav-lbl">MORE</span></button>
+  </nav>
+
+  <div class="m-sheet-backdrop" id="m-more-backdrop"></div>
+  <div class="m-sheet" id="m-more-sheet">
+    <div class="m-sheet-handle"></div>
+    <div class="m-sheet-title">// MORE SECTIONS</div>
+    <button class="m-more-row" data-tab="search"><span class="m-nav-ic">🔍</span> Intel Search</button>
+    <button class="m-more-row" data-tab="conflicts"><span class="m-nav-ic">⚔</span> Conflicts</button>
+    <button class="m-more-row" data-tab="simulate"><span class="m-nav-ic">⚔</span> Simulate</button>
+    <button class="m-more-row" data-tab="leaders"><span class="m-nav-ic">👤</span> Leaders</button>
+    <button class="m-more-row" data-tab="weather"><span class="m-nav-ic">🌤</span> Weather</button>
+    <button class="m-more-row" data-tab="mideast"><span class="m-nav-ic">🌙</span> Mideast</button>
   </div>
 </div>
 
@@ -1348,38 +1488,38 @@ function setConflictZonesVisible(visible){
 // ═══════════════════════════════════
 // LAYER PANEL TOGGLES
 // ═══════════════════════════════════
+// Every layer control — desktop's #layer-panel checkboxes, the mobile
+// layers bottom-sheet's checkboxes, and the mobile quick-stat chips — share
+// a `data-layer="threats|conflict|military|risk|aircraft|naval"` attribute
+// instead of each having its own hand-wired listener. setLayer() is the one
+// place that updates state, keeps every matching control in sync (even the
+// ones currently hidden by the other layout), and runs the real side
+// effect, so desktop and mobile can never drift out of sync with each other.
+function setLayer(key, checked){
+  activeLayers[key] = checked;
+  document.querySelectorAll(`[data-layer="${key}"]`).forEach(el=>{
+    if(el.tagName==='INPUT') el.checked = checked;
+    else el.classList.toggle('active', checked);
+  });
+  switch(key){
+    case 'threats': renderThreatMarkers(); break;
+    case 'conflict': setConflictZonesVisible(checked); break;
+    case 'military': setMilitaryVisible(checked); break;
+    case 'risk': if(map.getLayer('country-fill')) map.setLayoutProperty('country-fill','visibility', checked?'visible':'none'); break;
+    case 'aircraft': checked?startAircraftPolling():stopAircraftPolling(); break;
+    case 'naval': checked?startNavalPolling():stopNavalPolling(); break;
+  }
+}
+
 function wireLayerPanel(){
-  document.getElementById('lp-threats').addEventListener('change', e=>{
-    activeLayers.threats = e.target.checked;
-    renderThreatMarkers();
-  });
-  document.getElementById('lp-conflict').addEventListener('change', e=>{
-    activeLayers.conflict = e.target.checked;
-    setConflictZonesVisible(activeLayers.conflict);
-  });
-  document.getElementById('lp-military').addEventListener('change', e=>{
-    activeLayers.military = e.target.checked;
-    setMilitaryVisible(activeLayers.military);
-  });
-  document.getElementById('lp-risk').addEventListener('change', e=>{
-    activeLayers.risk = e.target.checked;
-    if(map.getLayer('country-fill')) map.setLayoutProperty('country-fill','visibility', activeLayers.risk?'visible':'none');
-  });
-  document.getElementById('lp-aircraft').addEventListener('change', e=>{
-    activeLayers.aircraft = e.target.checked;
-    if(activeLayers.aircraft) startAircraftPolling();
-    else stopAircraftPolling();
-  });
-  document.getElementById('lp-naval').addEventListener('change', e=>{
-    activeLayers.naval = e.target.checked;
-    if(activeLayers.naval) startNavalPolling();
-    else stopNavalPolling();
+  document.querySelectorAll('[data-layer]').forEach(el=>{
+    const key = el.dataset.layer;
+    if(el.tagName==='INPUT') el.addEventListener('change', e=>setLayer(key, e.target.checked));
+    else el.addEventListener('click', ()=>setLayer(key, !activeLayers[key]));
   });
 
-  const panel = document.getElementById('layer-panel');
-  if(window.matchMedia('(max-width: 768px)').matches) panel.classList.add('collapsed');
   document.getElementById('lp-header').addEventListener('click', ()=>{
-    panel.classList.toggle('collapsed');
+    document.getElementById('layer-panel').classList.toggle('collapsed');
   });
 }
 
@@ -1431,6 +1571,7 @@ function renderTicker(articles){
       else if(a.url) window.open(a.url,'_blank');
     });
   });
+  renderMobileAlertBar(articles);
 }
 
 // ═══════════════════════════════════
@@ -1734,20 +1875,24 @@ async function tryFlyToSearchResult(q){
 // is only a fallback for when no ELEVENLABS_API_KEY is configured yet or
 // the ElevenLabs call fails, so Brief Me never just goes silent.
 function setBriefPlaybackUI(state){
-  const btn = document.getElementById('briefbtn');
-  const stopBtn = document.getElementById('brief-stop');
+  // Desktop header and the mobile actions sheet each have their own copy of
+  // this button (two separate DOM elements, same .js-briefbtn/.js-brief-stop
+  // class) since mobile's header lives outside #tb entirely — update both so
+  // whichever one is visible always reflects real state.
+  const btns = document.querySelectorAll('.js-briefbtn');
+  const stopBtns = document.querySelectorAll('.js-brief-stop');
   if(state === 'generating'){
-    btn.innerHTML = '⟳ <span class="btn-label">GENERATING...</span>';
-    stopBtn.style.display = 'none';
+    btns.forEach(b=>b.innerHTML = '⟳ <span class="btn-label">GENERATING...</span>');
+    stopBtns.forEach(b=>b.style.display = 'none');
   } else if(state === 'voicing'){
-    btn.innerHTML = '⟳ <span class="btn-label">VOICING...</span>';
-    stopBtn.style.display = 'inline-flex';
+    btns.forEach(b=>b.innerHTML = '⟳ <span class="btn-label">VOICING...</span>');
+    stopBtns.forEach(b=>b.style.display = 'inline-flex');
   } else if(state === 'playing'){
-    btn.innerHTML = '🔊 <span class="btn-label">SPEAKING...</span>';
-    stopBtn.style.display = 'inline-flex';
+    btns.forEach(b=>b.innerHTML = '🔊 <span class="btn-label">SPEAKING...</span>');
+    stopBtns.forEach(b=>b.style.display = 'inline-flex');
   } else {
-    btn.innerHTML = '🔊 <span class="btn-label">BRIEF ME</span>';
-    stopBtn.style.display = 'none';
+    btns.forEach(b=>b.innerHTML = '🔊 <span class="btn-label">BRIEF ME</span>');
+    stopBtns.forEach(b=>b.style.display = 'none');
   }
 }
 
@@ -1842,10 +1987,11 @@ async function speakBrief(text){
 
 async function briefMe(){
   stopBriefPlayback(); // cancel any in-progress narration before starting a new brief
-  const btn=document.getElementById('briefbtn');
+  const briefBtns=document.querySelectorAll('.js-briefbtn');
   setBriefPlaybackUI('generating');
-  btn.disabled=true;
+  briefBtns.forEach(b=>b.disabled=true);
   activateTab('news');
+  openMobilePanel('news');
   const bb=document.getElementById('briefbox');
   bb.innerHTML='<span style="color:var(--nb)">⟳ GENERATING AI BRIEF...</span>';
   bb.classList.add('show');
@@ -1873,7 +2019,7 @@ async function briefMe(){
   }catch(e){
     bb.innerHTML=`<b>// BRIEF ERROR</b><br><br>${e.message}`;
   }
-  btn.disabled=false;
+  briefBtns.forEach(b=>b.disabled=false);
   if(text) speakBrief(text); else setBriefPlaybackUI('idle');
 }
 
@@ -2473,10 +2619,11 @@ async function alertPollTick(){
 }
 
 function updateAlertButtonUI(){
-  const btn=document.getElementById('alertbtn');
-  btn.innerHTML=alertOn?'✓ <span class="btn-label">ALERT ON</span>':'⚠ <span class="btn-label">ALERT MODE</span>';
-  btn.style.color=alertOn?'var(--ng)':'var(--nr)';
-  btn.classList.toggle('pulsing',alertOn);
+  document.querySelectorAll('.js-alertbtn').forEach(btn=>{
+    btn.innerHTML=alertOn?'✓ <span class="btn-label">ALERT ON</span>':'⚠ <span class="btn-label">ALERT MODE</span>';
+    btn.style.color=alertOn?'var(--ng)':'var(--nr)';
+    btn.classList.toggle('pulsing',alertOn);
+  });
 }
 
 async function enableAlertMode(){
@@ -2633,19 +2780,6 @@ const lsi=setInterval(()=>{
 },390);
 
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>activateTab(b.dataset.tab)));
-// Tab row scrolls horizontally (10 tabs never fit one screen width) — these
-// fades are the actual "there's more this way" signal, since the row alone
-// gave zero indication anything was scrollable and silently clipped 7 of 10
-// tabs off-screen. Toggled by real scroll position, not shown/hidden once.
-function updateTabFades(){
-  const row=document.getElementById('tabsrow');
-  const l=document.getElementById('tabFadeL'), r=document.getElementById('tabFadeR');
-  l.classList.toggle('show', row.scrollLeft > 2);
-  r.classList.toggle('show', row.scrollLeft + row.clientWidth < row.scrollWidth - 2);
-}
-document.getElementById('tabsrow').addEventListener('scroll', updateTabFades);
-window.addEventListener('resize', updateTabFades);
-updateTabFades();
 
 // Map-controls tooltip: click/tap-to-reveal instead of always-on text, since
 // the always-on version was one of the largest single things eating into
@@ -2659,31 +2793,11 @@ document.addEventListener('click',()=>{
   document.getElementById('ghud-tip').classList.remove('show');
   document.getElementById('ghud-help').classList.remove('open');
 });
-function toggleSidebar(){
-  const open = document.getElementById('sb').classList.toggle('open');
-  document.getElementById('sb-toggle').textContent = open ? '✕ CLOSE' : '☰ INTEL';
-  const fab = document.getElementById('sb-fab');
-  fab.textContent = open ? '✕' : '☰';
-  fab.classList.toggle('open', open);
-}
-document.getElementById('sb-toggle').addEventListener('click', toggleSidebar);
-document.getElementById('sb-fab').addEventListener('click', toggleSidebar);
-// Mobile-only "more actions" menu (Brief Me / Alert Mode / Alert Log) —
-// on desktop these buttons are already inline in the header and this
-// toggle button is hidden via CSS, so this listener is harmless there.
-document.getElementById('tb-more-toggle').addEventListener('click',(ev)=>{
-  ev.stopPropagation();
-  document.getElementById('tb-more-actions').classList.toggle('open');
-});
-document.addEventListener('click',(ev)=>{
-  const panel=document.getElementById('tb-more-actions');
-  const toggle=document.getElementById('tb-more-toggle');
-  if(panel.classList.contains('open') && !panel.contains(ev.target) && ev.target!==toggle){
-    panel.classList.remove('open');
-  }
-});
-document.getElementById('briefbtn').addEventListener('click',briefMe);
-document.getElementById('brief-stop').addEventListener('click',stopBriefPlayback);
+// Desktop and mobile each have their own Brief Me / Alert Mode / Alert Log
+// buttons (two separate DOM elements sharing .js-* classes — see the
+// MOBILE LAYOUT section) so both stay wired and in sync.
+document.querySelectorAll('.js-briefbtn').forEach(b=>b.addEventListener('click',briefMe));
+document.querySelectorAll('.js-brief-stop').forEach(b=>b.addEventListener('click',stopBriefPlayback));
 document.getElementById('wx-btn').addEventListener('click', ()=>searchWeather(document.getElementById('wx-input').value));
 document.getElementById('wx-input').addEventListener('keydown', e=>{ if(e.key==='Enter') searchWeather(e.target.value); });
 document.getElementById('search-btn').addEventListener('click', ()=>runIntelSearch(document.getElementById('search-input').value));
@@ -2706,25 +2820,148 @@ document.querySelectorAll('.sim-mode-btn').forEach(btn=>{
 document.getElementById('sim-go-conflict').addEventListener('click',runConflictSimulation);
 document.getElementById('sim-go-whatif').addEventListener('click',runWhatIfSimulation);
 document.getElementById('sim-whatif-input').addEventListener('keydown', e=>{ if(e.key==='Enter') runWhatIfSimulation(); });
-document.getElementById('alertbtn').addEventListener('click',()=>{
+document.querySelectorAll('.js-alertbtn').forEach(b=>b.addEventListener('click',()=>{
   if(alertOn) disableAlertMode(); else enableAlertMode();
-});
+}));
 renderAlertLog();
-document.getElementById('alertlogbtn').addEventListener('click',(ev)=>{
+document.querySelectorAll('.js-alertlogbtn').forEach(b=>b.addEventListener('click',(ev)=>{
   ev.stopPropagation();
   const panel=document.getElementById('alert-log-panel');
   panel.style.display=panel.style.display==='none'?'block':'none';
-});
+}));
 document.addEventListener('click',(ev)=>{
   const panel=document.getElementById('alert-log-panel');
-  if(panel.style.display!=='none' && !panel.contains(ev.target) && ev.target.id!=='alertlogbtn'){
+  if(panel.style.display!=='none' && !panel.contains(ev.target) && !ev.target.closest('.js-alertlogbtn')){
     panel.style.display='none';
   }
 });
 setInterval(()=>{
   const n=new Date();
   document.getElementById('tclock').textContent=n.toISOString().slice(11,19)+' UTC';
+  document.getElementById('m-alertbar-time').textContent=n.toISOString().slice(11,16)+'Z';
 },1000);
+
+// ═══════════════════════════════════
+// MOBILE LAYOUT — bottom nav, full-screen section panels, layers/more
+// sheets, search, quick-stat chips, stat strip + sparkline. This whole
+// block only ever touches #m-*/#sb elements; desktop's own header/sidebar
+// wiring above is untouched and these handlers are inert when the mobile
+// media query isn't active (guarded by isMobile() where it matters).
+// ═══════════════════════════════════
+function isMobile(){ return window.matchMedia('(max-width: 768px)').matches; }
+const MOBILE_PANEL_TITLES = { news:'BRIEFING', warnings:'FEED', analyst:'ANALYST', search:'INTEL SEARCH', conflicts:'CONFLICTS', forecast:'FORECAST', simulate:'SIMULATE', leaders:'LEADERS', weather:'WEATHER', mideast:'MIDEAST' };
+const MOBILE_MAIN_TABS = ['news','warnings','analyst','forecast'];
+
+// Opens a section as a full-screen panel over the map (never a side
+// column on mobile) — reuses the exact same #tab-* content the desktop
+// sidebar renders into, just presented full-screen with a back control.
+function openMobilePanel(name){
+  activateTab(name);
+  if(!isMobile()) return;
+  document.getElementById('m-panel-title').textContent = MOBILE_PANEL_TITLES[name] || name.toUpperCase();
+  document.getElementById('sb').classList.add('open');
+  document.querySelectorAll('.m-nav-btn[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.getElementById('m-nav-more').classList.toggle('active', !MOBILE_MAIN_TABS.includes(name));
+  closeMobileSheet('m-layers');
+  closeMobileSheet('m-more');
+}
+function closeMobilePanel(){
+  document.getElementById('sb').classList.remove('open');
+  document.querySelectorAll('.m-nav-btn').forEach(b=>b.classList.remove('active'));
+}
+document.getElementById('m-panel-back').addEventListener('click', closeMobilePanel);
+document.querySelectorAll('#m-bottomnav .m-nav-btn[data-tab]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const name = btn.dataset.tab;
+    if(document.getElementById('sb').classList.contains('open') && btn.classList.contains('active')) closeMobilePanel();
+    else openMobilePanel(name);
+  });
+});
+
+function openMobileSheet(id){
+  document.getElementById(id+'-sheet').classList.add('show');
+  document.getElementById(id+'-backdrop').classList.add('show');
+}
+function closeMobileSheet(id){
+  const sheet=document.getElementById(id+'-sheet'), backdrop=document.getElementById(id+'-backdrop');
+  if(sheet) sheet.classList.remove('show');
+  if(backdrop) backdrop.classList.remove('show');
+}
+document.getElementById('m-nav-more').addEventListener('click', ()=>openMobileSheet('m-more'));
+document.getElementById('m-more-backdrop').addEventListener('click', ()=>closeMobileSheet('m-more'));
+document.querySelectorAll('.m-more-row[data-tab]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    closeMobileSheet('m-more');
+    openMobilePanel(btn.dataset.tab);
+  });
+});
+document.getElementById('m-layers-fab').addEventListener('click', ()=>openMobileSheet('m-layers'));
+document.getElementById('m-layers-backdrop').addEventListener('click', ()=>closeMobileSheet('m-layers'));
+
+// Header's single action icon → Brief Me / Alert Mode / Alert Log dropdown
+// (the mobile counterpart of desktop's always-visible .tbns-more row).
+document.getElementById('m-actions-toggle').addEventListener('click',(ev)=>{
+  ev.stopPropagation();
+  document.getElementById('m-actions-sheet').classList.toggle('open');
+  document.getElementById('m-actions-toggle').classList.toggle('open');
+});
+document.addEventListener('click',(ev)=>{
+  const panel=document.getElementById('m-actions-sheet');
+  const toggle=document.getElementById('m-actions-toggle');
+  if(panel.classList.contains('open') && !panel.contains(ev.target) && ev.target!==toggle){
+    panel.classList.remove('open');
+    toggle.classList.remove('open');
+  }
+});
+
+function runMobileSearch(){
+  const q = document.getElementById('m-search-input').value.trim();
+  if(!q) return;
+  document.getElementById('search-input').value = q;
+  openMobilePanel('search');
+  runIntelSearch(q);
+}
+document.getElementById('m-search-go').addEventListener('click', runMobileSearch);
+document.getElementById('m-search-input').addEventListener('keydown', e=>{ if(e.key==='Enter') runMobileSearch(); });
+
+// Stat strip + rolling sparkline — a real history of this session's live
+// threat-count polls (pushed every 4s while the tab is open), not
+// decorative/fabricated data.
+const mobileThreatHistory = [];
+function updateMobileChrome(){
+  const risk = document.getElementById('tri').textContent;
+  const threats = document.getElementById('tct').textContent;
+  const high = document.getElementById('sh').textContent;
+  document.getElementById('m-ss-risk').textContent = 'RISK: '+risk;
+  document.getElementById('m-ss-threats').textContent = threats+' ACTIVE';
+  document.getElementById('m-ss-high').textContent = high+' HIGH';
+  document.getElementById('m-chip-threats-n').textContent = threats;
+  document.getElementById('m-chip-aircraft-n').textContent = aircraftMarkerObjs.length;
+  document.getElementById('m-chip-naval-n').textContent = navalMarkerObjs.length;
+
+  const n = Number(threats);
+  if(!Number.isNaN(n)){
+    mobileThreatHistory.push(n);
+    if(mobileThreatHistory.length>20) mobileThreatHistory.shift();
+    if(mobileThreatHistory.length>1){
+      const max=Math.max(...mobileThreatHistory), min=Math.min(...mobileThreatHistory);
+      const range=(max-min)||1;
+      const pts = mobileThreatHistory.map((v,i)=>{
+        const x=(i/(mobileThreatHistory.length-1))*60;
+        const y=18-((v-min)/range)*16;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+      document.getElementById('m-ss-spark-line').setAttribute('points', pts);
+    }
+  }
+}
+setInterval(updateMobileChrome, 4000);
+
+function renderMobileAlertBar(articles){
+  const track = document.getElementById('m-alertbar-track');
+  if(!track) return;
+  track.textContent = articles.length ? articles.slice(0,12).map(a=>a.title).join('   •   ') : 'No live alerts';
+}
 
 async function boot(){
   initMap();
@@ -2759,12 +2996,6 @@ window.addEventListener('load',()=>{
       const app=document.getElementById('app');
       app.style.display='grid';
       boot();
-      // #app is display:none until this point, so the tab-fade scroll-hint
-      // check that ran at script-load time (see updateTabFades() below) saw
-      // clientWidth/scrollWidth of 0 and concluded there was nothing to
-      // scroll — genuinely wrong, and the actual reason the very first
-      // fix for this silently didn't render. Re-run now that layout is real.
-      updateTabFades();
     },500);
   },2800);
 });
