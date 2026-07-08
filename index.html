@@ -34,13 +34,13 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 #app{display:none;width:100vw;height:100vh;grid-template-columns:1fr 390px;grid-template-rows:56px 1fr;grid-template-areas:"tb tb" "gl sb";}
 
 /* TOPBAR */
-#tb{grid-area:tb;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#040a1699;border-bottom:1px solid var(--border);backdrop-filter:blur(10px);z-index:350;}
-.logo{font-family:'Rajdhani',sans-serif;font-size:1.375rem;font-weight:700;letter-spacing:.3em;color:var(--nb);text-shadow:var(--gb);}
+#tb{grid-area:tb;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:#040a1699;border-bottom:1px solid var(--border);backdrop-filter:blur(10px);z-index:350;gap:12px;}
+.logo{font-family:'Rajdhani',sans-serif;font-size:1.375rem;font-weight:700;letter-spacing:.3em;color:var(--nb);text-shadow:var(--gb);white-space:nowrap;flex-shrink:0;}
 .logo em{color:var(--nr);font-style:normal;}
-.tmeta{display:flex;gap:20px;font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--muted);}
+.tmeta{display:flex;gap:20px;font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--muted);white-space:nowrap;overflow:hidden;}
 .tmeta b{color:var(--nb);}
 #tclock{color:var(--ng);}
-.tbns{display:flex;gap:8px;align-items:center;}
+.tbns{display:flex;gap:8px;align-items:center;flex-shrink:0;}
 .tbns-more{display:flex;gap:8px;}
 #tb-more-toggle{display:none;}
 #sb-fab{display:none;}
@@ -64,8 +64,19 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 .maplibregl-ctrl-group{background:#040a16cc!important;border:1px solid var(--border)!important;}
 .maplibregl-ctrl-group button{filter:invert(1) hue-rotate(180deg);}
 
-#ghud{position:absolute;bottom:12px;left:12px;font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--dim);line-height:1.9;pointer-events:none;z-index:55;background:#04070fbb;padding:11px 13px;border:1px solid var(--border);backdrop-filter:blur(4px);}
-.rbadge{display:inline-block;font-family:'Rajdhani',sans-serif;font-size:1.0625rem;font-weight:700;letter-spacing:.1em;padding:2px 9px;border:1px solid var(--nr);color:var(--nr);text-shadow:var(--gr);box-shadow:var(--gr);margin-top:3px;}
+/* One compact row: markers+feed status, the RISK badge, and a "?" that
+   reveals the click/drag/zoom instructions on demand instead of them
+   sitting there permanently — this box was one of the biggest single
+   things eating into "the map is the hero" space, confirmed via screenshot. */
+#ghud{position:absolute;bottom:12px;left:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:.8125rem;color:var(--dim);z-index:55;background:#04070fbb;padding:8px 10px;border:1px solid var(--border);backdrop-filter:blur(4px);}
+.ghud-line{white-space:nowrap;pointer-events:none;}
+.ghud-line b{color:var(--data);}
+.ghud-line .ghud-live{color:var(--ng);}
+.rbadge{display:inline-block;font-family:'Rajdhani',sans-serif;font-size:1.0625rem;font-weight:700;letter-spacing:.1em;padding:2px 9px;border:1px solid var(--nr);color:var(--nr);text-shadow:var(--gr);box-shadow:var(--gr);pointer-events:none;}
+.ghud-help{pointer-events:auto;flex-shrink:0;width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Share Tech Mono',monospace;font-weight:700;font-size:.8125rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.ghud-help:hover,.ghud-help.open{border-color:var(--nb);color:var(--nb);}
+.ghud-tip{position:absolute;bottom:100%;left:0;margin-bottom:8px;background:#04070fee;border:1px solid var(--nb);padding:9px 11px;font-size:.8125rem;line-height:1.6;color:var(--text);white-space:nowrap;display:none;box-shadow:var(--gb);}
+.ghud-tip.show{display:block;}
 
 /* TICKER */
 #ticker{position:absolute;top:0;left:0;right:0;height:26px;background:#04060fdd;border-bottom:1px solid var(--border);overflow:hidden;z-index:70;display:flex;align-items:center;}
@@ -87,7 +98,9 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 #layer-panel.collapsed .lp-label,#layer-panel.collapsed .lp-chevron{display:none;}
 .lp-chevron{font-size:.8125rem;transition:transform .18s;flex-shrink:0;}
 #layer-panel.collapsed .lp-chevron{transform:rotate(-90deg);}
-.lp-body{display:flex;flex-direction:column;overflow:hidden;max-height:260px;margin-top:8px;opacity:1;transition:max-height .18s ease,opacity .12s ease,margin-top .18s ease;}
+.lp-body{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;max-height:340px;margin-top:8px;opacity:1;transition:max-height .18s ease,opacity .12s ease,margin-top .18s ease;}
+.lp-body::-webkit-scrollbar{width:3px;}
+.lp-body::-webkit-scrollbar-thumb{background:var(--border);}
 #layer-panel.collapsed .lp-body{max-height:0;opacity:0;margin-top:0;}
 .lp-row{display:flex;align-items:center;gap:7px;font-size:.9375rem;line-height:1.55;color:var(--text);padding:4px 0;cursor:pointer;user-select:none;}
 .lp-row input{accent-color:var(--nb);cursor:pointer;flex-shrink:0;width:13px;height:13px;}
@@ -190,13 +203,24 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
    a 3-col grid meant ~4 rows eating a big chunk of the sidebar's height
    before a single list item was visible. Scrolling keeps it to one row at
    a comfortable, readable size, with a clear active state (bottom border +
-   tinted background + brighter text) instead of crushing every label. */
-.tabs{display:flex;overflow-x:auto;overflow-y:hidden;border-bottom:1px solid var(--border);flex-shrink:0;-webkit-overflow-scrolling:touch;}
+   tinted background + brighter text) instead of crushing every label.
+   The row alone silently clipped 7 of 10 tabs with zero indication there
+   was more to scroll to — confirmed live via screenshot, not just reading
+   the CSS. `.tabs-wrap` adds two edge-fade+chevron hints (`#tabFadeL/R`)
+   that JS toggles based on actual scroll position (see updateTabFades()),
+   so "more tabs this way" is always visible whenever it's true and gone
+   once you've scrolled all the way to that edge. */
+.tabs-wrap{position:relative;flex-shrink:0;border-bottom:1px solid var(--border);}
+.tabs{display:flex;overflow-x:auto;overflow-y:hidden;flex-shrink:0;-webkit-overflow-scrolling:touch;}
 .tabs::-webkit-scrollbar{height:4px;}
 .tabs::-webkit-scrollbar-thumb{background:var(--border);}
 .tab{flex:0 0 auto;min-height:44px;padding:10px 16px;display:flex;align-items:center;font-family:'Rajdhani',sans-serif;font-size:.9375rem;font-weight:700;letter-spacing:.02em;background:transparent;border:none;border-bottom:3px solid transparent;color:var(--muted);cursor:pointer;transition:all .2s;text-align:center;white-space:nowrap;}
 .tab:hover{color:var(--text);}
 .tab.active{color:var(--nb);border-bottom-color:var(--nb);background:#00d4ff10;}
+.tabs-fade{position:absolute;top:0;bottom:0;width:30px;display:flex;align-items:center;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.9rem;color:var(--nb);pointer-events:none;opacity:0;transition:opacity .2s;z-index:2;}
+.tabs-fade.show{opacity:1;}
+.tabs-fade-l{left:0;background:linear-gradient(90deg,var(--panel2) 40%,transparent);justify-content:flex-start;padding-left:2px;}
+.tabs-fade-r{right:0;background:linear-gradient(270deg,var(--panel2) 40%,transparent);justify-content:flex-end;padding-right:2px;}
 .tabp{display:none;flex:1;overflow:hidden;flex-direction:column;}
 .tabp.active{display:flex;}
 .ph{padding:10px 14px;font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--muted);letter-spacing:.1em;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;justify-content:space-between;align-items:center;gap:10px;}
@@ -316,12 +340,14 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 #briefbox b{color:var(--nb);}
 
 /* ENTITIES PANEL */
-.etags{display:flex;flex-wrap:wrap;gap:3px;padding:6px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
-.etag{font-family:'Share Tech Mono',monospace;font-size:1rem;padding:2px 6px;border:1px solid var(--border);cursor:pointer;transition:border-color .15s;}
-.etag:hover{border-color:var(--nb);}
+.etags{display:flex;flex-wrap:wrap;gap:6px;padding:9px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.etag{font-family:'Share Tech Mono',monospace;font-size:1rem;padding:4px 9px;border:1px solid var(--border);border-radius:3px;cursor:pointer;transition:all .15s;background:#ffffff06;}
+.etag:hover{border-color:var(--nb);background:#00d4ff14;}
 .etag.person{border-color:#cc44ff44;color:var(--np);}
+.etag.person:hover{background:#cc44ff18;}
 .etag.org{border-color:#00d4ff44;color:var(--nb);}
 .etag.loc{border-color:#ff770044;color:var(--no);}
+.etag.loc:hover{background:#ff770018;}
 .etag.HIGH{border-color:var(--nr)!important;color:var(--nr)!important;}
 
 /* CONFLICT ITEMS */
@@ -449,6 +475,19 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,#00000010 2px,#00000010 4px);pointer-events:none;z-index:9990;}
 
 /* ═══════════════════════════════════
+   SMALL LAPTOP (769-1500px) — the header's logo+7 tmeta items+3 buttons
+   was wide enough to wrap the logo onto a second line at common laptop
+   widths (confirmed live at 1366px) since nothing constrained it to fit.
+   Tighten spacing and drop the redundant subtitle so it fits on one row
+   without needing to shrink or truncate any of the actual data.
+   ═══════════════════════════════════ */
+@media (max-width: 1500px){
+  .logo{letter-spacing:.15em;font-size:1.125rem;}
+  .logo-sub{display:none;}
+  .tmeta{gap:12px;}
+}
+
+/* ═══════════════════════════════════
    MOBILE (<=768px) — desktop layout above is untouched
    ═══════════════════════════════════ */
 @media (max-width: 768px){
@@ -509,8 +548,9 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
      was sized for a spare desktop corner; on a 360-390px screen its old
      size ate a large chunk of the map. Mouse-only instructions ("CLICK
      COUNTRY", "DRAG PAN") don't apply to touch anyway. */
-  #ghud{bottom:8px;left:8px;padding:8px 10px;font-size:.75rem;line-height:1.5;}
-  .ghud-mouse-hint{display:none;}
+  #ghud{bottom:8px;left:8px;padding:8px 10px;font-size:.75rem;gap:8px;}
+  .ghud-help{width:44px;height:44px;font-size:1rem;}
+  .ghud-tip{white-space:normal;max-width:220px;}
   #layer-panel.collapsed{width:44px;height:44px;}
 
   /* Country/naval detail panels: full-width cards instead of a fixed
@@ -583,14 +623,14 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
         <label class="lp-row"><input type="checkbox" id="lp-risk" checked> 🗺 Country Risk</label>
         <label class="lp-row"><input type="checkbox" id="lp-aircraft"> ✈ Aircraft (live)</label>
         <label class="lp-row"><input type="checkbox" id="lp-naval"> 🚢 Naval (OSINT-estimated)</label>
-        <div class="lp-note">Military Assets are known/publicly-documented positions, not live tracking. Aircraft layer is live (OpenSky, 30s refresh). Naval positions are estimated from OSINT reports (live news mentions), not live GPS tracking.</div>
+        <div class="lp-note">Military: known positions, not live. Aircraft: live (30s). Naval: OSINT-estimated.</div>
       </div>
     </div>
     <div id="ghud">
-      <div>MARKERS: <span id="mct">0</span></div>
-      <div>FEED: MULTI-SOURCE LIVE</div>
+      <div class="ghud-line"><b id="mct">0</b> MARKERS · <span class="ghud-live">LIVE</span></div>
       <div class="rbadge" id="rbadge">RISK: —</div>
-      <div class="ghud-mouse-hint" style="margin-top:6px;font-size:.75rem;color:var(--dim)">CLICK COUNTRY → INTEL CARD<br>CLICK MARKER → DETAILS · DRAG PAN · SCROLL ZOOM</div>
+      <button class="ghud-help" id="ghud-help" title="Click a country for an intel card. Click a marker for details. Drag to pan. Scroll to zoom.">?</button>
+      <div class="ghud-tip" id="ghud-tip">CLICK COUNTRY → INTEL CARD<br>CLICK MARKER → DETAILS · DRAG PAN · SCROLL ZOOM</div>
     </div>
     <div id="country-tooltip"></div>
     <div id="country-panel"></div>
@@ -599,17 +639,21 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
   </div>
 
   <div id="sb">
-    <div class="tabs">
-      <button class="tab active" data-tab="news">📡 BRIEFING</button>
-      <button class="tab" data-tab="warnings">⚠ WARNINGS</button>
-      <button class="tab" data-tab="analyst">🤖 AI ANALYST</button>
-      <button class="tab" data-tab="search">🔍 INTEL SEARCH</button>
-      <button class="tab" data-tab="conflicts">⚔ CONFLICTS</button>
-      <button class="tab" data-tab="forecast">🎯 FORECAST</button>
-      <button class="tab" data-tab="simulate">⚔ SIMULATE</button>
-      <button class="tab" data-tab="leaders">👤 LEADERS</button>
-      <button class="tab" data-tab="weather">🌤 WEATHER</button>
-      <button class="tab" data-tab="mideast">🌙 MIDEAST</button>
+    <div class="tabs-wrap">
+      <div class="tabs" id="tabsrow">
+        <button class="tab active" data-tab="news">📡 BRIEFING</button>
+        <button class="tab" data-tab="warnings">⚠ WARNINGS</button>
+        <button class="tab" data-tab="analyst">🤖 AI ANALYST</button>
+        <button class="tab" data-tab="search">🔍 INTEL SEARCH</button>
+        <button class="tab" data-tab="conflicts">⚔ CONFLICTS</button>
+        <button class="tab" data-tab="forecast">🎯 FORECAST</button>
+        <button class="tab" data-tab="simulate">⚔ SIMULATE</button>
+        <button class="tab" data-tab="leaders">👤 LEADERS</button>
+        <button class="tab" data-tab="weather">🌤 WEATHER</button>
+        <button class="tab" data-tab="mideast">🌙 MIDEAST</button>
+      </div>
+      <div class="tabs-fade tabs-fade-l" id="tabFadeL">‹</div>
+      <div class="tabs-fade tabs-fade-r" id="tabFadeR">›</div>
     </div>
 
     <div class="tabp active" id="tab-news">
@@ -734,6 +778,16 @@ function initMap(){
   });
   map.touchZoomRotate.disableRotation();
   map.addControl(new maplibregl.NavigationControl({ showCompass:false }), 'bottom-right');
+
+  // On narrow viewports MapLibre's attribution control renders as a native
+  // <details open> element — expanded by default, not collapsed — which
+  // visually collided with #ghud right below it (confirmed live at 390px:
+  // the full "MapLibre © CARTO © OpenStreetMap contributors" line wrapped
+  // to 2 lines sitting almost flush against the ghud box). Collapse it to
+  // its small tap-to-expand icon immediately; attribution is still fully
+  // accessible, just not forced open on load.
+  const attrib = document.querySelector('.maplibregl-ctrl-attrib');
+  if (attrib && attrib.hasAttribute('open')) attrib.removeAttribute('open');
 
   map.on('load', () => {
     mapReadyResolve();
@@ -1459,7 +1513,7 @@ async function loadNews(){
     const srcList=[...new Set(liveArticles.map(a=>a.source))];
     document.getElementById('feedstatus').textContent=`● LIVE — ${srcList.join(', ')}`;
     document.getElementById('feedstatus').style.color='var(--ng)';
-    document.getElementById('tsrc').textContent=srcList.length+' SOURCES';
+    document.getElementById('tsrc').textContent=srcList.length;
     nl.innerHTML='';
     liveArticles.forEach(a=>{
       const div=document.createElement('div'); div.className='ni';
@@ -2579,6 +2633,32 @@ const lsi=setInterval(()=>{
 },390);
 
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>activateTab(b.dataset.tab)));
+// Tab row scrolls horizontally (10 tabs never fit one screen width) — these
+// fades are the actual "there's more this way" signal, since the row alone
+// gave zero indication anything was scrollable and silently clipped 7 of 10
+// tabs off-screen. Toggled by real scroll position, not shown/hidden once.
+function updateTabFades(){
+  const row=document.getElementById('tabsrow');
+  const l=document.getElementById('tabFadeL'), r=document.getElementById('tabFadeR');
+  l.classList.toggle('show', row.scrollLeft > 2);
+  r.classList.toggle('show', row.scrollLeft + row.clientWidth < row.scrollWidth - 2);
+}
+document.getElementById('tabsrow').addEventListener('scroll', updateTabFades);
+window.addEventListener('resize', updateTabFades);
+updateTabFades();
+
+// Map-controls tooltip: click/tap-to-reveal instead of always-on text, since
+// the always-on version was one of the largest single things eating into
+// map space (confirmed via screenshot).
+document.getElementById('ghud-help').addEventListener('click',(ev)=>{
+  ev.stopPropagation();
+  document.getElementById('ghud-tip').classList.toggle('show');
+  document.getElementById('ghud-help').classList.toggle('open');
+});
+document.addEventListener('click',()=>{
+  document.getElementById('ghud-tip').classList.remove('show');
+  document.getElementById('ghud-help').classList.remove('open');
+});
 function toggleSidebar(){
   const open = document.getElementById('sb').classList.toggle('open');
   document.getElementById('sb-toggle').textContent = open ? '✕ CLOSE' : '☰ INTEL';
@@ -2679,6 +2759,12 @@ window.addEventListener('load',()=>{
       const app=document.getElementById('app');
       app.style.display='grid';
       boot();
+      // #app is display:none until this point, so the tab-fade scroll-hint
+      // check that ran at script-load time (see updateTabFades() below) saw
+      // clientWidth/scrollWidth of 0 and concluded there was nothing to
+      // scroll — genuinely wrong, and the actual reason the very first
+      // fix for this silently didn't render. Re-run now that layout is real.
+      updateTabFades();
     },500);
   },2800);
 });
