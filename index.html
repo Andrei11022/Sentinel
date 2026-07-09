@@ -222,6 +222,8 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 /* NEWS */
 .ni{padding:11px 13px;border-bottom:1px solid #0d1e3630;cursor:pointer;transition:background .12s;}
 .ni:hover{background:#00d4ff07;}
+@keyframes ni-glow{0%{background:#00d4ff33;box-shadow:inset 3px 0 0 var(--nb);}100%{background:transparent;box-shadow:inset 3px 0 0 transparent;}}
+.ni-new{animation:ni-glow 2.5s ease-out;}
 .ntag{font-family:'Share Tech Mono',monospace;font-size:1rem;letter-spacing:.06em;margin-bottom:3px;}
 .ntag.CONFLICT{color:var(--nr);}
 .ntag.MILITARY{color:#ff6600;}
@@ -640,7 +642,13 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     color: var(--nb, #00c8f0);
     font-size: 22px;
     align-items: center; justify-content: center;
-    z-index: 800;
+    /* Above #m-layers-sheet's z-index:950 — the open sheet is tall enough
+       to visually cover the FAB's own position (it starts at bottom:64px
+       and the sheet content is far taller than the 48px gap up to the
+       FAB), so without out-ranking it the FAB became unclickable exactly
+       when you'd want to tap it again to close — confirmed live via a
+       failed Playwright click ("subtree intercepts pointer events"). */
+    z-index: 960;
     box-shadow: 0 0 14px #00c8f044;
   }
   #m-layers-sheet {
@@ -654,6 +662,20 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     transition: transform .25s ease;
   }
   #m-layers-sheet.open { display: block !important; transform: translateY(0); }
+  .m-layers-sheet-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .m-layers-sheet-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px; font-weight: 700; letter-spacing: .1em;
+    color: var(--nb, #00c8f0);
+  }
+  #m-layers-close {
+    background: none; border: 1px solid var(--border, #0a1e36);
+    color: #a8c8e8; font-size: 16px;
+    width: 40px; height: 40px; border-radius: 4px;
+  }
   .m-layer-row {
     display: flex; align-items: center; gap: 12px;
     min-height: 52px;
@@ -1586,6 +1608,27 @@ async function loadThreats(){
   }catch(e){console.error('Threats:',e);}
 }
 
+function buildNewsItemEl(a, opts={}){
+  const div=document.createElement('div'); div.className='ni'+(opts.highlight?' ni-new':'');
+  const sc=a.threatScore>70?'hi':a.threatScore>45?'me':'lo';
+  div.innerHTML=`<div class="ntag ${a.tag}">${a.tag}</div><div class="nh">${a.title}</div><div class="nm"><span class="nsrc">${a.source}</span><span>${timeAgo(a.publishedAt)}</span><span class="nsc ${sc}">▲${a.threatScore}</span></div>`;
+  div.onclick=()=>window.open(a.url,'_blank');
+  return div;
+}
+
+// "Updated Xs/m ago" lives inside #feedstatus itself (appended after the
+// source list) rather than a separate element, since .ph's flex layout
+// already gives that one span all the spare width with right-aligned text.
+let lastNewsSrcList=[];
+let lastNewsUpdate=null;
+function updateFeedStatusText(){
+  const el=document.getElementById('feedstatus');
+  if(!lastNewsUpdate) return;
+  el.textContent=`● LIVE — ${lastNewsSrcList.join(', ')} · Updated ${timeAgo(lastNewsUpdate.toISOString())}`;
+  el.style.color='var(--ng)';
+}
+setInterval(updateFeedStatusText, 20000); // keeps "Updated Xs ago" fresh between polls, no network call
+
 async function loadNews(){
   document.getElementById('feedstatus').textContent='● FETCHING...';
   document.getElementById('feedstatus').style.color='var(--no)';
@@ -1594,18 +1637,12 @@ async function loadNews(){
   try{
     const d=await apiGet('/news?type=world');
     liveArticles=d.articles||[];
-    const srcList=[...new Set(liveArticles.map(a=>a.source))];
-    document.getElementById('feedstatus').textContent=`● LIVE — ${srcList.join(', ')}`;
-    document.getElementById('feedstatus').style.color='var(--ng)';
-    document.getElementById('tsrc').textContent=srcList.length;
+    lastNewsSrcList=[...new Set(liveArticles.map(a=>a.source))];
+    lastNewsUpdate=new Date();
+    updateFeedStatusText();
+    document.getElementById('tsrc').textContent=lastNewsSrcList.length;
     nl.innerHTML='';
-    liveArticles.forEach(a=>{
-      const div=document.createElement('div'); div.className='ni';
-      const sc=a.threatScore>70?'hi':a.threatScore>45?'me':'lo';
-      div.innerHTML=`<div class="ntag ${a.tag}">${a.tag}</div><div class="nh">${a.title}</div><div class="nm"><span class="nsrc">${a.source}</span><span>${timeAgo(a.publishedAt)}</span><span class="nsc ${sc}">▲${a.threatScore}</span></div>`;
-      div.onclick=()=>window.open(a.url,'_blank');
-      nl.appendChild(div);
-    });
+    liveArticles.forEach(a=> nl.appendChild(buildNewsItemEl(a)));
     renderTicker(liveArticles);
     // Trigger AI analysis panels
     loadEntities(liveArticles);
@@ -1614,6 +1651,43 @@ async function loadNews(){
     document.getElementById('feedstatus').style.color='var(--nr)';
     nl.innerHTML=`<div style="padding:14px;font-family:'Share Tech Mono',monospace;font-size:.9375rem;color:var(--nr)">⚠ Feed error: ${e.message}</div>`;
   }
+}
+
+// ═══════════════════════════════════
+// FEED AUTO-REFRESH — polls every 3min (server caches /api/news for 5min,
+// so this just re-reads that cache until it naturally expires; never a
+// wasted live fetch on the backend). Prepends only the genuinely new
+// articles instead of re-rendering the whole list, so scroll position in
+// an open feed is never lost.
+// ═══════════════════════════════════
+const NEWS_POLL_MS=180000;
+let newsPollTimer=null;
+
+async function pollNewsForUpdates(){
+  try{
+    const d=await apiGet('/news?type=world');
+    const fresh=d.articles||[];
+    const knownKeys=new Set(liveArticles.map(articleKey));
+    const newOnes=fresh.filter(a=>!knownKeys.has(articleKey(a)));
+    if(newOnes.length){
+      const nl=document.getElementById('newslist');
+      const frag=document.createDocumentFragment();
+      newOnes.forEach(a=> frag.appendChild(buildNewsItemEl(a,{highlight:true})));
+      nl.prepend(frag);
+      liveArticles=[...newOnes, ...liveArticles];
+      renderTicker(liveArticles);
+    }
+    lastNewsSrcList=[...new Set(fresh.map(a=>a.source))];
+    lastNewsUpdate=new Date();
+    updateFeedStatusText();
+    document.getElementById('tsrc').textContent=lastNewsSrcList.length;
+  }catch(e){
+    console.error('News poll failed:', e.message);
+  }
+}
+function startNewsPolling(){
+  if(newsPollTimer) return;
+  newsPollTimer=setInterval(pollNewsForUpdates, NEWS_POLL_MS);
 }
 
 // ═══════════════════════════════════
@@ -2432,7 +2506,7 @@ const ALERT_ANNOUNCE_GAP_MS=1800; // sequential spacing so overlapping alerts ne
 const ALERT_COUNTRY_NAMES={UA:'Ukraine',RU:'Russia',IL:'Israel',IR:'Iran',TW:'Taiwan',KP:'North Korea',YE:'Yemen',LB:'Lebanon',SD:'Sudan',MM:'Myanmar',CN:'China',PK:'Pakistan',SY:'Syria',HT:'Haiti',VE:'Venezuela',US:'United States',GB:'United Kingdom',FR:'France',DE:'Germany',IN:'India'};
 
 function articleSeverity(a){
-  if(a.threatScore>=75||a.tag==='NUCLEAR') return 'HIGH';
+  if(a.threatScore>=70||a.tag==='NUCLEAR') return 'HIGH';
   if(a.threatScore>=50) return 'MEDIUM';
   return 'LOW';
 }
@@ -2440,6 +2514,32 @@ function articleSeverity(a){
 function articleKey(a){ return a.id||a.url||a.title; }
 
 let alertAudioCtx=null;
+// Creates (and resumes) the AudioContext synchronously from the ALERT MODE
+// button's own click handler — a real, trusted user gesture. Browsers block
+// audio from ever starting in a context created later inside a setInterval
+// callback (no gesture attached to it), which is exactly where the actual
+// alert sound would otherwise first try to play — so without this, the
+// beep would silently never be heard on a real automatic alert even though
+// everything else (banner, log, notification) works fine. Confirmed this
+// is the priming point that matters: playAlertSound() itself already
+// guards ctx.state==='suspended', but by the time an automatic alert
+// fires there's no gesture left to resume it with.
+function primeAlertAudio(){
+  try{
+    if(!alertAudioCtx) alertAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(alertAudioCtx.state==='suspended') alertAudioCtx.resume();
+  }catch(e){ /* Web Audio unavailable -- banner/notification still work */ }
+}
+
+function speakAlertHeadline(article){
+  if(!('speechSynthesis' in window)) return;
+  try{
+    const u=new SpeechSynthesisUtterance(article.title);
+    u.rate=0.95; u.pitch=0.9; u.volume=0.9;
+    speechSynthesis.speak(u);
+  }catch(e){ /* speech optional -- sound+banner already announced it */ }
+}
+
 function playAlertSound(){
   try{
     if(!alertAudioCtx) alertAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
@@ -2526,6 +2626,7 @@ function processAlertQueue(){
   const countryName=loc?(ALERT_COUNTRY_NAMES[loc.code]||loc.code):null;
 
   playAlertSound();
+  speakAlertHeadline(article);
   showAlertBanner(article,severity,countryName);
   fireDesktopNotification(article,severity);
   logAlert(article,severity,countryName);
@@ -2571,6 +2672,7 @@ function updateAlertButtonUI(){
 async function enableAlertMode(){
   alertOn=true;
   updateAlertButtonUI();
+  primeAlertAudio(); // must happen synchronously, before the first await below, to count as within this click's user gesture
   // Seed the seen-set with whatever's currently live BEFORE polling starts,
   // so turning this on never immediately "alerts" on articles that were
   // already on screen — only genuinely new arrivals count.
@@ -2799,6 +2901,7 @@ async function boot(){
   // correctly-empty (but useless) result — not a backend bug, a frontend
   // race condition.
   await loadNews();
+  startNewsPolling();
   loadLeaders();
   loadMideast();
   loadConflicts();
@@ -2863,6 +2966,7 @@ function mOpenPanel(key){
   document.getElementById('m-panel').classList.add('open');
   document.querySelectorAll('.m-nav-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.mtab === key));
+  mCloseLayersSheet(); // opening a section panel dismisses the layers sheet
 }
 
 function mReturnContent(){
@@ -2891,6 +2995,7 @@ function mOpenMore(){
       <span class="ic">${icons[k]||'•'}</span>${t.title}</button>`;
   }).join('');
   document.getElementById('m-panel').classList.add('open');
+  mCloseLayersSheet();
 }
 
 // Build the mobile layers sheet from the SAME layer toggles as desktop
@@ -2901,7 +3006,11 @@ function mBuildLayersSheet(){
     ['military','🎖 Military Assets'], ['risk','🌡 Country Risk'],
     ['aircraft','✈ Aircraft (live)'], ['naval','🚢 Naval (OSINT)'],
   ];
-  sheet.innerHTML = layers.map(([id,label]) => `
+  sheet.innerHTML = `
+    <div class="m-layers-sheet-head">
+      <span class="m-layers-sheet-title">MAP LAYERS</span>
+      <button id="m-layers-close" onclick="mCloseLayersSheet()">✕</button>
+    </div>` + layers.map(([id,label]) => `
     <label class="m-layer-row">
       <input type="checkbox" data-mlayer="${id}"
         onchange="mToggleLayer('${id}', this.checked)">
@@ -2923,6 +3032,23 @@ function mToggleLayer(id, on){
     `input[data-layer="${id}"]`);
   if (desktopCtl) desktopCtl.click();
 }
+
+function mToggleLayersSheet(){
+  document.getElementById('m-layers-sheet').classList.toggle('open');
+}
+function mCloseLayersSheet(){
+  document.getElementById('m-layers-sheet').classList.remove('open');
+}
+// Tap anywhere outside the open sheet (the map, the nav, anywhere) dismisses
+// it — checked on every document click rather than a single dedicated
+// backdrop element, so it also catches taps on the map/nav/header alike.
+document.addEventListener('click', (ev) => {
+  const sheet = document.getElementById('m-layers-sheet');
+  const fab = document.getElementById('m-layers-fab');
+  if (sheet.classList.contains('open') && !sheet.contains(ev.target) && ev.target !== fab) {
+    mCloseLayersSheet();
+  }
+});
 
 // Mirror header stats into the mobile strip
 function mSyncStats(){
@@ -2955,6 +3081,13 @@ window.addEventListener('load', () => {
     b.addEventListener('click', () => mOpenPanel(b.dataset.mtab)));
 });
 window.addEventListener('resize', mInit);
+// Defensive: MapLibre's own ResizeObserver already re-syncs the canvas to
+// its container on most size changes (verified live — markers stayed
+// sub-pixel accurate through zoom/pan/resize in testing), but an explicit
+// resize() after a viewport change costs nothing and guards against any
+// browser/gesture combination where the observer doesn't fire in time,
+// which would otherwise show up as exactly this kind of marker offset.
+window.addEventListener('resize', () => { if (map) map.resize(); });
 window.addEventListener('load', mInit);
 </script>
 
@@ -2973,7 +3106,7 @@ window.addEventListener('load', mInit);
   <div id="m-panel-body"></div>
 </div>
 
-<button id="m-layers-fab" onclick="document.getElementById('m-layers-sheet').classList.toggle('open')">☰</button>
+<button id="m-layers-fab" onclick="mToggleLayersSheet()">☰</button>
 <div id="m-layers-sheet"></div>
 
 <nav id="m-nav">
